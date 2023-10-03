@@ -1,4 +1,4 @@
-/* Copyright (C) 2022 Alif Semiconductor - All Rights Reserved.
+/* Copyright (C) 2023 Alif Semiconductor - All Rights Reserved.
  * Use, distribution and modification of this code is permitted under the
  * terms stated in the Alif Semiconductor Software License Agreement
  *
@@ -776,6 +776,17 @@ void video_demo_thread_entry(ULONG thread_input)
 	if(ret != ARM_DRIVER_OK)
 	{
 		printf("\r\n Error: CAMERA SENSOR Configuration failed.\r\n");
+		goto error_poweroff_camera;
+	}
+
+	/* Control configuration for camera events */
+	ret = CAMERAdrv->Control(CAMERA_EVENTS_CONFIGURE, \
+			ARM_CAMERA_CONTROLLER_EVENT_CAMERA_FRAME_VSYNC_DETECTED | \
+			ARM_CAMERA_CONTROLLER_EVENT_ERR_CAMERA_FIFO_OVERRUN | \
+			ARM_CAMERA_CONTROLLER_EVENT_ERR_CAMERA_FIFO_UNDERRUN);
+	if(ret != ARM_DRIVER_OK)
+	{
+		printf("\r\n Error: CAMERA SENSOR Event Configuration failed.\r\n");
 		goto error_poweroff_camera;
 	}
 

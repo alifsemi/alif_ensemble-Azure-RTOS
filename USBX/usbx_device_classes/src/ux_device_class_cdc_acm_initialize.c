@@ -166,7 +166,7 @@ UINT                                    status;
         /* Allocate some memory for the bulk in thread stack. */
         cdc_acm -> ux_slave_class_cdc_acm_bulkin_thread_stack =
             cdc_acm -> ux_slave_class_cdc_acm_bulkout_thread_stack + UX_THREAD_STACK_SIZE;
-         //printf("EVENT  flags creating\n");
+
         /* Create a event flag group for the cdc_acm class to synchronize with the application writing event .  */
         status =  _ux_utility_event_flags_create(
                         &cdc_acm -> ux_slave_class_cdc_acm_event_flags_group,

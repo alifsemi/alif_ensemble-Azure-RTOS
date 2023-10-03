@@ -72,6 +72,7 @@ ULONG  _ux_utility_short_get(UCHAR * address)
 
 USHORT   value;
 
+
     /* In order to make this function endian agnostic and memory alignment
        independent, we read a byte at a time from the address.  */
     value =  (USHORT) *address++;

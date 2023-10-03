@@ -23,6 +23,7 @@
 #define NX_ETH_USER_H
 
 #include "tx_api.h"
+#include "pinconf.h"
 
 #ifdef  __cplusplus
 extern "C"
@@ -110,7 +111,7 @@ extern "C"
 //      <AN_DISABLE=>    Disable Auto neogtiation
 //   <i> Autonegotiation configuraton
 
-#define ETH_AN_CONFIG                           AN_DISABLE
+#define ETH_AN_CONFIG                           AN_ENABLE
 
 
 /**
@@ -123,7 +124,7 @@ extern "C"
 //      <ETH_SPEED_100M=> 100mbps
 //   <i> Link speed configuration
 
-#define ETH_SPEED_CONFIG                        ETH_SPEED_10M
+#define ETH_SPEED_CONFIG                        ETH_SPEED_100M
 
 /**
   \def ETH_DUPLEX_CONFIG
@@ -141,49 +142,49 @@ extern "C"
 //------------- <<< end of configuration section >>> ---------------------------
 
 /* Pin/Pad mux and configuration for Ethernet pads */
-#define ETH_RXD0_PORT                           PORT_NUMBER_1
-#define ETH_RXD0_PIN                            PIN_NUMBER_0
-#define ETH_RXD0_PIN_FUNCTION                   PINMUX_ALTERNATE_FUNCTION_3
+#define ETH_RXD0_PORT                           PORT_11
+#define ETH_RXD0_PIN                            PIN_3
+#define ETH_RXD0_PIN_FUNCTION                   PINMUX_ALTERNATE_FUNCTION_6
 
-#define ETH_RXD1_PORT                           PORT_NUMBER_1
-#define ETH_RXD1_PIN                            PIN_NUMBER_1
-#define ETH_RXD1_PIN_FUNCTION                   PINMUX_ALTERNATE_FUNCTION_3
+#define ETH_RXD1_PORT                           PORT_11
+#define ETH_RXD1_PIN                            PIN_4
+#define ETH_RXD1_PIN_FUNCTION                   PINMUX_ALTERNATE_FUNCTION_6
 
-#define ETH_CRSDV_PORT                          PORT_NUMBER_1
-#define ETH_CRSDV_PIN                           PIN_NUMBER_2
-#define ETH_CRSDV_FUNCTION                      PINMUX_ALTERNATE_FUNCTION_3
+#define ETH_CRSDV_PORT                          PORT_11
+#define ETH_CRSDV_PIN                           PIN_5
+#define ETH_CRSDV_FUNCTION                      PINMUX_ALTERNATE_FUNCTION_6
 
-#define ETH_RST_PORT                            PORT_NUMBER_1
-#define ETH_RST_PIN                             PIN_NUMBER_3
-#define ETH_RST_FUNCTION                        PINMUX_ALTERNATE_FUNCTION_3
+#define ETH_RST_PORT                            PORT_11
+#define ETH_RST_PIN                             PIN_6
+#define ETH_RST_FUNCTION                        PINMUX_ALTERNATE_FUNCTION_6
 
-#define ETH_TXD0_PORT                           PORT_NUMBER_1
-#define ETH_TXD0_PIN                            PIN_NUMBER_4
-#define ETH_TXD0_PIN_FUNCTION                   PINMUX_ALTERNATE_FUNCTION_3
+#define ETH_TXD0_PORT                           PORT_6
+#define ETH_TXD0_PIN                            PIN_0
+#define ETH_TXD0_PIN_FUNCTION                   PINMUX_ALTERNATE_FUNCTION_6
 
-#define ETH_TXD1_PORT                           PORT_NUMBER_1
-#define ETH_TXD1_PIN                            PIN_NUMBER_5
-#define ETH_TXD1_PIN_FUNCTION                   PINMUX_ALTERNATE_FUNCTION_3
+#define ETH_TXD1_PORT                           PORT_10
+#define ETH_TXD1_PIN                            PIN_5
+#define ETH_TXD1_PIN_FUNCTION                   PINMUX_ALTERNATE_FUNCTION_6
 
-#define ETH_TXEN_PORT                           PORT_NUMBER_1
-#define ETH_TXEN_PIN                            PIN_NUMBER_6
-#define ETH_TXEN_PIN_FUNCTION                   PINMUX_ALTERNATE_FUNCTION_3
+#define ETH_TXEN_PORT                           PORT_10
+#define ETH_TXEN_PIN                            PIN_6
+#define ETH_TXEN_PIN_FUNCTION                   PINMUX_ALTERNATE_FUNCTION_6
 
-#define ETH_IRQ_PORT                            PORT_NUMBER_1
-#define ETH_IRQ_PIN                             PIN_NUMBER_7
-#define ETH_IRQ_PIN_FUNCTION                    PINMUX_ALTERNATE_FUNCTION_3
+#define ETH_IRQ_PORT                            PORT_1
+#define ETH_IRQ_PIN                             PIN_6
+#define ETH_IRQ_PIN_FUNCTION                    PINMUX_ALTERNATE_FUNCTION_6
 
-#define ETH_REFCLK_PORT                         PORT_NUMBER_1
-#define ETH_REFCLK_PIN                          PIN_NUMBER_8
-#define ETH_REFCLK_PIN_FUNCTION                 PINMUX_ALTERNATE_FUNCTION_3
+#define ETH_REFCLK_PORT                         PORT_11
+#define ETH_REFCLK_PIN                          PIN_0
+#define ETH_REFCLK_PIN_FUNCTION                 PINMUX_ALTERNATE_FUNCTION_6
 
-#define ETH_MDIO_PORT                           PORT_NUMBER_1
-#define ETH_MDIO_PIN                            PIN_NUMBER_9
-#define ETH_MDIO_PIN_FUNCTION                   PINMUX_ALTERNATE_FUNCTION_3
+#define ETH_MDIO_PORT                           PORT_11
+#define ETH_MDIO_PIN                            PIN_1
+#define ETH_MDIO_PIN_FUNCTION                   PINMUX_ALTERNATE_FUNCTION_5
 
-#define ETH_MDC_PORT                            PORT_NUMBER_1
-#define ETH_MDC_PIN                             PIN_NUMBER_10
-#define ETH_MDC_PIN_FUNCTION                    PINMUX_ALTERNATE_FUNCTION_3
+#define ETH_MDC_PORT                            PORT_11
+#define ETH_MDC_PIN                             PIN_2
+#define ETH_MDC_PIN_FUNCTION                    PINMUX_ALTERNATE_FUNCTION_6
 
 #ifdef  __cplusplus
 }

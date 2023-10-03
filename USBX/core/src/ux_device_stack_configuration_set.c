@@ -163,7 +163,6 @@ ULONG                           class_index;
     /* We unmount the configuration if there is previous configuration selected. */
     if (device -> ux_slave_device_configuration_selected)
     {
-    	printf("enter into if \n");
 
         /* Get the pointer to the first interface.  */
         interface =  device -> ux_slave_device_first_interface;
@@ -173,7 +172,6 @@ ULONG                           class_index;
         while (interface != UX_NULL)
         {
 #endif
-        	//printf("CLASS command\n");
             /* Build all the fields of the Class Command.  */
             class_command.ux_slave_class_command_request =   UX_SLAVE_CLASS_COMMAND_DEACTIVATE;
             class_command.ux_slave_class_command_interface =  (VOID *) interface;
@@ -211,7 +209,6 @@ ULONG                           class_index;
 
     /* Mark the device as attached now. */
     device -> ux_slave_device_state =  UX_DEVICE_ATTACHED;
-    //printf("DEVICE attached now\n");
 
     /* The DCD needs to update the device state too.  */
     dcd -> ux_slave_dcd_function(dcd, UX_DCD_CHANGE_STATE, (VOID *) UX_DEVICE_ATTACHED);
@@ -242,11 +239,9 @@ ULONG                           class_index;
     /*  We need to scan all the interface descriptors following this
         configuration descriptor and enable all endpoints associated
         with the default alternate setting of each interface.  */
-
-
     while (device_framework_length != 0)
     {
-        //printf("ENter into WHile loop\n");
+
         /* Get the length of the current descriptor.  */
         descriptor_length =  (ULONG) *device_framework;
 
@@ -277,15 +272,10 @@ ULONG                           class_index;
                         UX_INTERFACE_DESCRIPTOR_ENTRIES,
                         (UCHAR *) &interface_descriptor);
 
-	    printf("bAlternateSetting [%x] bInterfaceNumber [%x]\n",
-			    interface_descriptor.bAlternateSetting,
-			    interface_descriptor.bInterfaceNumber);
-
             /* If the alternate setting is 0 for this interface, we need to
                memorize its class association and start it.  */
             if (interface_descriptor.bAlternateSetting == 0)
             {
-
 
                 /* Are we in a IAD scenario ? */
                 if (iad_flag == UX_TRUE)
@@ -314,7 +304,6 @@ ULONG                           class_index;
                                     (configuration_value == class_inst -> ux_slave_class_configuration_number))
                                 {
 
-//					printf("class-interface array initialized\n");
                                     /* Memorize the class in the class/interface array.  */
                                     _ux_system_slave -> ux_system_slave_interface_class_array[interface_descriptor.bInterfaceNumber] = class_inst;
 
@@ -335,10 +324,9 @@ ULONG                           class_index;
 #endif
                     }
                     else
-		            {
+
                         /* Memorize the class in the class/interface array.  We use the current class. */
                         _ux_system_slave -> ux_system_slave_interface_class_array[interface_descriptor.bInterfaceNumber] = current_class;
-		            }
 
                     /* Decrement the number of interfaces found in the same IAD.  */
                     iad_number_interfaces--;
@@ -405,7 +393,7 @@ ULONG                           class_index;
 
     /* The DCD needs to update the device state too.  */
     dcd -> ux_slave_dcd_function(dcd, UX_DCD_CHANGE_STATE, (VOID *) UX_DEVICE_CONFIGURED);
-   // printf("EXIT configuration set \n");
+
     /* Configuration mounted. */
     return(UX_SUCCESS);
 }

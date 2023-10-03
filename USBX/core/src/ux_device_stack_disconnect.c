@@ -87,8 +87,7 @@ UX_SLAVE_INTERFACE          *next_interface;
 UX_SLAVE_CLASS              *class;
 UX_SLAVE_CLASS_COMMAND      class_command;
 UINT                        status = UX_ERROR;
-
-   // printf("_ux_device_stack_disconnect\n");
+                        
     /* Get the pointer to the DCD.  */
     dcd =  &_ux_system_slave -> ux_system_slave_dcd;
 

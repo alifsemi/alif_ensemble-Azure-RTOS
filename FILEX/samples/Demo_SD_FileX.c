@@ -1,4 +1,4 @@
-/* Copyright (C) 2022 Alif Semiconductor - All Rights Reserved.
+/* Copyright (C) 2023 Alif Semiconductor - All Rights Reserved.
  * Use, distribution and modification of this code is permitted under the
  * terms stated in the Alif Semiconductor Software License Agreement
  *
@@ -27,54 +27,59 @@
 #include "fx_sd_driver.h"
 
 /* include for Pin Mux config */
-#include "Driver_PINMUX_AND_PINPAD.h"
+#include "pinconf.h"
 
 /* For Release build disable printf and semihosting */
-#define DISABLE_PRINTF
+//#define DISABLE_PRINTF
 
 #ifdef DISABLE_PRINTF
-    #define printf(fmt, ...) (0)
-    /* Also Disable Semihosting */
-    #if __ARMCC_VERSION >= 6000000
-            __asm(".global __use_no_semihosting");
-    #elif __ARMCC_VERSION >= 5000000
-            #pragma import(__use_no_semihosting)
-    #else
-            #error Unsupported compiler
-    #endif
-
-    void _sys_exit(int return_code) {
-        while (1);
-    }
-
-    int _sys_open(void *p){
-
-        return 0;
-    }
-
-    void _ttywrch(int ch){
-
-    }
+#define printf(fmt, ...) (0)
+/* Also Disable Semihosting */
+#if __ARMCC_VERSION >= 6000000
+__asm(".global __use_no_semihosting");
+#elif __ARMCC_VERSION >= 5000000
+#pragma import(__use_no_semihosting)
+#else
+#error Unsupported compiler
 #endif
 
+void _sys_exit(int return_code) {
+    while (1);
+}
+
+int _sys_open(void *p){
+
+    return 0;
+}
+
+void _ttywrch(int ch){
+
+}
+#endif
+
+#define TEST_FILE "TestFile34.txt"
 /* Define Test Requirement <Test File Name> */
-//#define FILE_CREATE_TEST "TEST4.txt"
-#define FILE_READ_TEST "TestFile63.txt"
-//#define FILE_WRITE_TEST "TestFile63.txt"
+//#define FILE_CREATE_TEST TEST_FILE
+//#define FILE_READ_TEST TEST_FILE
+#define FILE_WRITE_TEST TEST_FILE
 
 #define K (1024)
 
 /* Tasks Pool size, stack size, and pointers */
 #define STACK_POOL_SIZE (40*K)
 #define SD_STACK_SIZE (10*K)
+#define SD_BLK_SIZE 512
+#define NUM_BLK_TEST 20
+#define SD_TEST_ITTR_CNT 10
 
 TX_THREAD mySD_Thread;
 TX_BYTE_POOL StackPool;
 unsigned char *p_sdStack = NULL;
+uint32_t count1, count2, total_cnt=0;
 
 /* Buffer for FileX FX_MEDIA sector cache. This must be large enough for at least one sector , which are typically 512 bytes in size. */
-volatile UCHAR media_memory[512*4] __attribute__((section("sd_dma_buf"))) __attribute__((aligned(32)));
-unsigned char filebuffer[512*4] __attribute__((aligned(32)));
+UCHAR media_memory[SD_BLK_SIZE*NUM_BLK_TEST] __attribute__((section("sd_dma_buf"))) __attribute__((aligned(32)));
+UCHAR filebuffer[SD_BLK_SIZE*NUM_BLK_TEST] __attribute__((section("sd_dma_buf"))) __attribute__((aligned(32)));
 FX_MEDIA sd_card;
 FX_FILE test_file;
 
@@ -88,15 +93,21 @@ void mySD_Thread_entry(ULONG args)
 {
     UINT        status;
     ULONG       actual;
+    ULONG       startCnt, EndCnt;
 
-    /* Board Pin mux Configurations */
-    PINMUX_Config(PORT_NUMBER_3, PIN_NUMBER_10, PINMUX_ALTERNATE_FUNCTION_3); //CMD
-    PINMUX_Config(PORT_NUMBER_3, PIN_NUMBER_11, PINMUX_ALTERNATE_FUNCTION_3); //CLK
-    PINMUX_Config(PORT_NUMBER_3, PIN_NUMBER_12, PINMUX_ALTERNATE_FUNCTION_4); //D0
-#ifdef SD_4BIT_MODE
-    PINMUX_Config(PORT_NUMBER_3, PIN_NUMBER_13, PINMUX_ALTERNATE_FUNCTION_4); //D1
-    PINMUX_Config(PORT_NUMBER_3, PIN_NUMBER_14, PINMUX_ALTERNATE_FUNCTION_3); //D2
-    PINMUX_Config(PORT_NUMBER_3, PIN_NUMBER_15, PINMUX_ALTERNATE_FUNCTION_4); //D3
+    pinconf_set(PORT_7, PIN_0, PINMUX_ALTERNATE_FUNCTION_6, PADCTRL_READ_ENABLE); //cmd
+    pinconf_set(PORT_7, PIN_1, PINMUX_ALTERNATE_FUNCTION_6, PADCTRL_READ_ENABLE); //clk
+    pinconf_set(PORT_5, PIN_0, PINMUX_ALTERNATE_FUNCTION_7, PADCTRL_READ_ENABLE); //d0
+#ifdef SDMMC_4BIT_MODE
+    pinconf_set(PORT_5, PIN_1, PINMUX_ALTERNATE_FUNCTION_7, PADCTRL_READ_ENABLE); //d1
+    pinconf_set(PORT_5, PIN_2, PINMUX_ALTERNATE_FUNCTION_7, PADCTRL_READ_ENABLE); //d2
+    pinconf_set(PORT_5, PIN_3, PINMUX_ALTERNATE_FUNCTION_6, PADCTRL_READ_ENABLE); //d3
+#endif
+#ifdef SDMMC_8BIT_MODE
+    pinconf_set(PORT_5, PIN_4, PINMUX_ALTERNATE_FUNCTION_6, PADCTRL_READ_ENABLE); //d4
+    pinconf_set(PORT_5, PIN_5, PINMUX_ALTERNATE_FUNCTION_5, PADCTRL_READ_ENABLE); //d5
+    pinconf_set(PORT_5, PIN_6, PINMUX_ALTERNATE_FUNCTION_5, PADCTRL_READ_ENABLE); //d6
+    pinconf_set(PORT_5, PIN_7, PINMUX_ALTERNATE_FUNCTION_5, PADCTRL_READ_ENABLE); //d7
 #endif
 
     /* Open the SD disk. and initialize SD controller */
@@ -146,30 +157,7 @@ void mySD_Thread_entry(ULONG args)
         while(1);
     }
 
-    /* Close the test file.  */
-    status =  fx_file_close(&test_file);
-
-    /* Check the file close status.  */
-    if (status != FX_SUCCESS)
-    {
-
-        /* Error closing the file, break the loop.  */
-        while(1);
-    }
-
-    /* Close the media.  */
-    status =  fx_media_close(&sd_card);
-
-    /* Check the media close status.  */
-    if (status != FX_SUCCESS)
-    {
-
-        /* Error closing the media, break the loop.  */
-        while(1);
-    }
-#endif
-
-#ifdef FILE_READ_TEST
+#elif defined(FILE_READ_TEST)
     /* Open the test file.  */
     status =  fx_file_open(&sd_card, &test_file, FILE_READ_TEST, FX_OPEN_FOR_READ);
 
@@ -178,6 +166,7 @@ void mySD_Thread_entry(ULONG args)
     {
         /* Error opening file, break the loop.  */
         printf("File open status: %d\n",status);
+        printf("%s File not Found...\n",FILE_READ_TEST);
         while(1);
     }
 
@@ -192,11 +181,12 @@ void mySD_Thread_entry(ULONG args)
         while(1);
     }
 
-    for(int i = 0;i<80;i++)
-    {
-        memset(filebuffer,'\0',512);
+    printf("Reading Data from File...%s\n",FILE_READ_TEST);
+    memset(filebuffer,'\0',sizeof(filebuffer));
 
-        status =  fx_file_read(&test_file, filebuffer, 511, &actual);
+    while(1){
+
+        status =  fx_file_read(&test_file, filebuffer, (SD_BLK_SIZE * NUM_BLK_TEST), &actual);
 
         /* Check the file read status.  */
         if (status != FX_SUCCESS)
@@ -212,33 +202,11 @@ void mySD_Thread_entry(ULONG args)
             }
         }
 
-        printf("%s\n",(const char *)filebuffer);
+        printf("actual size = %lu\n %s\n",actual, (const char *)filebuffer);
+
     }
 
-    /* Close the test file.  */
-    status =  fx_file_close(&test_file);
-
-    /* Check the file close status.  */
-    if (status != FX_SUCCESS)
-    {
-        printf("File close status: %d\n",status);
-        /* Error closing the file, break the loop.  */
-        while(1);
-    }
-
-    /* Close the media.  */
-    status =  fx_media_close(&sd_card);
-
-    /* Check the media close status.  */
-    if (status != FX_SUCCESS)
-    {
-        /* Error closing the media, break the loop.  */
-        printf("Media close status: %d\n",status);
-        while(1);
-    }
-#endif
-
-#ifdef FILE_WRITE_TEST
+#elif defined(FILE_WRITE_TEST)
 
     /* Create a file called FILE_WRITE_TEST in the root directory.  */
     status =  fx_file_create(&sd_card, FILE_WRITE_TEST);
@@ -278,25 +246,34 @@ void mySD_Thread_entry(ULONG args)
     }
 
     printf("Writing Data in File...%s\n",FILE_WRITE_TEST);
-    for(int i = 0;i<100;i++){
-        sprintf(filebuffer,"Hello World Target Write Test : %d\n",i);
+    memset(filebuffer, '\0', sizeof(filebuffer));
+    for(int i = 0; i<SD_TEST_ITTR_CNT; i++){
+
+        memset(filebuffer, 'D', (SD_BLK_SIZE * NUM_BLK_TEST));
 
         /* Write a string to the test file.  */
-        status =  fx_file_write(&test_file, (void *)filebuffer, strlen(filebuffer));
+        status =  fx_file_write(&test_file, (void *)filebuffer, (SD_BLK_SIZE * NUM_BLK_TEST));
+
+        tx_thread_sleep(1);
 
         /* Check the file write status.  */
         if (status != FX_SUCCESS)
         {
-            printf("File write status: %d\n",status);
+            printf("ittr: %d File write status: %d\n",i, status);
+
             /* Error writing to a file, break the loop.  */
             if (status == FX_NO_MORE_SPACE){
-                printf("No More Space...\nFlushing out data...\n");
+                printf("ittr: %d No More Space...\nFlushing out data...\n",i);
                 break;
             }
-
-            while(1);
         }
     }
+#else
+#error "No Test Defined...\n"
+
+#endif
+
+    printf("Closing File...%s\n",TEST_FILE);
     /* Close the test file.  */
     status =  fx_file_close(&test_file);
 
@@ -308,18 +285,18 @@ void mySD_Thread_entry(ULONG args)
         while(1);
     }
 
+    printf("Closing Media...\n");
     /* Close the media.  */
     status =  fx_media_close(&sd_card);
 
     /* Check the media close status.  */
     if (status != FX_SUCCESS)
     {
-        printf("Media close status: %d\n",status);
         /* Error closing the media, break the loop.  */
+        printf("Media close status: %d\n",status);
         while(1);
     }
-#endif
-    printf("File R/W Test Complete!!!\n");
+    printf("File R/W Test Completed!!!\n");
 
 }
 
@@ -343,3 +320,4 @@ int main(){
 
     return 0;
 }
+

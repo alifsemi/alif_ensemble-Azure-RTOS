@@ -94,7 +94,7 @@ ULONG                           transfer_length;
 ULONG                           total_length;
 ULONG                           sent_length;
 
-    //printf("UX_device_class_cdc_acm_bulkin_thread\n");
+
     /* Get the cdc_acm instance from this class container.  */
     UX_THREAD_EXTENSION_PTR_GET(cdc_acm, UX_SLAVE_CLASS_CDC_ACM, cdc_acm_class)
 

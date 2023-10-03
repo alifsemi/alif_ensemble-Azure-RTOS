@@ -20,13 +20,16 @@
 /**************************************************************************/
 /**************************************************************************/
 
+#ifdef TX_INCLUDE_USER_DEFINE_FILE
+#include "tx_user.h"
+#endif
 
 /**************************************************************************/
 /*                                                                        */
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _tx_thread_interrupt_control                      Cortex-M55/AC6    */
-/*                                                           6.1          */
+/*                                                           6.2.1        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Scott Larson, Microsoft Corporation                                 */
@@ -57,6 +60,8 @@
 /*    DATE              NAME                      DESCRIPTION             */
 /*                                                                        */
 /*  09-30-2020      Scott Larson            Initial Version 6.1           */
+/*  03-08-2023      Scott Larson            Include tx_user.h,            */
+/*                                            resulting in version 6.2.1  */
 /*                                                                        */
 /**************************************************************************/
 // UINT   _tx_thread_interrupt_control(UINT new_posture)
@@ -68,11 +73,15 @@
     .thumb_func
 .type _tx_thread_interrupt_control, function
 _tx_thread_interrupt_control:
-
-    /* Pickup current interrupt lockout posture.  */
-    MRS     r1, PRIMASK
-    MSR     PRIMASK, r0
-    MOV     r0, r1
-    BX      lr
+#ifdef TX_PORT_USE_BASEPRI
+    MRS     r1, BASEPRI                         // Pickup current interrupt posture
+    MSR     BASEPRI, r0                         // Apply the new interrupt posture
+    MOV     r0, r1                              // Transfer old to return register
+#else
+    MRS     r1, PRIMASK                         // Pickup current interrupt lockout
+    MSR     PRIMASK, r0                         // Apply the new interrupt lockout
+    MOV     r0, r1                              // Transfer old to return register
+#endif
+    BX      lr                                  // Return to caller
 // }
     .end

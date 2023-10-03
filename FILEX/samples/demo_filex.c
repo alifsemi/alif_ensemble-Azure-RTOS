@@ -47,7 +47,7 @@ TX_THREAD       thread_0;
 ULONG           thread_0_counter;
 
 
-int main(void)
+void  main(void)
 {
 
 #ifdef FX_STANDALONE_ENABLE  
@@ -61,7 +61,6 @@ int main(void)
     tx_kernel_enter();
 #endif
 
-    return 0;
 }
 
 

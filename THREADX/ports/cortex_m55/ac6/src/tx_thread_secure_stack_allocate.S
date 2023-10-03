@@ -20,13 +20,16 @@
 /**************************************************************************/
 /**************************************************************************/
 
+#ifdef TX_INCLUDE_USER_DEFINE_FILE
+#include "tx_user.h"
+#endif
 
 /**************************************************************************/
 /*                                                                        */
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _tx_thread_secure_stack_allocate                  Cortex-M55/AC6    */
-/*                                                           6.1          */
+/*                                                           6.2.1        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Scott Larson, Microsoft Corporation                                 */
@@ -58,6 +61,8 @@
 /*    DATE              NAME                      DESCRIPTION             */
 /*                                                                        */
 /*  09-30-2020      Scott Larson            Initial Version 6.1           */
+/*  03-08-2023      Scott Larson            Include tx_user.h,            */
+/*                                            resulting in version 6.2.1  */
 /*                                                                        */
 /**************************************************************************/
 // UINT   _tx_thread_secure_stack_allocate(TX_THREAD *thread_ptr, ULONG stack_size)
@@ -66,7 +71,7 @@
     .balign 4
     .syntax unified
     .eabi_attribute Tag_ABI_align_preserved, 1
-    .global  _tx_thread_secure_stack_allocate
+    .global _tx_thread_secure_stack_allocate
     .thumb_func
 .type _tx_thread_secure_stack_allocate, function
 _tx_thread_secure_stack_allocate:

@@ -41,9 +41,9 @@ static UX_SLAVE_CLASS_CDC_ACM* g_cdc = UX_NULL;
 /* Define local function prototypes.  */
 
 VOID    demo_thread_entry(ULONG arg);
-VOID	ux_cdc_device0_instance_activate(VOID *activated);
-VOID	ux_cdc_device0_instance_acm_parameter(VOID *activated);
-VOID	ux_cdc_device0_instance_deactivate(VOID *deactivated);
+VOID    ux_cdc_device0_instance_activate(VOID *activated);
+VOID    ux_cdc_device0_instance_acm_parameter(VOID *activated);
+VOID    ux_cdc_device0_instance_deactivate(VOID *deactivated);
 VOID    error_handler(void);
 
 /* Define global data structures.   */
@@ -69,33 +69,31 @@ UCHAR device_framework_full_speed[] = {
     0x00, 0x01, 0x01, 0x02,
     0x03, 0x01,
 
-    /* Configuration 1 descriptor 9 bytes..  check ibNumonfiguration..
-     * 7th byte from 0x40 to 0xC0 .. 5th byte from 0x2 to 0x1 */
+    /* Configuration  descriptor 9 bytes  */
     0x09, 0x02, 0x4b, 0x00, 0x02, 0x01, 0x00, 0xC0, 0x01,
 
-    /* Interface association descriptor. 6th bytes from 0x00 to 0x01 .. 0x1 to 0x00,
-     * 7th byte from 0x00 to 0x07 */
+    /* Interface association descriptor  */
     0x08, 0x0b, 0x00,
     0x02, 0x02, 0x02, 0x00, 0x00,
 
-    /* Communication Class Interface Descriptor Requirement. 8th bytes. from 0x05 to 0x00 */
+    /* Communication Class Interface Descriptor */
     0x09, 0x04, 0x00, 0x00, 0x01, 0x02, 0x02, 0x01, 0x00,
 
     /* Header Functional Descriptor 5 bytes */
     0x05, 0x24, 0x00, 0x10, 0x01,
 
-    /* ACM Functional Descriptor 3rd bytes from 0x0f to 0x02.. 0x0f to 0x02 .. 0x02 to 0x06.. 0x0f to 0x0*/
+    /* ACM Functional Descriptor */
     0x04, 0x24, 0x02, 0x0f,
     /* Union Functional Descriptor 5 bytes */
     0x05, 0x24, 0x06, 0x00, 0x01,
 
-    /* Call Management Functional Descriptor 3rd byte from 0x00 to 0x03  4th bytes,  * from 0x00 to 0x02 then 0x1 */
+    /* Call Management Functional Descriptor */
     0x05, 0x24, 0x01, 0x03, 0x01, /* Data interface */
 
-    /* High Speed Notify  descriptor 7 bytes.. from 0x10 to 0x08 then 0x0a */
+    /* High Speed Notify  descriptor 7 bytes */
     0x07, 0x05, 0x83, 0x03, 0x0a, 0x00, 0x09,
 
-    /* Data Interface Descriptor Requirement.. 8th byte 0x06 to 0x00 */
+    /* Data Interface Descriptor  */
     0x09, 0x04, 0x01, 0x00, 0x02, 0x0A, 0x00, 0x00, 0x00,
 
     /* ACM HS IN Endpoint descriptor 7 bytes*/
@@ -123,34 +121,32 @@ UCHAR device_framework_high_speed[] = {
     0x00, 0x01, 0x01, 0x02,
     0x03, 0x01,
 
-    /* Configuration 1 descriptor 9 bytes..  check ibNumonfiguration..
-     * 7th byte from 0x40 to 0xC0 .. 5th byte from 0x2 to 0x1 */
+    /* Configuration  descriptor 9 bytes  */
     0x09, 0x02, 0x4b, 0x00, 0x02, 0x01, 0x00, 0xC0, 0x01,
 
-    /* Interface association descriptor. 6th bytes from 0x00 to 0x01 .. 0x1 to 0x00,
-     * 7th byte from 0x00 to 0x07 */
+    /* Interface association descriptor */
     0x08, 0x0b, 0x00,
     0x02, 0x02, 0x02, 0x00, 0x00,
 
-    /* Communication Class Interface Descriptor Requirement. 8th bytes. from 0x05 to 0x00 */
+    /* Communication Class Interface Descriptor */
     0x09, 0x04, 0x00, 0x00, 0x01, 0x02, 0x02, 0x01, 0x00,
 
     /* Header Functional Descriptor 5 bytes */
     0x05, 0x24, 0x00, 0x10, 0x01,
 
-    /* ACM Functional Descriptor 3rd bytes from 0x0f to 0x02.. 0x0f to 0x02 .. 0x02 to 0x06.. 0x0f to 0x0*/
+    /* ACM Functional Descriptor */
     0x04, 0x24, 0x02, 0x0f,
 
     /* Union Functional Descriptor 5 bytes */
     0x05, 0x24, 0x06, 0x00, 0x01,
 
-    /* Call Management Functional Descriptor 3rd byte from 0x00 to 0x03  4th bytes,  * from 0x00 to 0x02 then 0x1 */
+    /* Call Management Functional Descriptor */
     0x05, 0x24, 0x01, 0x03, 0x01, /* Data interface */
 
-    /* High Speed Notify  descriptor 7 bytes.. from 0x10 to 0x08 then 0x0a */
+    /* High Speed Notify  descriptor 7 bytes  */
     0x07, 0x05, 0x83, 0x03, 0x0a, 0x00, 0x09,
 
-    /* Data Interface Descriptor Requirement.. 8th byte 0x06 to 0x00 */
+    /* Data Interface Descriptor Requirement  */
     0x09, 0x04, 0x01, 0x00, 0x02, 0x0A, 0x00, 0x00, 0x00,
 
     /* ACM HS IN Endpoint descriptor 7 bytes*/
@@ -166,9 +162,9 @@ UCHAR device_framework_high_speed[] = {
      Byte 2       : Byte containing the index of the descriptor
      Byte 3       : Byte containing the length of the descriptor string
     */
-
+   
 #define STRING_FRAMEWORK_LENGTH 42
-UCHAR string_framework[] = {
+UCHAR string_framework[] = { 
 
   (UCHAR) (0x0409), /* 0 Supported Language Code */
   (UCHAR) (0x0409 >> 8), /* 1 Supported Language Code */
@@ -195,7 +191,7 @@ UCHAR string_framework[] = {
        be appended to the language_id_framework array and the length
      adjusted accordingly. */
 #define LANGUAGE_ID_FRAMEWORK_LENGTH 2
-UCHAR language_id_framework[] = {
+UCHAR language_id_framework[] = { 
 
     /* English. */
         0x09, 0x04
@@ -218,22 +214,22 @@ void  tx_application_define(void *first_unused_memory)
 
     /* Initialize USBX Memory */
    status = ux_system_initialize(dma_buf, UX_DEMO_NS_SIZE, UX_NULL, 0x00);
-
+    
     if(status != UX_SUCCESS)
     {
-	error_handler();
+       error_handler();
     }
 
-    /* The code below is required for installing the device portion of USBX.
+    /* The code below is required for installing the device portion of USBX. 
        In this demo, DFU is possible and we have a call back for state change. */
     status =  ux_device_stack_initialize(device_framework_high_speed, DEVICE_FRAMEWORK_LENGTH_HIGH_SPEED,
                                        device_framework_full_speed, DEVICE_FRAMEWORK_LENGTH_FULL_SPEED,
                                        string_framework, STRING_FRAMEWORK_LENGTH,
                                        language_id_framework, LANGUAGE_ID_FRAMEWORK_LENGTH,UX_NULL);
-
+ 
     if(status != UX_SUCCESS)
     {
-         error_handler();
+       error_handler();
     }
     /* Setting cdc acm activation and deavtivation functionality */
     cdc_acm0_parameter.ux_slave_class_cdc_acm_instance_activate = ux_cdc_device0_instance_activate;
@@ -242,19 +238,19 @@ void  tx_application_define(void *first_unused_memory)
 
     cdc_acm0_parameter.ux_slave_class_cdc_acm_parameter_change = ux_cdc_device0_instance_acm_parameter;
 
-    /* Initialize the device storage class. The class is connected with interface 0 on configuration 1. */
+    /* Register the class driver as CDC-ACM  */
     status =  ux_device_stack_class_register(_ux_system_slave_class_cdc_acm_name, ux_device_class_cdc_acm_entry,
                                                 1, 0, (VOID *)&cdc_acm0_parameter);
     if(status != UX_SUCCESS)
     {
-	 error_handler();
+        error_handler();
     }
 
     status =  _ux_dcd_dwc3_initialize();
 
     if(status != UX_SUCCESS)
     {
-	 error_handler();
+        error_handler();
     }
 
     /* Create the main demo thread.  */
@@ -263,38 +259,38 @@ void  tx_application_define(void *first_unused_memory)
 
     if(status != UX_SUCCESS)
     {
-	error_handler();
+       error_handler();
     }
-
 }
 
 VOID    demo_thread_entry(ULONG arg)
 {
     ULONG actual_length = 0;
     UINT status;
-
     while (1)
     {
-        if(g_cdc != UX_NULL)
-	{
-            status = ux_device_class_cdc_acm_read(g_cdc, recv_buffer,sizeof(recv_buffer), (ULONG *) &actual_length);
-            if(status != UX_SUCCESS)
-            {
-                error_handler();
-            }
-            status = ux_device_class_cdc_acm_write(g_cdc, recv_buffer,actual_length, (ULONG *) &actual_length);
-            if(status != UX_SUCCESS)
-            {
-                error_handler();
-            }
-        }
+       if(g_cdc != UX_NULL)
+       {
+
+          status = ux_device_class_cdc_acm_read(g_cdc, recv_buffer,sizeof(recv_buffer), (ULONG *) &actual_length);
+          if((status != UX_SUCCESS)&&(status != UX_TRANSFER_NO_ANSWER))
+          {
+              error_handler();
+          }
+          status = ux_device_class_cdc_acm_write(g_cdc, recv_buffer,actual_length, (ULONG *) &actual_length);
+          if((status != UX_SUCCESS) && (status != UX_TRANSFER_NO_ANSWER))
+          {
+              error_handler();
+          }
+
+       }
     }
 }
 
 
 VOID  ux_cdc_device0_instance_activate(VOID *activated)
 {
-	 /* Save the CDC instance.  */
+     /* Save the CDC instance.  */
     g_cdc = (UX_SLAVE_CLASS_CDC_ACM *)activated;
 
 }
@@ -316,10 +312,8 @@ VOID  error_handler(void)
     /* Increment error counter.  */
     error_counter++;
     printf("ERR : Initialization of USB failed with error counter :%ld\n",error_counter);
-
     while(1)
     {
-
         /* Error - just spin here!  Look at call tree in debugger
            to see where the error occurred.  */
     }

@@ -80,7 +80,6 @@ UX_SLAVE_CLASS_COMMAND      class_command;
 
 
     /* Get the class for the interface.  */
-  //  printf("_ux_device_stack_interface_start\n");
     class =  _ux_system_slave -> ux_system_slave_interface_class_array[interface -> ux_slave_interface_descriptor.bInterfaceNumber];
 
     /* Check if class driver is available. */
@@ -96,24 +95,21 @@ UX_SLAVE_CLASS_COMMAND      class_command;
     class_command.ux_slave_class_command_request   =    UX_SLAVE_CLASS_COMMAND_QUERY;
     class_command.ux_slave_class_command_interface =   (VOID *)interface;
     class_command.ux_slave_class_command_class     =   interface -> ux_slave_interface_descriptor.bInterfaceClass;
-    //printf("Class value:%d\n",class_command.ux_slave_class_command_class);
     class_command.ux_slave_class_command_subclass  =   interface -> ux_slave_interface_descriptor.bInterfaceSubClass;
-    //printf("Sub Class value:%d\n",interface -> ux_slave_interface_descriptor.bInterfaceSubClass);
     class_command.ux_slave_class_command_protocol  =   interface -> ux_slave_interface_descriptor.bInterfaceProtocol;
     class_command.ux_slave_class_command_vid       =   device -> ux_slave_device_descriptor.idVendor;
     class_command.ux_slave_class_command_pid       =   device -> ux_slave_device_descriptor.idProduct;
 
     /* We can now memorize the interface pointer associated with this class.  */
     class -> ux_slave_class_interface = interface;
-
+    
     /* We have found a potential candidate. Call this registered class entry function.  */
     status = class -> ux_slave_class_entry_function(&class_command);
-   // printf("STATUS:%d\n",status);
 
     /* The status tells us if the registered class wants to own this class.  */
     if (status == UX_SUCCESS)
     {
-        //printf("ENTER into CLASS COMMAND ACTIVATE\n");
+
         /* Store the class container. */
         class_command.ux_slave_class_command_class_ptr =  class;
         

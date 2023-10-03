@@ -1,4 +1,4 @@
-/* Copyright (C) 2022 Alif Semiconductor - All Rights Reserved.
+/* Copyright (C) 2023 Alif Semiconductor - All Rights Reserved.
  * Use, distribution and modification of this code is permitted under the
  * terms stated in the Alif Semiconductor Software License Agreement
  *
@@ -10,10 +10,10 @@
 
 /**************************************************************************//**
  * @file     ARX3A0_Camera_Sensor_testApp.c
- * @author   Prasanna Ravi
- * @email    prasanna.ravi@alifsemi.com
+ * @author   Prasanna Ravi and Chandra Bhushan Singh
+ * @email    prasanna.ravi@alifsemi.com and chandrabhushan.singh@alifsemi.com
  * @version  V1.0.0
- * @date     19-April-2022
+ * @date     04-May-2023
  * @brief    TestApp to verify ARX3A0 Camera Sensor with
  *            Azure RTOS ThreadX as an Operating System.
  * @bug      None.
@@ -24,15 +24,14 @@
 #include <stdio.h>
 #include "tx_api.h"
 
-/* Project Includes */
-/* Camera Controller Driver */
-#include "Driver_Camera_Controller.h"
+/* Cpi Driver */
+#include "Driver_CPI.h"
 
 /* Camera Resolution. */
 #include "Camera_Common.h"
 
 /* PINMUX Driver */
-#include "Driver_PINMUX_AND_PINPAD.h"
+#include "pinconf.h"
 
 /* For Release build disable printf and semihosting */
 #define DISABLE_PRINTF
@@ -92,20 +91,19 @@
 #endif
 
 /* Camera  Driver instance 0 */
-extern ARM_DRIVER_CAMERA_CONTROLLER Driver_CAMERA0;
-static ARM_DRIVER_CAMERA_CONTROLLER *CAMERAdrv = &Driver_CAMERA0;
-
+extern ARM_DRIVER_CPI Driver_CPI;
+static ARM_DRIVER_CPI *CAMERAdrv = &Driver_CPI;
 
 void camera_demo_thread_entry(ULONG thread_input);
 
 /* Define the ThreadX object control blocks...  */
-#define DEMO_STACK_SIZE             1024
-#define DEMO_BYTE_POOL_SIZE         9120
+#define DEMO_STACK_SIZE                            1024
+#define DEMO_BYTE_POOL_SIZE                        9120
 
-TX_THREAD               Camera_thread;
-TX_BYTE_POOL            byte_pool_0;
-UCHAR                   memory_area[DEMO_BYTE_POOL_SIZE];
-TX_EVENT_FLAGS_GROUP    camera_event_flags;
+TX_THREAD                                          camera_thread;
+TX_BYTE_POOL                                       byte_pool_0;
+UCHAR                                              memory_area[DEMO_BYTE_POOL_SIZE];
+TX_EVENT_FLAGS_GROUP                               camera_event_flags;
 
 /* @Note: ARX3A0 Camera Sensor configurations
  *        are directly borrowed from ARX3A0 Camera Sensor drivers,
@@ -122,8 +120,8 @@ TX_EVENT_FLAGS_GROUP    camera_event_flags;
 #define ARX3A0_CAMERA_RESOLUTION                   ARX3A0_CAMERA_RESOLUTION_560x560
 
 #if (ARX3A0_CAMERA_RESOLUTION == ARX3A0_CAMERA_RESOLUTION_560x560)
-#define FRAME_WIDTH        (560)
-#define FRAME_HEIGHT       (560)
+#define FRAME_WIDTH                               (560)
+#define FRAME_HEIGHT                              (560)
 #endif
 
 /* Allocate Camera frame buffer memory using memory pool section in
@@ -133,31 +131,31 @@ TX_EVENT_FLAGS_GROUP    camera_event_flags;
 /* pool size for Camera frame buffer:
  *  which will be frame width x frame height
  */
-#define FRAMEBUFFER_POOL_SIZE   ((FRAME_WIDTH) * (FRAME_HEIGHT))
+#define FRAMEBUFFER_POOL_SIZE                     ((FRAME_WIDTH) * (FRAME_HEIGHT))
 
 /* pool area for Camera frame buffer.
  *  Allocated in the "camera_frame_buf" section.
  */
 uint8_t framebuffer_pool[FRAMEBUFFER_POOL_SIZE] \
-		__attribute__((section("camera_frame_buf")));
+        __attribute__((section("camera_frame_buf")));
 
 /* (optional)
  * if required convert captured image data format to any other image format.
  *
  *  - for ARX3A0 Camera sensor,
- *     selected Bayer output format:
- *      in-order to get the color image,
- *       Bayer format must be converted in to RGB format.
- *       User can use below provided
- *        "Open-Source" code for Bayer to RGB Conversion
- *        which uses DC1394 library.
+ *    selected Bayer output format:
+ *    in-order to get the color image,
+ *    Bayer format must be converted in to RGB format.
+ *    User can use below provided
+ *    "Open-Source" code for Bayer to RGB Conversion
+ *    which uses DC1394 library.
  */
 /* Enable image conversion Bayer to RGB. */
-#define IMAGE_CONVERSION_BAYER_TO_RGB_EN      1
-
+#define IMAGE_CONVERSION_BAYER_TO_RGB_EN         1
 
 /* Check if image conversion Bayer to RGB is Enabled? */
 #if IMAGE_CONVERSION_BAYER_TO_RGB_EN
+
 /* @Note: Bayer to RGB configurations
  *        are directly borrowed from "Open-Source" code for
  *        Bayer to RGB Conversion, for detail refer bayer2rgb.c.
@@ -166,89 +164,75 @@ uint8_t framebuffer_pool[FRAMEBUFFER_POOL_SIZE] \
  *   - converted image format : tiff
  *   - bpp bit per pixel      : 8-bit
  */
-#define TIFF_HDR_NUM_ENTRY 8
-#define TIFF_HDR_SIZE 10+TIFF_HDR_NUM_ENTRY*12
+#define TIFF_HDR_NUM_ENTRY                       8
+#define TIFF_HDR_SIZE                            10 + TIFF_HDR_NUM_ENTRY * 12
 
 /* bpp bit per pixel
  *  Valid parameters are:
  *   -  8-bit
  *   - 16-bit
  */
-#define BITS_PER_PIXEL_8_BIT      8
-#define BITS_PER_PIXEL            BITS_PER_PIXEL_8_BIT
+#define BITS_PER_PIXEL_8_BIT                     8
+#define BITS_PER_PIXEL                           BITS_PER_PIXEL_8_BIT
 
 /* pool size for Camera frame buffer for Bayer to RGB conversion:
  *   which will be frame width x frame height x (bpp / 8) * 3 + tiff header(106 Bytes).
  */
 #define BAYER_TO_RGB_BUFFER_POOL_SIZE   \
-	( (FRAME_WIDTH) * (FRAME_HEIGHT) * (BITS_PER_PIXEL / 8) * 3 + TIFF_HDR_SIZE )
+    ( (FRAME_WIDTH) * (FRAME_HEIGHT) * (BITS_PER_PIXEL / 8) * 3 + TIFF_HDR_SIZE )
 
 /* pool area for Camera frame buffer for Bayer to RGB conversion.
  *  Allocated in the "camera_frame_bayer_to_rgb_buf" section.
  */
 uint8_t bayer_to_rgb_buffer_pool[BAYER_TO_RGB_BUFFER_POOL_SIZE] \
-		__attribute__((section("camera_frame_bayer_to_rgb_buf")));
+        __attribute__((section("camera_frame_bayer_to_rgb_buf")));
 
 /* Optional:
  *  Camera Image Conversions
  */
 typedef enum {
-	BAYER_TO_RGB_CONVERSION   = (1 << 0),
+    BAYER_TO_RGB_CONVERSION   = (1 << 0),
 }IMAGE_CONVERSION;
 
 #endif /* end of IMAGE_CONVERSION_BAYER_TO_RGB_EN */
 
 /* Camera callback events */
 typedef enum {
-	CAM_CB_EVENT_FRAME_VSYNC_DETECTED = (1 << 0),
-	CAM_CB_EVENT_CAPTURE_STOPPED      = (1 << 1),
-	CAM_CB_EVENT_ERROR                = (1 << 2)
+    CAM_CB_EVENT_CAPTURE_STOPPED      = (1 << 0),
+    CAM_CB_EVENT_ERROR                = (1 << 1)
 }CAMERA_CB_EVENTS;
 
-
 /**
-  \fn          void Camera_callback(uint32_t event)
+  \fn          void camera_callback(uint32_t event)
   \brief       Camera isr callback
   \param[in]   event: Camera Event
   \return      none
   */
-void Camera_callback(uint32_t event)
+void camera_callback(uint32_t event)
 {
-	if(event & ARM_CAMERA_CONTROLLER_EVENT_CAMERA_FRAME_VSYNC_DETECTED)
-	{
-		/* Transfer Success: Frame VSYNC detected, Wake-up Thread. */
-		tx_event_flags_set(&camera_event_flags, CAM_CB_EVENT_FRAME_VSYNC_DETECTED, TX_OR);
-	}
+    if(event & ARM_CPI_EVENT_CAMERA_CAPTURE_STOPPED)
+    {
+        /* Transfer Success: Capture Stop detected, Wake-up Thread. */
+        tx_event_flags_set(&camera_event_flags, CAM_CB_EVENT_CAPTURE_STOPPED, TX_OR);
+    }
 
-	if(event & ARM_CAMERA_CONTROLLER_EVENT_CAMERA_CAPTURE_STOPPED)
-	{
-		/* Transfer Success: Capture Stop detected, Wake-up Thread. */
-		tx_event_flags_set(&camera_event_flags, CAM_CB_EVENT_CAPTURE_STOPPED, TX_OR);
-	}
+    if(event & ARM_CPI_EVENT_ERR_CAMERA_INPUT_FIFO_OVERRUN)
+    {
+        /* Transfer Error: Received FIFO over-run, Wake-up Thread. */
+        tx_event_flags_set(&camera_event_flags, CAM_CB_EVENT_ERROR, TX_OR);
+    }
 
-	if(event & ARM_CAMERA_CONTROLLER_EVENT_ERR_CAMERA_FIFO_OVERRUN)
-	{
-		/* Transfer Error: Received FIFO over-run, Wake-up Thread. */
-		tx_event_flags_set(&camera_event_flags, CAM_CB_EVENT_ERROR, TX_OR);
-	}
+    if(event & ARM_CPI_EVENT_ERR_CAMERA_OUTPUT_FIFO_OVERRUN)
+    {
+        /* Transfer Error: Received FIFO over-run, Wake-up Thread. */
+        tx_event_flags_set(&camera_event_flags, CAM_CB_EVENT_ERROR, TX_OR);
+    }
 
-	if(event & ARM_CAMERA_CONTROLLER_EVENT_ERR_CAMERA_FIFO_UNDERRUN)
-	{
-		/* Transfer Error: Received FIFO under-run, Wake-up Thread. */
-		tx_event_flags_set(&camera_event_flags, CAM_CB_EVENT_ERROR, TX_OR);
-	}
-
-	if(event & ARM_CAMERA_CONTROLLER_EVENT_ERR_HARDWARE)
-	{
-		/* Transfer Error: Received Hardware error, Wake-up Thread. */
-		tx_event_flags_set(&camera_event_flags, CAM_CB_EVENT_ERROR, TX_OR);
-	}
-
-	if(event & ARM_CAMERA_CONTROLLER_EVENT_MIPI_CSI2_ERROR)
-	{
-		/* Transfer Error: Received MIPI CSI2 error, Wake-up Thread. */
-		tx_event_flags_set(&camera_event_flags, CAM_CB_EVENT_ERROR, TX_OR);
-	}
+    if(event & ARM_CPI_EVENT_ERR_HARDWARE)
+    {
+        /* Transfer Error: Received Hardware error, Wake-up Thread. */
+        tx_event_flags_set(&camera_event_flags, CAM_CB_EVENT_ERROR, TX_OR);
+    }
 }
 
 /**
@@ -261,55 +245,33 @@ void Camera_callback(uint32_t event)
   */
 int i3c_pinmux(void)
 {
-	int ret;
+    int ret;
 
-	/* Configure GPIO Pin : P3_8 as I3C_SDA_B */
-	ret = PINMUX_Config(PORT_NUMBER_3, PIN_NUMBER_8, PINMUX_ALTERNATE_FUNCTION_3);
-	if(ret != ARM_DRIVER_OK)
-	{
-		printf("\r\n Error: i3c PINMUX failed.\r\n");
-		return -1;
-	}
+    /* Configure GPIO Pin : P7_2 as i2c_sda_c
+     * Pad function: PADCTRL_READ_ENABLE |
+     *               PADCTRL_DRIVER_DISABLED_PULL_UP
+     */
+    ret = pinconf_set(PORT_7, PIN_2, PINMUX_ALTERNATE_FUNCTION_5, PADCTRL_READ_ENABLE |
+                                                                  PADCTRL_DRIVER_DISABLED_PULL_UP);
+    if(ret != ARM_DRIVER_OK)
+    {
+        printf("\r\n Error: i3c PINMUX and PINPAD failed.\r\n");
+        return -1;
+    }
 
-	/* Configure GPIO Pin : P3_9 as I3C_SCL_B */
-	ret = PINMUX_Config(PORT_NUMBER_3, PIN_NUMBER_9, PINMUX_ALTERNATE_FUNCTION_4);
-	if(ret != ARM_DRIVER_OK)
-	{
-		printf("\r\n Error: i3c PINMUX failed.\r\n");
-		return -1;
-	}
+    /* Configure GPIO Pin : P7_3 as i2c_scl_c
+     * Pad function: PADCTRL_READ_ENABLE |
+     *               PADCTRL_DRIVER_DISABLED_PULL_UP
+     */
+    ret = pinconf_set(PORT_7, PIN_3, PINMUX_ALTERNATE_FUNCTION_5, PADCTRL_READ_ENABLE |
+                                                                  PADCTRL_DRIVER_DISABLED_PULL_UP);
+    if(ret != ARM_DRIVER_OK)
+    {
+        printf("\r\n Error: i3c PINMUX and PINPAD failed.\r\n");
+        return -1;
+    }
 
-	/* i3c Pin-Pad */
-
-	/* Pin-Pad P3_8 as I3C_SDA_B
-	 * Pad function: PAD_FUNCTION_READ_ENABLE |
-	 *		PAD_FUNCTION_DRIVER_DISABLE_STATE_WITH_PULL_UP |
-	 *		PAD_FUNCTION_DRIVER_OPEN_DRAIN
-	 */
-	ret = PINPAD_Config(PORT_NUMBER_3, PIN_NUMBER_8, PAD_FUNCTION_READ_ENABLE |
-			PAD_FUNCTION_DRIVER_DISABLE_STATE_WITH_PULL_UP |
-			PAD_FUNCTION_DRIVER_OPEN_DRAIN);
-	if(ret != ARM_DRIVER_OK)
-	{
-		printf("\r\n Error: i3c PINPAD failed.\r\n");
-		return -1;
-	}
-
-	/* Pin-Pad P3_9 as I3C_SCL_B
-	 * Pad function: PAD_FUNCTION_READ_ENABLE |
-	 *		PAD_FUNCTION_DRIVER_DISABLE_STATE_WITH_PULL_UP |
-	 *		PAD_FUNCTION_DRIVER_OPEN_DRAIN
-	 */
-	ret = PINPAD_Config(PORT_NUMBER_3, PIN_NUMBER_9,PAD_FUNCTION_READ_ENABLE |
-			PAD_FUNCTION_DRIVER_DISABLE_STATE_WITH_PULL_UP |
-			PAD_FUNCTION_DRIVER_OPEN_DRAIN);
-	if(ret != ARM_DRIVER_OK)
-	{
-		printf("\r\n Error: i3c PINPAD failed.\r\n");
-		return -1;
-	}
-
-	return 0;
+    return 0;
 }
 
 /**
@@ -321,29 +283,17 @@ int i3c_pinmux(void)
   */
 int camera_pinmux()
 {
-	int ret;
+    int ret;
 
-	/* @Note: Below GPIO pins are configured for Camera.
-	 *
-	 *         For ASIC A1 CPU Board
-	 *         - P2_7 as CAM_XVCLK_B
-	 */
-#define ASIC_A1_CPU_BOARD_ENABLE       1  /* Enable ASIC A1 CPU Board */
+    ret = pinconf_set(PORT_0, PIN_3, PINMUX_ALTERNATE_FUNCTION_6, 0);
+    if(ret != ARM_DRIVER_OK)
+    {
+        printf("\r\n Error: Camera Pin-Mux failed.\r\n");
+        return -1;
+    }
 
-#if ASIC_A1_CPU_BOARD_ENABLE
-	/* Configure GPIO Pin : P2_7 as CAM_XVCLK_B */
-	ret = PINMUX_Config(PORT_NUMBER_2, PIN_NUMBER_7, PINMUX_ALTERNATE_FUNCTION_6);
-
-	if(ret != ARM_DRIVER_OK)
-	{
-		printf("\r\n Error: Camera Pin-Mux failed.\r\n");
-		return -1;
-	}
-#endif
-
-	return 0;
+    return 0;
 }
-
 
 /**
   \fn          int hardware_init(void)
@@ -357,25 +307,25 @@ int camera_pinmux()
   */
 int hardware_init(void)
 {
-	int ret;
+    int ret;
 
-	/* i3c pinmux. */
-	ret = i3c_pinmux();
-	if(ret != 0)
-	{
-		printf("\r\n Error in i3c pinmux.\r\n");
-		return -1;
-	}
+    /* i3c pinmux. */
+    ret = i3c_pinmux();
+    if(ret != 0)
+    {
+        printf("\r\n Error in i3c pinmux.\r\n");
+        return -1;
+    }
 
-	/* Camera pinmux. */
-	ret = camera_pinmux();
-	if(ret != 0)
-	{
-		printf("\r\n Error in Camera pinmux.\r\n");
-		return -1;
-	}
+    /* Camera pinmux. */
+    ret = camera_pinmux();
+    if(ret != 0)
+    {
+        printf("\r\n Error in Camera pinmux.\r\n");
+        return -1;
+    }
 
-	return 0;
+    return 0;
 }
 
 /* Check if image conversion Bayer to RGB is Enabled? */
@@ -411,36 +361,38 @@ int hardware_init(void)
   \return      failure          : -1
   */
 int camera_image_conversion(IMAGE_CONVERSION  image_conversion,
-		uint8_t          *src,
-		uint8_t          *dest,
-		uint32_t          frame_width,
-		uint32_t          frame_height)
+        uint8_t *src, uint8_t *dest, uint32_t frame_width,
+        uint32_t frame_height)
 {
-	/* Bayer to RGB Conversion. */
-	extern int32_t bayer_to_RGB(uint8_t  *src,   uint8_t  *dest,   \
-			uint32_t  width, uint32_t  height);
+    /* Bayer to RGB Conversion. */
+    extern int32_t bayer_to_RGB(uint8_t  *src,   uint8_t  *dest,   \
+             uint32_t  width, uint32_t  height);
 
-	int ret = 0;
+    int ret = 0;
 
-	switch(image_conversion)
-	{
-		case BAYER_TO_RGB_CONVERSION:
-			printf("\r\n Start Bayer to RGB Conversion: \r\n");
-			printf("\t Frame Buffer Addr: 0x%X \r\n \t Bayer_to_RGB Addr: 0x%X\n", \
-					(uint32_t) src, (uint32_t) dest);
-			ret = bayer_to_RGB(src, dest, frame_width, frame_height);
-			if(ret != 0)
-			{
-				printf("\r\n Error: CAMERA image conversion: Bayer to RGB failed.\r\n");
-				return -1;
-			}
-			break;
+    switch(image_conversion)
+    {
+        case BAYER_TO_RGB_CONVERSION:
+        {
+            printf("\r\n Start Bayer to RGB Conversion: \r\n");
+            printf("\t Frame Buffer Addr: 0x%X \r\n \t Bayer_to_RGB Addr: 0x%X\n", \
+                    (uint32_t) src, (uint32_t) dest);
+            ret = bayer_to_RGB(src, dest, frame_width, frame_height);
+            if(ret != 0)
+            {
+                printf("\r\n Error: CAMERA image conversion: Bayer to RGB failed.\r\n");
+                return -1;
+            }
+            break;
+        }
 
-		default:
-			return -1;
-	}
+        default:
+        {
+            return -1;
+        }
+    }
 
-	return 0;
+    return 0;
 }
 #endif /* end of IMAGE_CONVERSION_BAYER_TO_RGB_EN */
 
@@ -474,276 +426,289 @@ int camera_image_conversion(IMAGE_CONVERSION  image_conversion,
   \param[in]   thread_input : thread input
   \return      none
   */
-
 void camera_demo_thread_entry(ULONG thread_input)
 {
-	INT   ret = 0;
-	ULONG actual_events = 0;
-	ULONG wait_timer_ticks = 0;
+    INT   ret = 0;
+    ULONG actual_events = 0;
+    ULONG wait_timer_ticks = 0;
 
-	ARM_CAMERA_RESOLUTION camera_resolution = 0;
-	ARM_DRIVER_VERSION version;
+    ARM_CAMERA_RESOLUTION camera_resolution = 0;
+    ARM_DRIVER_VERSION version;
 
-	printf("\r\n \t\t >>> ARX3A0 Camera Sensor demo with Azure RTOS ThreadX is starting up!!! <<< \r\n");
+    printf("\r\n \t\t >>> ARX3A0 Camera Sensor demo with Azure RTOS ThreadX is starting up!!! <<< \r\n");
 
 
-	/* Allocated memory address for
-	 *   - Camera frame buffer and
-	 *   - (Optional) Camera frame buffer for Bayer to RGB Conversion.
-	 */
-	printf("\n \t frame buffer        pool size: 0x%0X  pool addr: 0x%0X \r\n ", \
-			FRAMEBUFFER_POOL_SIZE, (uint32_t) framebuffer_pool);
+    /* Allocated memory address for
+     *   - Camera frame buffer and
+     *   - (Optional) Camera frame buffer for Bayer to RGB Conversion
+     */
+    printf("\n \t frame buffer        pool size: 0x%0X  pool addr: 0x%0X \r\n ", \
+            FRAMEBUFFER_POOL_SIZE, (uint32_t) framebuffer_pool);
 
 #if IMAGE_CONVERSION_BAYER_TO_RGB_EN
-	printf("\n \t bayer_to_rgb buffer pool size: 0x%0X  pool addr: 0x%0X \r\n ", \
-			BAYER_TO_RGB_BUFFER_POOL_SIZE, (uint32_t) bayer_to_rgb_buffer_pool);
+    printf("\n \t bayer_to_rgb buffer pool size: 0x%0X  pool addr: 0x%0X \r\n ", \
+            BAYER_TO_RGB_BUFFER_POOL_SIZE, (uint32_t) bayer_to_rgb_buffer_pool);
 #endif
-	/* Initialize i3c and Camera hardware pins using PinMux Driver. */
-	ret = hardware_init();
-	if(ret != 0)
-	{
-		printf("\r\n Error: CAMERA Hardware Initialize failed.\r\n");
-		return;
-	}
 
-	version = CAMERAdrv->GetVersion();
-	printf("\r\n Camera driver version api:0x%X driver:0x%X \r\n",version.api, version.drv);
+    /* Initialize i3c and Camera hardware pins using PinMux Driver. */
+    ret = hardware_init();
+    if(ret != 0)
+    {
+        printf("\r\n Error: CAMERA Hardware Initialize failed.\r\n");
+        return;
+    }
 
-	/* Initialize CAMERA driver with Camera Resolution */
-	if (ARX3A0_CAMERA_RESOLUTION == ARX3A0_CAMERA_RESOLUTION_560x560)
-	{
-		camera_resolution = CAMERA_RESOLUTION_560x560;
-	}
+    version = CAMERAdrv->GetVersion();
+    printf("\r\n Camera driver version api:0x%X driver:0x%X \r\n",version.api, version.drv);
 
-	ret = CAMERAdrv->Initialize(camera_resolution, Camera_callback);
-	if(ret != ARM_DRIVER_OK)
-	{
-		printf("\r\n Error: CAMERA Initialize failed.\r\n");
-		return;
-	}
+    /* Initialize CAMERA driver with Camera Resolution */
+    if (ARX3A0_CAMERA_RESOLUTION == ARX3A0_CAMERA_RESOLUTION_560x560)
+    {
+        camera_resolution = CAMERA_RESOLUTION_560x560;
+    }
 
-	/* Power up Camera peripheral */
-	ret = CAMERAdrv->PowerControl(ARM_POWER_FULL);
-	if(ret != ARM_DRIVER_OK)
-	{
-		printf("\r\n Error: CAMERA Power Up failed.\r\n");
-		goto error_uninitialize_camera;
-	}
+    ret = CAMERAdrv->Initialize(camera_resolution, camera_callback);
+    if(ret != ARM_DRIVER_OK)
+    {
+        printf("\r\n Error: CAMERA Initialize failed.\r\n");
+        return;
+    }
 
-	ret = CAMERAdrv->Control(CAMERA_SENSOR_CONFIGURE, CAMERA_RESOLUTION_560x560);
-	if(ret != ARM_DRIVER_OK)
-	{
-		printf("\r\n Error: CAMERA SENSOR Configuration failed.\r\n");
-		goto error_poweroff_camera;
-	}
+    /* Power up Camera peripheral */
+    ret = CAMERAdrv->PowerControl(ARM_POWER_FULL);
+    if(ret != ARM_DRIVER_OK)
+    {
+        printf("\r\n Error: CAMERA Power Up failed.\r\n");
+        goto error_uninitialize_camera;
+    }
 
-	printf("\r\n Let's Start Capturing Camera Frame...\r\n");
-	ret = CAMERAdrv->CaptureFrame(framebuffer_pool);
-	if(ret != ARM_DRIVER_OK)
-	{
-		printf("\r\n Error: CAMERA Capture Frame failed.\r\n");
-		goto error_poweroff_camera;
-	}
+    /* Control configuration for camera controller */
+    ret = CAMERAdrv->Control(CPI_CONFIGURE, 0);
+    if(ret != ARM_DRIVER_OK)
+    {
+        printf("\r\n Error: CPI Configuration failed.\r\n");
+        goto error_uninitialize_camera;
+    }
 
-	/* wait till any event success/error comes in isr callback,
-	 *  and if event is set then clear that event.
-	 * if the event flags are not set,
-	 *  this service suspends for a maximum of 'n' timer-ticks.
-	 */
-	wait_timer_ticks = TX_TIMER_TICKS_PER_SECOND;
-	ret = tx_event_flags_get(&camera_event_flags, \
-			CAM_CB_EVENT_FRAME_VSYNC_DETECTED  |  \
-			CAM_CB_EVENT_CAPTURE_STOPPED      |   \
-			CAM_CB_EVENT_ERROR,                   \
-			TX_OR_CLEAR,                          \
-			&actual_events,                       \
-			wait_timer_ticks);
-	if (ret != TX_SUCCESS)
-	{
-		printf("Error: CAMERA tx_event_flags_get failed.\n");
-		goto error_poweroff_camera;
-	}
+    /* Control configuration for camera sensor */
+    ret = CAMERAdrv->Control(CPI_CAMERA_SENSOR_CONFIGURE, CAMERA_RESOLUTION_560x560);
+    if(ret != ARM_DRIVER_OK)
+    {
+        printf("\r\n Error: CAMERA SENSOR Configuration failed.\r\n");
+        goto error_poweroff_camera;
+    }
 
-	if(actual_events & CAM_CB_EVENT_ERROR)
-	{
-		/* Error: Camera Capture Frame failed. */
-		printf("\r\n \t\t >> Error: CAMERA Capture Frame failed. \r\n");
-		goto error_poweroff_camera;
-	}
+    /*Control configuration for camera events */
+    ret = CAMERAdrv->Control(CPI_EVENTS_CONFIGURE, \
+            ARM_CPI_EVENT_CAMERA_CAPTURE_STOPPED | \
+            ARM_CPI_EVENT_ERR_CAMERA_INPUT_FIFO_OVERRUN | \
+            ARM_CPI_EVENT_ERR_CAMERA_OUTPUT_FIFO_OVERRUN | \
+            ARM_CPI_EVENT_ERR_HARDWARE);
+    if(ret != ARM_DRIVER_OK)
+    {
+        printf("\r\n Error: CAMERA SENSOR Event Configuration failed.\r\n");
+        goto error_poweroff_camera;
+    }
 
-	if(actual_events & (CAM_CB_EVENT_CAPTURE_STOPPED | CAM_CB_EVENT_FRAME_VSYNC_DETECTED))
-	{
-		/* Success: Camera Capture Frame success. */
-		printf("\r\n \t\t >> Success: CAMERA Capture Frame Success. \r\n");
-	}
+    printf("\r\n Let's Start Capturing Camera Frame...\r\n");
+    ret = CAMERAdrv->CaptureFrame(framebuffer_pool);
+    if(ret != ARM_DRIVER_OK)
+    {
+        printf("\r\n Error: CAMERA Capture Frame failed.\r\n");
+        goto error_poweroff_camera;
+    }
 
+    /* wait till any event success/error comes in isr callback,
+     *  and if event is set then clear that event.
+     * if the event flags are not set,
+     *  this service suspends for a maximum of 'n' timer-ticks.
+     */
+    wait_timer_ticks = TX_TIMER_TICKS_PER_SECOND * 5;
+    ret = tx_event_flags_get(&camera_event_flags, \
+            CAM_CB_EVENT_CAPTURE_STOPPED      |   \
+            CAM_CB_EVENT_ERROR,                   \
+            TX_OR_CLEAR,                          \
+            &actual_events,                       \
+            wait_timer_ticks);
+    if (ret != TX_SUCCESS)
+    {
+        printf("Error: CAMERA tx_event_flags_get failed.\n");
+        goto error_poweroff_camera;
+    }
 
-	/* Okay, we have received Success: Camera Capture Frame VSYNC detected.
-	 * now stop Camera Capture.
-	 */
-	ret = CAMERAdrv->Stop();
-	if(ret != ARM_DRIVER_OK)
-	{
-		printf("\r\n Error: CAMERA stop Capture failed.\r\n");
-		goto error_poweroff_camera;
-	}
+    if(!(actual_events & CAM_CB_EVENT_CAPTURE_STOPPED) && (actual_events & CAM_CB_EVENT_ERROR))
+    {
+        /* Error: Camera Capture Frame failed. */
+        printf("\r\n \t\t >> Error: CAMERA Capture Frame failed. \r\n");
+        goto error_poweroff_camera;
+    }
 
-	/* (optional)
-	 * if required convert captured image data format to any other image format.
-	 *  - for ARX3A0 Camera sensor,
-	 *     selected Bayer output format:
-	 *      in-order to get the color image,
-	 *       Bayer format must be converted in to RGB format.
-	 *       User can use below provided
-	 *        "Open-Source" code for Bayer to RGB Conversion
-	 *        which uses DC1394 library.
-	 */
-	/* Check if image conversion Bayer to RGB is Enabled? */
+    /* Okay, we have received Success: Camera Capture Frame VSYNC detected.
+     * now stop Camera Capture.
+     */
+    ret = CAMERAdrv->Stop();
+    if(ret != ARM_DRIVER_OK)
+    {
+        printf("\r\n Error: CAMERA stop Capture failed.\r\n");
+        goto error_poweroff_camera;
+    }
+
+    /* (optional)
+     * if required convert captured image data format to any other image format.
+     *  - for ARX3A0 Camera sensor,
+     *     selected Bayer output format:
+     *      in-order to get the color image,
+     *       Bayer format must be converted in to RGB format.
+     *       User can use below provided
+     *        "Open-Source" code for Bayer to RGB Conversion
+     *        which uses DC1394 library.
+     */
+    /* Check if image conversion Bayer to RGB is Enabled? */
 #if IMAGE_CONVERSION_BAYER_TO_RGB_EN
-	ret = camera_image_conversion(BAYER_TO_RGB_CONVERSION,
-			framebuffer_pool,
-			bayer_to_rgb_buffer_pool,
-			FRAME_WIDTH,
-			FRAME_HEIGHT);
-	if(ret != 0)
-	{
-		printf("\r\n Error: CAMERA image conversion failed.\r\n");
-		return;
-	}
+    ret = camera_image_conversion(BAYER_TO_RGB_CONVERSION,
+            framebuffer_pool,
+            bayer_to_rgb_buffer_pool,
+            FRAME_WIDTH,
+            FRAME_HEIGHT);
+    if(ret != 0)
+    {
+        printf("\r\n Error: CAMERA image conversion failed.\r\n");
+        return;
+    }
 #endif /* end of IMAGE_CONVERSION_BAYER_TO_RGB_EN */
 
-	/* How to dump captured/converted image data from memory address?
-	 *  1)To dump memory using ARM DS(Development Studio) and Ulink Pro Debugger
-	 *
-	 *  Use below command in "Commands" tab:
-	 *   dump binary memory path_with_filename.fileformat starting_address ending_address
-	 *
-	 *   example:(update user directory name)
-	 *    dump binary memory /home/user/camera_dump/cam_image0_560p.bin 0x8000000 0x804C8FF
-	 *
-	 *   Bayer to RGB:
-	 *    dump binary memory /home/user/camera_dump/cam_image0_Bayer_to_RGB_560p.tif 0x8000000 0x80E5B69
-	 *
-	 *   2)To dump memory using Trace32
-	 *  Use below command in "Commands" tab:
-	 *   data.save.binary path_with_filename.fileformat starting_address--ending_address
-	 *
-	 *   example:(update user directory name)
-	 *    data.save.binary /home/user/camera_dump/cam_image0_560p.bin 0x8000000--0x804C8FF
-	 *
-	 *   Bayer to RGB:
-	 *    data.save.binary /home/user/camera_dump/cam_image0_Bayer_to_RGB_560p.tif 0x8000000--0x80E5B69
-	 *
-	 *   This commands will dump memory from staring address to ending address
-	 *   and store it in to given path with filename.
-	 *
-	 *
-	 */
-	printf("\n To dump memory using ARM DS with Ulink Pro Debugger or Trace32 :");
-	printf("\n  Use below commands in Commands tab: update user directory name \r\n");
+    /* How to dump captured/converted image data from memory address?
+     *  1)To dump memory using ARM DS(Development Studio) and Ulink Pro Debugger
+     *
+     *  Use below command in "Commands" tab:
+     *   dump binary memory path_with_filename.fileformat starting_address ending_address
+     *
+     *   example:(update user directory name)
+     *    dump binary memory /home/user/camera_dump/cam_image0_560p.bin 0x8000000 0x804C8FF
+     *
+     *   Bayer to RGB:
+     *    dump binary memory /home/user/camera_dump/cam_image0_Bayer_to_RGB_560p.tif 0x8000000 0x80E5B69
+     *
+     *   2)To dump memory using Trace32
+     *  Use below command in "Commands" tab:
+     *   data.save.binary path_with_filename.fileformat starting_address--ending_address
+     *
+     *   example:(update user directory name)
+     *    data.save.binary /home/user/camera_dump/cam_image0_560p.bin 0x8000000--0x804C8FF
+     *
+     *   Bayer to RGB:
+     *    data.save.binary /home/user/camera_dump/cam_image0_Bayer_to_RGB_560p.tif 0x8000000--0x80E5B69
+     *
+     *   This commands will dump memory from staring address to ending address
+     *   and store it in to given path with filename.
+     *
+     *
+     */
+    printf("\n To dump memory using ARM DS with Ulink Pro Debugger or Trace32 :");
+    printf("\n  Use below commands in Commands tab: update user directory name \r\n");
 
 #if IMAGE_CONVERSION_BAYER_TO_RGB_EN
-	printf("Ulink:\n   dump binary memory /home/user/camera_dump/cam_image0_Bayer_to_RGB_560p.tif 0x%X 0x%X \r\n", \
-			(uint32_t) bayer_to_rgb_buffer_pool, (uint32_t) (bayer_to_rgb_buffer_pool + BAYER_TO_RGB_BUFFER_POOL_SIZE - 1));
-	printf("T32:\n   data.save.binary /home/user/camera_dump/cam_image0_Bayer_to_RGB_560p.tif 0x%X--0x%X \r\n", \
-			(uint32_t) bayer_to_rgb_buffer_pool, (uint32_t) (bayer_to_rgb_buffer_pool + BAYER_TO_RGB_BUFFER_POOL_SIZE - 1));
+    printf("Ulink:\n   dump binary memory /home/user/camera_dump/cam_image0_Bayer_to_RGB_560p.tif 0x%X 0x%X \r\n", \
+            (uint32_t) bayer_to_rgb_buffer_pool, (uint32_t) (bayer_to_rgb_buffer_pool + BAYER_TO_RGB_BUFFER_POOL_SIZE - 1));
+    printf("T32:\n   data.save.binary /home/user/camera_dump/cam_image0_Bayer_to_RGB_560p.tif 0x%X--0x%X \r\n", \
+            (uint32_t) bayer_to_rgb_buffer_pool, (uint32_t) (bayer_to_rgb_buffer_pool + BAYER_TO_RGB_BUFFER_POOL_SIZE - 1));
 
 #else
-	printf("Ulink:\n   dump binary memory /home/user/camera_dump/cam_image0_560p.bin 0x%X 0x%X \r\n", \
-			(uint32_t) framebuffer_pool, (uint32_t) (framebuffer_pool + FRAMEBUFFER_POOL_SIZE - 1));
-	printf("T32:\n   data.save.binary /home/user/camera_dump/cam_image0_560p.bin 0x%X--0x%X \r\n", \
-			(uint32_t) framebuffer_pool, (uint32_t) (framebuffer_pool + FRAMEBUFFER_POOL_SIZE - 1));
+    printf("Ulink:\n   dump binary memory /home/user/camera_dump/cam_image0_560p.bin 0x%X 0x%X \r\n", \
+            (uint32_t) framebuffer_pool, (uint32_t) (framebuffer_pool + FRAMEBUFFER_POOL_SIZE - 1));
+    printf("T32:\n   data.save.binary /home/user/camera_dump/cam_image0_560p.bin 0x%X--0x%X \r\n", \
+            (uint32_t) framebuffer_pool, (uint32_t) (framebuffer_pool + FRAMEBUFFER_POOL_SIZE - 1));
 #endif
 
-	printf("\n  This command will dump memory from staring address to ending address \r");
-	printf("\n  and store it in to given path with filename.\r\n\r\n");
+    printf("\n  This command will dump memory from staring address to ending address \r");
+    printf("\n  and store it in to given path with filename.\r\n\r\n");
 
-	printf("\r\n\r\n XXX Camera demo thread is halting here! XXX...\r\n");
-	printf("\r\n Now User can dump captured/converted image data from memory address using any debugger!!!\r\n");
+    printf("\r\n\r\n XXX Camera demo thread is halting here! XXX...\r\n");
+    printf("\r\n Now User can dump captured/converted image data from memory address using any debugger!!!\r\n");
 
 error_poweroff_camera:
-	/* Power off CAMERA peripheral */
-	ret = CAMERAdrv->PowerControl(ARM_POWER_OFF);
-	if(ret != ARM_DRIVER_OK)
-		printf("\r\n Error: CAMERA Power OFF failed.\r\n");
+    /* Power off CAMERA peripheral */
+    ret = CAMERAdrv->PowerControl(ARM_POWER_OFF);
+    if(ret != ARM_DRIVER_OK)
+        printf("\r\n Error: CAMERA Power OFF failed.\r\n");
 
 error_uninitialize_camera:
-	/* Un-initialize CAMERA driver */
-	ret = CAMERAdrv->Uninitialize();
-	if(ret != ARM_DRIVER_OK)
-		printf("\r\n Error: CAMERA Uninitialize failed.\r\n");
+    /* Un-initialize CAMERA driver */
+    ret = CAMERAdrv->Uninitialize();
+    if(ret != ARM_DRIVER_OK)
+        printf("\r\n Error: CAMERA Uninitialize failed.\r\n");
 
-	printf("\r\n XXX Camera demo thread is exiting XXX...\r\n");
+    printf("\r\n XXX Camera demo thread is exiting XXX...\r\n");
 
-	/* wait forever */
-	while(1);
+    /* wait forever */
+    while(1);
 }
 
 /* Define main entry point.  */
 int main()
 {
-	/* Enter the ThreadX kernel.  */
+    /* Enter the ThreadX kernel.  */
 	tx_kernel_enter();
 }
 
 /* Define what the initial system looks like.  */
 void tx_application_define(void *first_unused_memory)
 {
-	CHAR    *pointer = TX_NULL;
-	UINT     status  = 0;
+    CHAR *pointer  = TX_NULL;
+    UINT status    = 0;
 
-	/* Create a byte memory pool from which to allocate the thread stacks.  */
-	status = tx_byte_pool_create(&byte_pool_0, "byte pool 0", memory_area, DEMO_BYTE_POOL_SIZE);
-	if (status != TX_SUCCESS)
-	{
-		printf("ERROR: Could not create byte pool\n");
-		return;
-	}
+    /* Create a byte memory pool from which to allocate the thread stacks.  */
+    status = tx_byte_pool_create(&byte_pool_0, "byte pool 0", memory_area, DEMO_BYTE_POOL_SIZE);
+    if (status != TX_SUCCESS)
+    {
+        printf("ERROR: Could not create byte pool\n");
+        return;
+    }
 
-	/* Create the event flags group used by i2c thread */
-	status = tx_event_flags_create(&camera_event_flags, "event flags I2C");
-	if (status != TX_SUCCESS)
-	{
-		printf("ERROR: Could not create event flags\n");
-		goto error_delete_byte_pool;
-	}
+    /* Create the event flags group used by i2c thread */
+    status = tx_event_flags_create(&camera_event_flags, "event flags I2C");
+    if (status != TX_SUCCESS)
+    {
+        printf("ERROR: Could not create event flags\n");
+        goto error_delete_byte_pool;
+    }
 
-	/* Allocate the stack for thread.  */
-	status = tx_byte_allocate(&byte_pool_0, (VOID **) &pointer, DEMO_STACK_SIZE, TX_NO_WAIT);
-	if (status != TX_SUCCESS)
-	{
-		printf("ERROR: Could not create byte allocate\n");
-		goto error_delete_event_flag;
-	}
+    /* Allocate the stack for thread.  */
+    status = tx_byte_allocate(&byte_pool_0, (VOID **) &pointer, DEMO_STACK_SIZE, TX_NO_WAIT);
+    if (status != TX_SUCCESS)
+    {
+        printf("ERROR: Could not create byte allocate\n");
+        goto error_delete_event_flag;
+    }
 
-	/* Create the main thread.  */
-	status = tx_thread_create(&Camera_thread, "Camera_thread", camera_demo_thread_entry, 0,
-			pointer, DEMO_STACK_SIZE,
-			1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
-	if (status != TX_SUCCESS)
-	{
-		printf("ERROR: Could not create thread \n");
-		goto error_release_allocated_byte;
-	}
+    /* Create the main thread.  */
+    status = tx_thread_create(&camera_thread, "Camera_thread", camera_demo_thread_entry, 0,
+            pointer, DEMO_STACK_SIZE,
+            1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
+    if (status != TX_SUCCESS)
+    {
+        printf("ERROR: Could not create thread \n");
+        goto error_release_allocated_byte;
+    }
 
-	return; //SUCCESS
+    return; //SUCCESS
 
 error_release_allocated_byte:
-	status = tx_byte_release((VOID *) pointer);
-	if (status != TX_SUCCESS)
-		printf("ERROR: Could not release byte allocate\n");
+    status = tx_byte_release((VOID *) pointer);
+    if (status != TX_SUCCESS)
+        printf("ERROR: Could not release byte allocate\n");
 
 error_delete_event_flag:
-	status = tx_event_flags_delete(&camera_event_flags);
-	if (status != TX_SUCCESS)
-		printf("ERROR: Could not delete event flags\n");
+    status = tx_event_flags_delete(&camera_event_flags);
+    if (status != TX_SUCCESS)
+        printf("ERROR: Could not delete event flags\n");
 
 error_delete_byte_pool:
-	status = tx_byte_pool_delete(&byte_pool_0);
-	if (status != TX_SUCCESS)
-		printf("ERROR: Could not delete byte pool\n");
+    status = tx_byte_pool_delete(&byte_pool_0);
+    if (status != TX_SUCCESS)
+        printf("ERROR: Could not delete byte pool\n");
 
-	while(1);
+    while(1);
 }
 
 /************************ (C) COPYRIGHT ALIF SEMICONDUCTOR *****END OF FILE****/

@@ -51,7 +51,7 @@
 #include   "nxd_dhcp_client.h"
 #endif
 /* Driver include */
-#include "nx_eqos_network_driver.h"
+#include "nx_eth_mac.h"
 
 #define     DEMO_STACK_SIZE     2048
 #define     PACKET_SIZE         1536
@@ -151,6 +151,14 @@ UINT  status;
     status = nx_ip_create(&ip_0, "NetX IP Instance 0", SERVER_IP_ADDR, 0xFFFFFF00UL, &pool_0, nx_eth_driver,
                           pointer, 2048, 1);
     pointer =  pointer + 2048;
+
+    if (status != NX_SUCCESS)
+    {
+        error_counter++;
+    }
+
+    /* Enable IP fragmentation on the IP instance. */
+    status = nx_ip_fragment_enable(&ip_0);
 
     if (status != NX_SUCCESS)
     {

@@ -1,4 +1,4 @@
-/* Copyright (C) 2022 Alif Semiconductor - All Rights Reserved.
+/* Copyright (C) 2023 Alif Semiconductor - All Rights Reserved.
  * Use, distribution and modification of this code is permitted under the
  * terms stated in the Alif Semiconductor Software License Agreement
  *
@@ -15,7 +15,7 @@
  * @version  V1.0.0
  * @date     23-April-2021
  * @brief    demo application for lptimer.
- *           - Configuring the lptimer channel 0 for 500micro second.
+ *           - Configuring the lptimer channel 0 for 5 seconds.
  * @bug      None.
  * @Note     None
  ******************************************************************************/
@@ -27,8 +27,8 @@
 #define DEMO_BYTE_POOL_SIZE        (1024)
 #define LPTIMER_THREAD_STACK_SIZE  (512)
 #define LPTIMER_CALLBACK_EVENT     0x1
-#define LPTIMER_CHANNEL_0          0 // lptimer have 0-3 channels, using channel zero for demo app
-#define LPTIMER_EVENT_WAIT_TIME    (TX_TIMER_TICKS_PER_SECOND/100)
+#define LPTIMER_CHANNEL_0          0      /* lptimer have 0-3 channels, using channel zero for demo app */
+#define LPTIMER_EVENT_WAIT_TIME    (6 * TX_TIMER_TICKS_PER_SECOND)  /* interrupt wait time: 6 seconds */
 
 UCHAR                              memory_area[DEMO_BYTE_POOL_SIZE];
 TX_BYTE_POOL                       memory_pool;
@@ -109,27 +109,27 @@ static void lptimer_app (ULONG thread_input)
     extern ARM_DRIVER_LPTIMER DRIVER_LPTIMER0;
     ARM_DRIVER_LPTIMER *ptrDrv = &DRIVER_LPTIMER0;
 
-    /* Configuring the lptimer channel 0 for 500micro second
+    /* Configuring the lptimer channel 0 for 5 seconds
      *Clock Source is depends on RTE_LPTIMER_CHANNEL_CLK_SRC in RTE_Device.h
-     *RTE_LPTIMER_CHANNEL_CLK_SRC = 0 : 32KHz freq (Default)
+     *RTE_LPTIMER_CHANNEL_CLK_SRC = 0 : 32.768KHz freq (Default)
      *RTE_LPTIMER_CHANNEL_CLK_SRC = 1 : 128KHz freq.
      *
-     * Selected clock frequency (F)= 32Khz
+     * Selected clock frequency (F)= 32.768KHz
      *
-     * time for 1 count T = 1/F = 1/(32*10^3) = 31.25 * 10^-6
+     * time for 1 count T = 1/F = 1/(32.768*10^3) = 30.51 * 10^-6
      *
-     * To increment timer by 1 count, takes 31.25 micro sec
+     * To increment timer by 1 count, takes 30.51 micro sec
      *
-     * So count for 500us = (500*(10^-6))/(31.25 *(10^-6)) = 16
+     * So count for 5sec = 5/(30.51 *(10^-6)) = 163880
      *
-     * DEC = 16
-     * HEX = 0x10
+     * DEC = 163880
+     * HEX = 0x28028
     */
 
-    /*Timer channel configured 500 usec*/
+    /* Timer channel configured 5 sec */
 
     int32_t ret;
-    uint32_t status, count = 0x10;
+    uint32_t status, count = 0x28028;
     uint8_t channel = LPTIMER_CHANNEL_0;
 
     ret = ptrDrv->Initialize (channel, lptimer_cb_fun);
@@ -151,7 +151,7 @@ static void lptimer_app (ULONG thread_input)
         goto error_poweroff;
     }
 
-    printf("demo application: lptimer channel '%d'configured for 500 us \r\n\n", channel);
+    printf("demo application: lptimer channel '%d'configured for 5 sec \r\n\n", channel);
 
     ret = ptrDrv->Start (channel);
     if (ret != ARM_DRIVER_OK) {
@@ -167,7 +167,7 @@ static void lptimer_app (ULONG thread_input)
         goto error_poweroff;
     }
 
-    printf("500us timer expired \r\n");
+    printf("5 sec timer expired \r\n");
 
     ret = ptrDrv->Stop(channel);
     if(ret != ARM_DRIVER_OK) {

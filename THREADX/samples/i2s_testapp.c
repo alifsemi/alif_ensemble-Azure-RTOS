@@ -8,15 +8,16 @@
  *
  */
 
-/**************************************************************************//**
+/****************************************************************************
  * @file     i2s_testapp.c
- * @author   Sudarshan Iyengar
- * @email    sudarshan.iyengar@alifsemi.com
- * @version  V2.0.0
- * @date     28-Sep-2020
- * @brief    Test Application for I2S for Carrier board.
- *           I2S0 is configured as master transmitter with MCLK 24.576Mhz and 24bit
- *           I2S2 is configured as master receiver SPH0645LM4H-1 device 24bit
+ * @author   Sudhir Sreedharan | Sudarshan Iyengar
+ * @email    sudhir@alifsemi.com | sudarshan.iyengar@alifsemi.com
+ * @version  V3.0.0
+ * @date     28-Apr-2023
+ * @brief    Test Application for I2S for Devkit
+ *           For HP, I2S1 is configured as master transmitter (DAC).
+ *           For HE, LPI2S will be used as DAC.
+ *           I2S3(ADC) is configured as master receiver SPH0645LM4H-1 device 24bit
  * @bug      None.
  * @Note	 None
  ******************************************************************************/
@@ -27,7 +28,7 @@
 
 /* Project Includes */
 #include <Driver_SAI.h>
-#include <Driver_PINMUX_AND_PINPAD.h>
+#include <pinconf.h>
 
 /*Threadx Includes */
 #include "tx_api.h"
@@ -40,26 +41,33 @@
 #define DEMO_BYTE_POOL_SIZE                    4096
 
 
-/* Enable this to feed the predefined hello sample in the TX path and RX path is disabled */
-//#define DAC_PREDEFINED_SAMPLES
 /* 1 to send the data stream continuously , 0 to send data only once */
 #define REPEAT_TX 1
 
 #define ERROR  -1
 #define SUCCESS 0
 
-#define I2S_DAC 0		     /* DAC I2S Controller 0 */
-#define I2S_ADC 2                    /* ADC I2S Controller 2 */
+#if defined (M55_HE)
+#define I2S_DAC LP            /* DAC LPI2S Controller */
+#else
+/* Enable this to feed the predefined hello sample in the
+ * Send function. Receive will be disabled.
+ */
+#define DAC_PREDEFINED_SAMPLES
+#define I2S_DAC 1             /* DAC I2S Controller 1 */
+#endif
+#define I2S_ADC 3             /* ADC I2S Controller 3 */
 
-#define DAC_SEND_COMPLETE_EVENT    (0x1)
-#define ADC_RECEIVE_COMPLETE_EVENT (0x2)
-#define ADC_RECEIVE_OVERFLOW_EVENT (0x3)
+#define DAC_SEND_COMPLETE_EVENT    (1U << 0)
+#define ADC_RECEIVE_COMPLETE_EVENT (1U << 1)
+#define ADC_RECEIVE_OVERFLOW_EVENT (1U << 2)
 
 #define ADC_RECEIVE_TIMEOUT        (10000)
 #define DAC_SEND_TIMEOUT           (10000)
 
-#define NUM_SAMPLES_IN_SINGLE_POOL 10000
-#define SAMPLES_POOL_CNT           3
+#define NUM_SAMPLES_IN_SINGLE_POOL 8000
+#define SAMPLES_POOL_CNT           4
+
 #define BLOCK_POOL_METADATA_SIZE   16
 #define BLOCK_POOL_SIZE            ((SAMPLES_POOL_CNT * NUM_SAMPLES_IN_SINGLE_POOL * 4)\
                                    + (SAMPLES_POOL_CNT * BLOCK_POOL_METADATA_SIZE))
@@ -115,21 +123,38 @@ void dac_callback(uint32_t event)
 int32_t dac_pinmux_config(void)
 {
     int32_t status;
-
-    /* Configure I2S0 SDO */
-    status = PINMUX_Config(PORT_NUMBER_2, PIN_NUMBER_29, PINMUX_ALTERNATE_FUNCTION_3);
+#if (I2S_DAC == LP)
+    /* Configure LPI2S_C SDO */
+    status = pinconf_set(PORT_13, PIN_5, PINMUX_ALTERNATE_FUNCTION_2, 0);
     if(status)
         return ERROR;
 
-    /* Configure I2S0 WS */
-    status = PINMUX_Config(PORT_NUMBER_2, PIN_NUMBER_31, PINMUX_ALTERNATE_FUNCTION_3);
+    /* Configure LPI2S_C WS */
+    status = pinconf_set(PORT_13, PIN_7, PINMUX_ALTERNATE_FUNCTION_2, 0);
     if(status)
         return ERROR;
 
-    /* Configure I2S0 SCLK */
-    status = PINMUX_Config(PORT_NUMBER_2, PIN_NUMBER_30, PINMUX_ALTERNATE_FUNCTION_2);
+    /* Configure LPI2S_C SCLK */
+    status = pinconf_set(PORT_13, PIN_6, PINMUX_ALTERNATE_FUNCTION_2, 0);
     if(status)
         return ERROR;
+#else
+    /* Configure I2S1_A SDO */
+    status = pinconf_set(PORT_3, PIN_3, PINMUX_ALTERNATE_FUNCTION_3, 0);
+    if(status)
+        return ERROR;
+
+    /* Configure I2S1_A WS */
+    status = pinconf_set(PORT_4, PIN_0, PINMUX_ALTERNATE_FUNCTION_3, 0);
+    if(status)
+        return ERROR;
+
+    /* Configure I2S1_A SCLK */
+    status = pinconf_set(PORT_3, PIN_4, PINMUX_ALTERNATE_FUNCTION_4, 0);
+    if(status)
+        return ERROR;
+
+#endif
 
     return SUCCESS;
 }
@@ -158,7 +183,7 @@ void DAC_Thread(ULONG thread_input)
         return;
     }
 
-    /* Use the I2S0 as Trasmitter */
+    /* Use the I2S as Trasmitter */
     i2s_drv = &ARM_Driver_SAI_(I2S_DAC);
 
     /* Verify the I2S API version for compatibility*/
@@ -173,7 +198,7 @@ void DAC_Thread(ULONG thread_input)
         return;
     }
 
-    /* Initializes I2S0 interface */
+    /* Initializes I2S interface */
     status = i2s_drv->Initialize(dac_callback);
     if(status)
     {
@@ -181,7 +206,7 @@ void DAC_Thread(ULONG thread_input)
         goto error_initialize;
     }
 
-    /* Enable the power for I2S0 */
+    /* Enable the power for I2S */
     status = i2s_drv->PowerControl(ARM_POWER_FULL);
     if(status)
     {
@@ -189,12 +214,12 @@ void DAC_Thread(ULONG thread_input)
         goto error_power;
     }
 
-    /* configure I2S0 Transmitter to Asynchronous Master */
+    /* configure I2S Transmitter to Asynchronous Master */
     status = i2s_drv->Control(ARM_SAI_CONFIGURE_TX |
-                                ARM_SAI_MODE_MASTER  |
-                                ARM_SAI_ASYNCHRONOUS |
-                                ARM_SAI_PROTOCOL_I2S |
-                                ARM_SAI_DATA_SIZE(wlen), wlen*2, sampling_rate);
+                              ARM_SAI_MODE_MASTER  |
+                              ARM_SAI_ASYNCHRONOUS |
+                              ARM_SAI_PROTOCOL_I2S |
+                              ARM_SAI_DATA_SIZE(wlen), wlen*2, sampling_rate);
     if(status)
     {
         printf("DAC Control status = %d\n", status);
@@ -212,7 +237,6 @@ void DAC_Thread(ULONG thread_input)
     do
     {
 #ifdef DAC_PREDEFINED_SAMPLES
-        /* If we are using predefined samples, update the pointer and total len */
         samples_msg.buf = hello_samples_24bit_48khz;
         samples_msg.num_items = sizeof(hello_samples_24bit_48khz)/sizeof(hello_samples_24bit_48khz[0]);
 
@@ -225,7 +249,7 @@ void DAC_Thread(ULONG thread_input)
         }
 
         /* Wait for the completion event */
-        status = tx_event_flags_get(&event_flags_dac,DAC_SEND_COMPLETE_EVENT, TX_OR_CLEAR, &events,DAC_SEND_TIMEOUT);
+        status = tx_event_flags_get(&event_flags_dac, DAC_SEND_COMPLETE_EVENT, TX_OR_CLEAR, &events, DAC_SEND_TIMEOUT);
         if(status)
         {
             printf("Timeout occurred while sending the data to DAC\n");
@@ -247,7 +271,7 @@ void DAC_Thread(ULONG thread_input)
             }
 
             /* Wait for the completion event */
-            status = tx_event_flags_get(&event_flags_dac,DAC_SEND_COMPLETE_EVENT, TX_OR_CLEAR, &events ,DAC_SEND_TIMEOUT);
+            status = tx_event_flags_get(&event_flags_dac, DAC_SEND_COMPLETE_EVENT, TX_OR_CLEAR, &events, DAC_SEND_TIMEOUT);
             if(status)
             {
                 printf("Timeout occurred while sending the data to DAC\n");
@@ -299,7 +323,7 @@ void adc_callback(uint32_t event)
     if(event & ARM_SAI_EVENT_RX_OVERFLOW)
     {
 	/* Send Success: Wake-up Thread. */
-	tx_event_flags_set(&event_flags_dac, ADC_RECEIVE_OVERFLOW_EVENT, TX_OR);
+	tx_event_flags_set(&event_flags_adc, ADC_RECEIVE_OVERFLOW_EVENT, TX_OR);
     }
 }
 
@@ -312,18 +336,18 @@ int32_t adc_pinmux_config(void)
 {
     int32_t status;
 
-    /* Configure I2S2 WS */
-    status = PINMUX_Config(PORT_NUMBER_2, PIN_NUMBER_4, PINMUX_ALTERNATE_FUNCTION_2);
+    /* Configure I2S3_B WS */
+    status = pinconf_set(PORT_8, PIN_7, PINMUX_ALTERNATE_FUNCTION_2, 0);
     if(status)
         return ERROR;
 
-    /* Configure I2S2 SCLK */
-    status = PINMUX_Config(PORT_NUMBER_2, PIN_NUMBER_3, PINMUX_ALTERNATE_FUNCTION_3);
+    /* Configure I2S3_B SCLK */
+    status = pinconf_set(PORT_8, PIN_6, PINMUX_ALTERNATE_FUNCTION_2, 0);
     if(status)
         return ERROR;
 
-    /* Configure I2S2 SDI */
-    status = PINMUX_Config(PORT_NUMBER_2, PIN_NUMBER_1, PINMUX_ALTERNATE_FUNCTION_3);
+    /* Configure I2S3_B SDI */
+    status = pinconf_set(PORT_9, PIN_0, PINMUX_ALTERNATE_FUNCTION_2, PADCTRL_READ_ENABLE);
     if(status)
         return ERROR;
 
@@ -353,7 +377,7 @@ void ADC_Thread(ULONG thread_input)
         return;
     }
 
-    /* Use the I2S2 as Receiver */
+    /* Use the I2S as Receiver */
     i2s_drv = &ARM_Driver_SAI_(I2S_ADC);
 
     /* Verify the I2S API version for compatibility*/
@@ -368,7 +392,7 @@ void ADC_Thread(ULONG thread_input)
         return;
     }
 
-    /* Initializes I2S2 interface */
+    /* Initializes I2S interface */
     status = i2s_drv->Initialize(adc_callback);
     if(status)
     {
@@ -376,7 +400,7 @@ void ADC_Thread(ULONG thread_input)
         goto error_adc_initialize;
     }
 
-    /* Enable the power for I2S2 */
+    /* Enable the power for I2S */
     status = i2s_drv->PowerControl(ARM_POWER_FULL);
     if(status)
     {
@@ -384,12 +408,12 @@ void ADC_Thread(ULONG thread_input)
         goto error_adc_power;
     }
 
-    /* configure I2S2 Receiver to Asynchronous Master */
+    /* configure I2S Receiver to Asynchronous Master */
     status = i2s_drv->Control(ARM_SAI_CONFIGURE_RX |
-                                ARM_SAI_MODE_MASTER  |
-                                ARM_SAI_ASYNCHRONOUS |
-                                ARM_SAI_PROTOCOL_I2S |
-                                ARM_SAI_DATA_SIZE(wlen), wlen*2, sampling_rate);
+                              ARM_SAI_MODE_MASTER  |
+                              ARM_SAI_ASYNCHRONOUS |
+                              ARM_SAI_PROTOCOL_I2S |
+                              ARM_SAI_DATA_SIZE(wlen), wlen*2, sampling_rate);
     if(status)
     {
       printf("ADC Control status = %d\n", status);
@@ -409,7 +433,7 @@ void ADC_Thread(ULONG thread_input)
         /* Get one block from the samples pool. If not, return error */
         status = tx_block_allocate(&sample_block_pool, (VOID **)&samples_msg.buf,TX_WAIT_FOREVER);
         if (status)
-	{
+        {
             printf("Sample Block allocation failed\n");
             goto error_adc_alloc;
         }
@@ -427,7 +451,7 @@ void ADC_Thread(ULONG thread_input)
         }
 
         /* Wait for the completion event */
-        status = tx_event_flags_get(&event_flags_adc,ADC_RECEIVE_COMPLETE_EVENT, TX_OR_CLEAR, &events , ADC_RECEIVE_TIMEOUT);
+        status = tx_event_flags_get(&event_flags_adc, ADC_RECEIVE_OVERFLOW_EVENT| ADC_RECEIVE_COMPLETE_EVENT, TX_OR_CLEAR, &events , ADC_RECEIVE_TIMEOUT);
         if(status)
         {
             printf("\r\nTimeout occurred while receiving the data from ADC\r\n");
@@ -554,7 +578,7 @@ void tx_application_define(void *first_unused_memory)
         return;
     }
 
-    /* Create the DAC thread.  */
+    /* Create the DAC thread */
     status = tx_thread_create(&DAC_thread, "DAC_thread", DAC_Thread, 0,pointer, DEMO_STACK_SIZE,6, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
     if (status )
     {

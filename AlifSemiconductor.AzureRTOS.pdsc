@@ -13,6 +13,12 @@
   -->
 
   <releases>
+      <release version="0.3.1" date="2023-09-13">
+      - Update B0 THREADX Sample 	
+      - Update B0 FILEX Driver and sample
+      - Update B0 USBX Driver and sample
+      - Update B0 NETX Driver and sample
+    </release>
     <release version="0.3.0" date="2023-01-10">
       - update sample codes
       - Add SD card support
@@ -91,12 +97,17 @@
   -->
       <!-- Arm architecture -->
   <conditions>
-    <condition id="ARMCC GCC IAR">
+    <!--condition id="ARMCC GCC IAR">
       <accept Tcompiler="ARMCC"/>
       <accept Tcompiler="GCC"/>
       <accept Tcompiler="IAR"/>
+    </condition-->
+     <condition id="Startup ARM">
+      <require Tcompiler="ARMCC"/>
     </condition>
-
+    <condition id="Startup GCC">
+      <require Tcompiler="GCC"/>
+    </condition>
     <condition id="Alif M55 Device">
       <description>Alif Semiconductor Armv8-M architecture based device</description>
       <accept Dvendor="Alif Semiconductor:165" Dcore="Cortex-M55"/>
@@ -105,7 +116,9 @@
     <condition id="RTOS AzureRTOS">
       <description>Components required for AzureRTOS</description>
       <require condition="Alif M55 Device"/>
-      <require condition="ARMCC GCC IAR"/>
+      <!--require condition="ARMCC"/-->
+      <accept condition="Startup ARM"/>
+      <accept condition="Startup GCC"/>
       <require Cclass="Device" Cgroup="Startup"/>
       <deny    Cclass="CMSIS"  Cgroup="RTOS2" Csub="Keil RTX5"/>
     </condition>
@@ -172,11 +185,11 @@
   </examples>-->
 
   <components>
-   <bundle Cbundle="AzureRTOS" Cclass="RTOS" Cversion="6.1.3">
+   <bundle Cbundle="AzureRTOS" Cclass="RTOS" Cversion="6.2.1">
     <description>Alif Semiconductor port of AzureRTOS for its M55 device</description>
     <doc></doc>
-    <component Cgroup="Kernel"  Cversion="6.1.3" condition="RTOS AzureRTOS" >
-      <description>Release version 6.1.3</description>
+    <component Cgroup="Kernel" Csub="Core" Cversion="6.2.1" condition="RTOS AzureRTOS" >
+      <description>Release version 6.2.1</description>
       <Pre_Include_Global_h>
         // enabling global pre include
         #define TX_SINGLE_MODE_SECURE
@@ -382,28 +395,6 @@
 	<file category="source" name="THREADX/common/src/txe_timer_deactivate.c"/>
 	<file category="source" name="THREADX/common/src/txe_timer_delete.c"/>
 	<file category="source" name="THREADX/common/src/txe_timer_info_get.c"/>
-	<!-- Ports -->
-	<file category="header" name="THREADX/ports/cortex_m55/ac6/inc/tx_port.h"/>
-	<file category="header" name="THREADX/ports/cortex_m55/ac6/inc/tx_secure_interface.h"/>
-	<file category="source" name="THREADX/ports/cortex_m55/ac6/src/tx_initialize_low_level.S" />
-	<file category="source" name="THREADX/ports/cortex_m55/ac6/src/tx_thread_context_restore.S" />
-	<file category="source" name="THREADX/ports/cortex_m55/ac6/src/tx_thread_context_save.S" />
-	<file category="source" name="THREADX/ports/cortex_m55/ac6/src/tx_thread_interrupt_control.S" />
-	<file category="source" name="THREADX/ports/cortex_m55/ac6/src/tx_thread_interrupt_disable.S" />
-	<file category="source" name="THREADX/ports/cortex_m55/ac6/src/tx_thread_interrupt_restore.S" />
-	<file category="source" name="THREADX/ports/cortex_m55/ac6/src/tx_thread_schedule.S" />
-	<file category="source" name="THREADX/ports/cortex_m55/ac6/src/tx_thread_secure_stack_allocate.S" />
-	<file category="source" name="THREADX/ports/cortex_m55/ac6/src/tx_thread_secure_stack.c"/>
-	<file category="source" name="THREADX/ports/cortex_m55/ac6/src/tx_thread_secure_stack_allocate.S" />
-	<file category="source" name="THREADX/ports/cortex_m55/ac6/src/tx_thread_secure_stack_free.S" />
-	<file category="source" name="THREADX/ports/cortex_m55/ac6/src/tx_thread_stack_build.S" />
-	<file category="source" name="THREADX/ports/cortex_m55/ac6/src/tx_thread_stack_error_handler.c"/>
-	<file category="source" name="THREADX/ports/cortex_m55/ac6/src/tx_thread_stack_error_notify.c"/>
-	<file category="source" name="THREADX/ports/cortex_m55/ac6/src/tx_thread_system_return.S" />
-	<file category="source" name="THREADX/ports/cortex_m55/ac6/src/tx_timer_interrupt.S" />
-	<file category="source" name="THREADX/ports/cortex_m55/ac6/src/txe_thread_secure_stack_allocate.c"/>
-	<file category="source" name="THREADX/ports/cortex_m55/ac6/src/txe_thread_secure_stack_free.c"/>
-	<file category="source" name="THREADX/ports/cortex_m55/ac6/src/tx_systick_config.c"/>
     <!-- Templates -->
 	<file category="source"       name="THREADX/samples/demo_threadx.c"    attr="template" select="AzureRTOS THREADX Sample App"/>
     <!--  AzureRTOS templates -->
@@ -412,11 +403,12 @@
 	<file category="source"       name="THREADX/samples/rtc_testApp.c"            attr="template" select="AzureRTOS Real Time Counter App"/>
 	<file category="source"       name="THREADX/samples/uart2_testApp.c"          attr="template" select="AzureRTOS UART2 App"/>
 	<file category="source"       name="THREADX/samples/uart4_testApp.c"          attr="template" select="AzureRTOS UART4 App"/>
+	<file category="source"       name="THREADX/samples/LPUART_testApp.c"          attr="template" select="AzureRTOS LPUART App"/>
 	<file category="source"       name="THREADX/samples/UTIMER_app.c"             attr="template" select="AzureRTOS UTIMER App"/>
+	<file category="source"       name="THREADX/samples/LPTIMER_app.c"             attr="template" select="AzureRTOS LPTIMER App"/>
 	<file category="source"       name="THREADX/samples/wdt_testApp.c"            attr="template" select="AzureRTOS Watchdog App"/>
 	<file category="source"       name="THREADX/samples/i2s_testapp.c"            attr="template" select="AzureRTOS I2S test App"/>
 	<file category="header"       name="THREADX/samples/Include/i2s_samples.h"    attr="template" select="AzureRTOS I2S test App"/>
-	<file category="source"       name="THREADX/samples/THERMOMETER_app.c"        attr="template" select="AzureRTOS SPI based Temperature sensor test App"/>
 	<file category="source"       name="THREADX/samples/i2c_using_i3c_testApp.c"  attr="template" select="AzureRTOS I2Con I3C test App"/>
 	<file category="source"       name="THREADX/samples/MT9M114_Camera_Sensor_testApp.c"        attr="template" select="AzureRTOS Camera test App"/>
 	<file category="source"       name="THREADX/samples/bayer.c"			  attr="template" select="AzureRTOS Camera test App"/>
@@ -431,7 +423,7 @@
 	<file category="source"       name="THREADX/samples/CRC_testapp.c"		  attr="template" select="AzureRTOS CRC testApp"/>
 	<file category="source"       name="THREADX/samples/mix_bus_i2c_i3c_testApp.c"    attr="template" select="AzureRTOS I3C/I2C Mix bus testApp"/>
 	<file category="source"       name="THREADX/samples/Comparator_testapp.c"	  attr="template" select="AzureRTOS Comparator testApp"/>
-	<file category="source"       name="THREADX/samples/Flash_MRAM_Threadx.c"    attr="template" select="AzureRTOS MRAM flash testApp"/>
+	<file category="source"       name="THREADX/samples/MRAM_Threadx.c"    attr="template" select="AzureRTOS MRAM flash testApp"/>
 	<file category="source"       name="THREADX/samples/HWSEM_Threadx.c"    attr="template" select="AzureRTOS HWSEM testApp"/>
 	<file category="source"       name="THREADX/samples/MIPI_Interface_Video_testApp.c"    attr="template" select="AzureRTOS Viewfinder testApp"/>
 	<file category="source"       name="THREADX/samples/image_processing.c"    attr="template" select="AzureRTOS Viewfinder testApp"/>
@@ -440,261 +432,331 @@
 	<file category="header"		  name="THREADX/samples/Include/bayer.h"          attr="template" select="AzureRTOS Viewfinder testApp"/>
 	<file category="source"       name="THREADX/samples/Flash_ISSI_Threadx_app.c"		  attr="template" select="AzureRTOS (OSPI)ISSI Flash testApp"/>
 	<file category="source"       name="THREADX/samples/QEC_app.c"		  attr="template" select="AzureRTOS QEC testApp"/>
+	<file category="source"       name="THREADX/samples/PDM_testApp.c"		  attr="template" select="AzureRTOS PDM testApp"/>
+	<file category="source"       name="THREADX/samples/LPPDM_testApp.c"		  attr="template" select="AzureRTOS LPPDM testApp"/>
+	<file category="source"       name="THREADX/samples/dma_testmemcpy.c"		  attr="template" select="AzureRTOS DMA Testmemcpy testApp"/>
+	<file category="source"       name="THREADX/samples/GT911_TestApp.c"		  attr="template" select="AzureRTOS Touch Screen testApp"/>
+	<file category="source"       name="THREADX/samples/SPI0_SPI1_testapp.c"		  attr="template" select="AzureRTOS SPI testApp"/>
+	<file category="source"       name="THREADX/samples/LPSPI_SPI_testapp.c"		  attr="template" select="AzureRTOS LPSPI testApp"/>
+	<file category="source"       name="THREADX/samples/i3c_master_loopback_testapp.c"		  attr="template" select="AzureRTOS I3C Master Loopback testApp"/>
+	<file category="source"       name="THREADX/samples/i3c_slave_loopback_testapp.c"		  attr="template" select="AzureRTOS I3C Slave Loopback testApp"/>
+        <file category="source"       name="THREADX/samples/i2c_testapp.c"		  attr="template" select="AzureRTOS I2C testApp"/>
 	</files>
     </component>
+    
+     <component Cgroup="Kernel" Csub="ARM_Port" Cversion="6.2.1" condition="RTOS AzureRTOS" >
+      <description>ARM release version 6.2.1</description>
+       <files>
+       <!-- Ports for ARM-->
+	<file category="header" name="THREADX/ports/cortex_m55/ac6/inc/tx_port.h"  />
+	<file category="header" name="THREADX/ports/cortex_m55/ac6/inc/tx_secure_interface.h" />
+	<file category="source" name="THREADX/ports/cortex_m55/ac6/src/tx_initialize_low_level.S" />
+	<file category="source" name="THREADX/ports/cortex_m55/ac6/src/tx_thread_context_restore.S" />
+	<file category="source" name="THREADX/ports/cortex_m55/ac6/src/tx_thread_context_save.S" />
+	<file category="source" name="THREADX/ports/cortex_m55/ac6/src/tx_thread_interrupt_control.S" />
+	<file category="source" name="THREADX/ports/cortex_m55/ac6/src/tx_thread_interrupt_disable.S" />
+	<file category="source" name="THREADX/ports/cortex_m55/ac6/src/tx_thread_interrupt_restore.S" />
+	<file category="source" name="THREADX/ports/cortex_m55/ac6/src/tx_thread_schedule.S" />
+	<file category="source" name="THREADX/ports/cortex_m55/ac6/src/tx_thread_secure_stack_allocate.S" />
+	<file category="source" name="THREADX/ports/cortex_m55/ac6/src/tx_thread_secure_stack.c" />
+	<file category="source" name="THREADX/ports/cortex_m55/ac6/src/tx_thread_secure_stack_allocate.S" />
+	<file category="source" name="THREADX/ports/cortex_m55/ac6/src/tx_thread_secure_stack_free.S" />
+	<file category="source" name="THREADX/ports/cortex_m55/ac6/src/tx_thread_stack_build.S" />
+	<file category="source" name="THREADX/ports/cortex_m55/ac6/src/tx_thread_stack_error_handler.c" />
+	<file category="source" name="THREADX/ports/cortex_m55/ac6/src/tx_thread_stack_error_notify.c" />
+	<file category="source" name="THREADX/ports/cortex_m55/ac6/src/tx_thread_system_return.S" />
+	<file category="source" name="THREADX/ports/cortex_m55/ac6/src/tx_timer_interrupt.S" />
+	<file category="source" name="THREADX/ports/cortex_m55/ac6/src/txe_thread_secure_stack_allocate.c" />
+	<file category="source" name="THREADX/ports/cortex_m55/ac6/src/txe_thread_secure_stack_free.c" />
+	<file category="source" name="THREADX/ports/cortex_m55/ac6/src/tx_systick_config.c" />
+        <file category="source" name="THREADX/ports/cortex_m55/ac6/src/tx_thread_secure_stack_initialize.S" />
+	<file category="source" name="THREADX/ports/cortex_m55/ac6/src/tx_misra.S" />
+       </files>
+    </component>
+    
+    <component Cgroup="Kernel" Csub="GCC_Port" Cversion="6.2.1" condition="RTOS AzureRTOS" >
+    <description>GCC release version 6.2.1</description>
+       <files>
+       <!-- Ports for GCC-->
+	<file category="header" name="THREADX/ports/cortex_m55/gnu/inc/tx_port.h" />
+	<file category="header" name="THREADX/ports/cortex_m55/gnu/inc/tx_secure_interface.h" />
+	<file category="source" name="THREADX/ports/cortex_m55/gnu/src/tx_initialize_low_level.S" />
+	<file category="source" name="THREADX/ports/cortex_m55/gnu/src/tx_thread_context_restore.S" />
+	<file category="source" name="THREADX/ports/cortex_m55/gnu/src/tx_thread_context_save.S" />
+	<file category="source" name="THREADX/ports/cortex_m55/gnu/src/tx_thread_interrupt_control.S" />
+	<file category="source" name="THREADX/ports/cortex_m55/gnu/src/tx_thread_interrupt_disable.S" />
+	<file category="source" name="THREADX/ports/cortex_m55/gnu/src/tx_thread_interrupt_restore.S" />
+	<file category="source" name="THREADX/ports/cortex_m55/gnu/src/tx_thread_schedule.S" />
+	<file category="source" name="THREADX/ports/cortex_m55/gnu/src/tx_thread_secure_stack_allocate.S" />
+	<file category="source" name="THREADX/ports/cortex_m55/gnu/src/tx_thread_secure_stack.c" />
+	<file category="source" name="THREADX/ports/cortex_m55/gnu/src/tx_thread_secure_stack_allocate.S" />
+	<file category="source" name="THREADX/ports/cortex_m55/gnu/src/tx_thread_secure_stack_free.S" />
+	<file category="source" name="THREADX/ports/cortex_m55/gnu/src/tx_thread_stack_build.S" />
+	<file category="source" name="THREADX/ports/cortex_m55/gnu/src/tx_thread_stack_error_handler.c" />
+	<file category="source" name="THREADX/ports/cortex_m55/gnu/src/tx_thread_stack_error_notify.c" />
+	<file category="source" name="THREADX/ports/cortex_m55/gnu/src/tx_thread_system_return.S" />
+	<file category="source" name="THREADX/ports/cortex_m55/gnu/src/tx_timer_interrupt.S" />
+	<file category="source" name="THREADX/ports/cortex_m55/gnu/src/txe_thread_secure_stack_allocate.c" />
+	<file category="source" name="THREADX/ports/cortex_m55/gnu/src/txe_thread_secure_stack_free.c" />
+	<file category="source" name="THREADX/ports/cortex_m55/gnu/src/tx_systick_config.c" />
+	<file category="source" name="THREADX/ports/cortex_m55/gnu/src/tx_thread_secure_stack_initialize.S" />
+	<file category="source" name="THREADX/ports/cortex_m55/gnu/src/tx_misra.S" />
+       </files>
+    </component>
+     
 
     <!-- ====================== FILEX Component Description ====================== -->
-    <component Cgroup="FILEX" Csub="Core" Cversion="6.1.8" condition="AzureRTOS FILEX" >
+    <component Cgroup="FILEX" Csub="Core" Cversion="6.2.1" condition="AzureRTOS FILEX" >
       <description>High-performance, FAT-compatible file system</description>
       <files>
-	<file category="source" name="FILEX/src/fx_directory_attributes_read.c"/>
-	<file category="source" name="FILEX/src/fx_directory_attributes_set.c"/>
-	<file category="source" name="FILEX/src/fx_directory_create.c"/>
-	<file category="source" name="FILEX/src/fx_directory_default_get.c"/>
-	<file category="source" name="FILEX/src/fx_directory_default_get_copy.c"/>
-	<file category="source" name="FILEX/src/fx_directory_default_set.c"/>
-	<file category="source" name="FILEX/src/fx_directory_delete.c"/>
-	<file category="source" name="FILEX/src/fx_directory_entry_read.c"/>
-	<file category="source" name="FILEX/src/fx_directory_entry_write.c"/>
-	<file category="source" name="FILEX/src/fx_directory_exFAT_entry_read.c"/>
-	<file category="source" name="FILEX/src/fx_directory_exFAT_entry_write.c"/>
-	<file category="source" name="FILEX/src/fx_directory_exFAT_free_search.c"/>
-	<file category="source" name="FILEX/src/fx_directory_exFAT_unicode_entry_write.c"/>
-	<file category="source" name="FILEX/src/fx_directory_first_entry_find.c"/>
-	<file category="source" name="FILEX/src/fx_directory_first_full_entry_find.c"/>
-	<file category="source" name="FILEX/src/fx_directory_free_search.c"/>
-	<file category="source" name="FILEX/src/fx_directory_information_get.c"/>
-	<file category="source" name="FILEX/src/fx_directory_local_path_clear.c"/>
-	<file category="source" name="FILEX/src/fx_directory_local_path_get.c"/>
-	<file category="source" name="FILEX/src/fx_directory_local_path_get_copy.c"/>
-	<file category="source" name="FILEX/src/fx_directory_local_path_restore.c"/>
-	<file category="source" name="FILEX/src/fx_directory_local_path_set.c"/>
-	<file category="source" name="FILEX/src/fx_directory_long_name_get.c"/>
-	<file category="source" name="FILEX/src/fx_directory_long_name_get_extended.c"/>
-	<file category="source" name="FILEX/src/fx_directory_name_extract.c"/>
-	<file category="source" name="FILEX/src/fx_directory_name_test.c"/>
-	<file category="source" name="FILEX/src/fx_directory_next_entry_find.c"/>
-	<file category="source" name="FILEX/src/fx_directory_next_full_entry_find.c"/>
-	<file category="source" name="FILEX/src/fx_directory_rename.c"/>
-	<file category="source" name="FILEX/src/fx_directory_search.c"/>
-	<file category="source" name="FILEX/src/fx_directory_short_name_get.c"/>
-	<file category="source" name="FILEX/src/fx_directory_short_name_get_extended.c"/>
-	<file category="source" name="FILEX/src/fxe_directory_attributes_read.c"/>
-	<file category="source" name="FILEX/src/fxe_directory_attributes_set.c"/>
-	<file category="source" name="FILEX/src/fxe_directory_create.c"/>
-	<file category="source" name="FILEX/src/fxe_directory_default_get.c"/>
-	<file category="source" name="FILEX/src/fxe_directory_default_get_copy.c"/>
-	<file category="source" name="FILEX/src/fxe_directory_default_set.c"/>
-	<file category="source" name="FILEX/src/fxe_directory_delete.c"/>
-	<file category="source" name="FILEX/src/fxe_directory_first_entry_find.c"/>
-	<file category="source" name="FILEX/src/fxe_directory_first_full_entry_find.c"/>
-	<file category="source" name="FILEX/src/fxe_directory_information_get.c"/>
-	<file category="source" name="FILEX/src/fxe_directory_local_path_clear.c"/>
-	<file category="source" name="FILEX/src/fxe_directory_local_path_get.c"/>
-	<file category="source" name="FILEX/src/fxe_directory_local_path_get_copy.c"/>
-	<file category="source" name="FILEX/src/fxe_directory_local_path_restore.c"/>
-	<file category="source" name="FILEX/src/fxe_directory_local_path_set.c"/>
-	<file category="source" name="FILEX/src/fxe_directory_long_name_get.c"/>
-	<file category="source" name="FILEX/src/fxe_directory_long_name_get_extended.c"/>
-	<file category="source" name="FILEX/src/fxe_directory_name_test.c"/>
-	<file category="source" name="FILEX/src/fxe_directory_next_entry_find.c"/>
-	<file category="source" name="FILEX/src/fxe_directory_next_full_entry_find.c"/>
-	<file category="source" name="FILEX/src/fxe_directory_rename.c"/>
-	<file category="source" name="FILEX/src/fxe_directory_short_name_get.c"/>
-	<file category="source" name="FILEX/src/fxe_directory_short_name_get_extended.c"/>
-	<file category="source" name="FILEX/src/fxe_fault_tolerant_enable.c"/>
-	<file category="source" name="FILEX/src/fxe_file_allocate.c"/>
-	<file category="source" name="FILEX/src/fxe_file_attributes_read.c"/>
-	<file category="source" name="FILEX/src/fxe_file_attributes_set.c"/>
-	<file category="source" name="FILEX/src/fxe_file_best_effort_allocate.c"/>
-	<file category="source" name="FILEX/src/fxe_file_close.c"/>
-	<file category="source" name="FILEX/src/fxe_file_create.c"/>
-	<file category="source" name="FILEX/src/fxe_file_date_time_set.c"/>
-	<file category="source" name="FILEX/src/fxe_file_delete.c"/>
-	<file category="source" name="FILEX/src/fxe_file_extended_allocate.c"/>
-	<file category="source" name="FILEX/src/fxe_file_extended_best_effort_allocate.c"/>
-	<file category="source" name="FILEX/src/fxe_file_extended_relative_seek.c"/>
-	<file category="source" name="FILEX/src/fxe_file_extended_seek.c"/>
-	<file category="source" name="FILEX/src/fxe_file_extended_truncate.c"/>
-	<file category="source" name="FILEX/src/fxe_file_extended_truncate_release.c"/>
-	<file category="source" name="FILEX/src/fxe_file_open.c"/>
-	<file category="source" name="FILEX/src/fxe_file_read.c"/>
-	<file category="source" name="FILEX/src/fxe_file_relative_seek.c"/>
-	<file category="source" name="FILEX/src/fxe_file_rename.c"/>
-	<file category="source" name="FILEX/src/fxe_file_seek.c"/>
-	<file category="source" name="FILEX/src/fxe_file_truncate.c"/>
-	<file category="source" name="FILEX/src/fxe_file_truncate_release.c"/>
-	<file category="source" name="FILEX/src/fxe_file_write.c"/>
-	<file category="source" name="FILEX/src/fxe_file_write_notify_set.c"/>
-	<file category="source" name="FILEX/src/fxe_media_abort.c"/>
-	<file category="source" name="FILEX/src/fxe_media_cache_invalidate.c"/>
-	<file category="source" name="FILEX/src/fxe_media_check.c"/>
-	<file category="source" name="FILEX/src/fxe_media_close.c"/>
-	<file category="source" name="FILEX/src/fxe_media_close_notify_set.c"/>
-	<file category="source" name="FILEX/src/fxe_media_exFAT_format.c"/>
-	<file category="source" name="FILEX/src/fxe_media_extended_space_available.c"/>
-	<file category="source" name="FILEX/src/fxe_media_flush.c"/>
-	<file category="source" name="FILEX/src/fxe_media_format.c"/>
-	<file category="source" name="FILEX/src/fxe_media_open.c"/>
-	<file category="source" name="FILEX/src/fxe_media_open_notify_set.c"/>
-	<file category="source" name="FILEX/src/fxe_media_read.c"/>
-	<file category="source" name="FILEX/src/fxe_media_space_available.c"/>
-	<file category="source" name="FILEX/src/fxe_media_volume_get.c"/>
-	<file category="source" name="FILEX/src/fxe_media_volume_get_extended.c"/>
-	<file category="source" name="FILEX/src/fxe_media_volume_set.c"/>
-	<file category="source" name="FILEX/src/fxe_media_write.c"/>
-	<file category="source" name="FILEX/src/fxe_system_date_get.c"/>
-	<file category="source" name="FILEX/src/fxe_system_date_set.c"/>
-	<file category="source" name="FILEX/src/fxe_system_time_get.c"/>
-	<file category="source" name="FILEX/src/fxe_system_time_set.c"/>
-	<file category="source" name="FILEX/src/fxe_unicode_directory_create.c"/>
-	<file category="source" name="FILEX/src/fxe_unicode_directory_rename.c"/>
-	<file category="source" name="FILEX/src/fxe_unicode_file_create.c"/>
-	<file category="source" name="FILEX/src/fxe_unicode_file_rename.c"/>
-	<file category="source" name="FILEX/src/fxe_unicode_name_get.c"/>
-	<file category="source" name="FILEX/src/fxe_unicode_name_get_extended.c"/>
-	<file category="source" name="FILEX/src/fxe_unicode_short_name_get.c"/>
-	<file category="source" name="FILEX/src/fxe_unicode_short_name_get_extended.c"/>
-	<file category="source" name="FILEX/src/fx_fault_tolerant_add_bitmap_log.c"/>
-	<file category="source" name="FILEX/src/fx_fault_tolerant_add_checksum_log.c"/>
-	<file category="source" name="FILEX/src/fx_fault_tolerant_add_dir_log.c"/>
-	<file category="source" name="FILEX/src/fx_fault_tolerant_add_FAT_log.c"/>
-	<file category="source" name="FILEX/src/fx_fault_tolerant_apply_logs.c"/>
-	<file category="source" name="FILEX/src/fx_fault_tolerant_calculate_checksum.c"/>
-	<file category="source" name="FILEX/src/fx_fault_tolerant_cleanup_FAT_chain.c"/>
-	<file category="source" name="FILEX/src/fx_fault_tolerant_create_log_file.c"/>
-	<file category="source" name="FILEX/src/fx_fault_tolerant_enable.c"/>
-	<file category="source" name="FILEX/src/fx_fault_tolerant_read_directory_sector.c"/>
-	<file category="source" name="FILEX/src/fx_fault_tolerant_read_FAT.c"/>
-	<file category="source" name="FILEX/src/fx_fault_tolerant_read_log_file.c"/>
-	<file category="source" name="FILEX/src/fx_fault_tolerant_recover.c"/>
-	<file category="source" name="FILEX/src/fx_fault_tolerant_reset_log_file.c"/>
-	<file category="source" name="FILEX/src/fx_fault_tolerant_set_FAT_chain.c"/>
-	<file category="source" name="FILEX/src/fx_fault_tolerant_transaction_end.c"/>
-	<file category="source" name="FILEX/src/fx_fault_tolerant_transaction_fail.c"/>
-	<file category="source" name="FILEX/src/fx_fault_tolerant_transaction_start.c"/>
-	<file category="source" name="FILEX/src/fx_fault_tolerant_write_log_file.c"/>
-	<file category="source" name="FILEX/src/fx_file_allocate.c"/>
-	<file category="source" name="FILEX/src/fx_file_attributes_read.c"/>
-	<file category="source" name="FILEX/src/fx_file_attributes_set.c"/>
-	<file category="source" name="FILEX/src/fx_file_best_effort_allocate.c"/>
-	<file category="source" name="FILEX/src/fx_file_close.c"/>
-	<file category="source" name="FILEX/src/fx_file_create.c"/>
-	<file category="source" name="FILEX/src/fx_file_date_time_set.c"/>
-	<file category="source" name="FILEX/src/fx_file_delete.c"/>
-	<file category="source" name="FILEX/src/fx_file_extended_allocate.c"/>
-	<file category="source" name="FILEX/src/fx_file_extended_best_effort_allocate.c"/>
-	<file category="source" name="FILEX/src/fx_file_extended_relative_seek.c"/>
-	<file category="source" name="FILEX/src/fx_file_extended_seek.c"/>
-	<file category="source" name="FILEX/src/fx_file_extended_truncate.c"/>
-	<file category="source" name="FILEX/src/fx_file_extended_truncate_release.c"/>
-	<file category="source" name="FILEX/src/fx_file_open.c"/>
-	<file category="source" name="FILEX/src/fx_file_read.c"/>
-	<file category="source" name="FILEX/src/fx_file_relative_seek.c"/>
-	<file category="source" name="FILEX/src/fx_file_rename.c"/>
-	<file category="source" name="FILEX/src/fx_file_seek.c"/>
-	<file category="source" name="FILEX/src/fx_file_truncate.c"/>
-	<file category="source" name="FILEX/src/fx_file_truncate_release.c"/>
-	<file category="source" name="FILEX/src/fx_file_write.c"/>
-	<file category="source" name="FILEX/src/fx_file_write_notify_set.c"/>
-	<file category="source" name="FILEX/src/fx_media_abort.c"/>
-	<file category="source" name="FILEX/src/fx_media_boot_info_extract.c"/>
-	<file category="source" name="FILEX/src/fx_media_cache_invalidate.c"/>
-	<file category="source" name="FILEX/src/fx_media_check.c"/>
-	<file category="source" name="FILEX/src/fx_media_check_FAT_chain_check.c"/>
-	<file category="source" name="FILEX/src/fx_media_check_lost_cluster_check.c"/>
-	<file category="source" name="FILEX/src/fx_media_close.c"/>
-	<file category="source" name="FILEX/src/fx_media_close_notify_set.c"/>
-	<file category="source" name="FILEX/src/fx_media_exFAT_format.c"/>
-	<file category="source" name="FILEX/src/fx_media_extended_space_available.c"/>
-	<file category="source" name="FILEX/src/fx_media_flush.c"/>
-	<file category="source" name="FILEX/src/fx_media_format.c"/>
-	<file category="source" name="FILEX/src/fx_media_format_oem_name_set.c"/>
-	<file category="source" name="FILEX/src/fx_media_format_type_set.c"/>
-	<file category="source" name="FILEX/src/fx_media_format_volume_id_set.c"/>
-	<file category="source" name="FILEX/src/fx_media_open.c"/>
-	<file category="source" name="FILEX/src/fx_media_open_notify_set.c"/>
-	<file category="source" name="FILEX/src/fx_media_read.c"/>
-	<file category="source" name="FILEX/src/fx_media_space_available.c"/>
-	<file category="source" name="FILEX/src/fx_media_volume_get.c"/>
-	<file category="source" name="FILEX/src/fx_media_volume_get_extended.c"/>
-	<file category="source" name="FILEX/src/fx_media_volume_set.c"/>
-	<file category="source" name="FILEX/src/fx_media_write.c"/>
-	<file category="source" name="FILEX/src/fx_partition_offset_calculate.c"/>
-	<file category="source" name="FILEX/src/fx_ram_driver.c"/>
-	<file category="source" name="FILEX/src/fx_system_date_get.c"/>
-	<file category="source" name="FILEX/src/fx_system_date_set.c"/>
-	<file category="source" name="FILEX/src/fx_system_initialize.c"/>
-	<file category="source" name="FILEX/src/fx_system_time_get.c"/>
-	<file category="source" name="FILEX/src/fx_system_timer_entry.c"/>
-	<file category="source" name="FILEX/src/fx_system_time_set.c"/>
-	<file category="source" name="FILEX/src/fx_trace_event_insert.c"/>
-	<file category="source" name="FILEX/src/fx_trace_event_update.c"/>
-	<file category="source" name="FILEX/src/fx_trace_object_register.c"/>
-	<file category="source" name="FILEX/src/fx_trace_object_unregister.c"/>
-	<file category="source" name="FILEX/src/fx_unicode_directory_create.c"/>
-	<file category="source" name="FILEX/src/fx_unicode_directory_entry_change.c"/>
-	<file category="source" name="FILEX/src/fx_unicode_directory_entry_read.c"/>
-	<file category="source" name="FILEX/src/fx_unicode_directory_rename.c"/>
-	<file category="source" name="FILEX/src/fx_unicode_directory_search.c"/>
-	<file category="source" name="FILEX/src/fx_unicode_file_create.c"/>
-	<file category="source" name="FILEX/src/fx_unicode_file_rename.c"/>
-	<file category="source" name="FILEX/src/fx_unicode_length_get.c"/>
-	<file category="source" name="FILEX/src/fx_unicode_length_get_extended.c"/>
-	<file category="source" name="FILEX/src/fx_unicode_name_get.c"/>
-	<file category="source" name="FILEX/src/fx_unicode_name_get_extended.c"/>
-	<file category="source" name="FILEX/src/fx_unicode_short_name_get.c"/>
-	<file category="source" name="FILEX/src/fx_unicode_short_name_get_extended.c"/>
-	<file category="source" name="FILEX/src/fx_utility_16_unsigned_read.c"/>
-	<file category="source" name="FILEX/src/fx_utility_16_unsigned_write.c"/>
-	<file category="source" name="FILEX/src/fx_utility_32_unsigned_read.c"/>
-	<file category="source" name="FILEX/src/fx_utility_32_unsigned_write.c"/>
-	<file category="source" name="FILEX/src/fx_utility_64_unsigned_read.c"/>
-	<file category="source" name="FILEX/src/fx_utility_64_unsigned_write.c"/>
-	<file category="source" name="FILEX/src/fx_utility_absolute_path_get.c"/>
-	<file category="source" name="FILEX/src/fx_utility_exFAT_allocate_new_cluster.c"/>
-	<file category="source" name="FILEX/src/fx_utility_exFAT_bitmap_cache_prepare.c"/>
-	<file category="source" name="FILEX/src/fx_utility_exFAT_bitmap_cache_update.c"/>
-	<file category="source" name="FILEX/src/fx_utility_exFAT_bitmap_flush.c"/>
-	<file category="source" name="FILEX/src/fx_utility_exFAT_bitmap_free_cluster_find.c"/>
-	<file category="source" name="FILEX/src/fx_utility_exFAT_bitmap_initialize.c"/>
-	<file category="source" name="FILEX/src/fx_utility_exFAT_bitmap_start_sector_get.c"/>
-	<file category="source" name="FILEX/src/fx_utility_exFAT_cluster_free.c"/>
-	<file category="source" name="FILEX/src/fx_utility_exFAT_cluster_state_get.c"/>
-	<file category="source" name="FILEX/src/fx_utility_exFAT_cluster_state_set.c"/>
-	<file category="source" name="FILEX/src/fx_utility_exFAT_geometry_check.c"/>
-	<file category="source" name="FILEX/src/fx_utility_exFAT_name_hash_get.c"/>
-	<file category="source" name="FILEX/src/fx_utility_exFAT_size_calculate.c"/>
-	<file category="source" name="FILEX/src/fx_utility_exFAT_system_area_checksum_verify.c"/>
-	<file category="source" name="FILEX/src/fx_utility_exFAT_system_area_checksum_write.c"/>
-	<file category="source" name="FILEX/src/fx_utility_exFAT_system_area_format.c"/>
-	<file category="source" name="FILEX/src/fx_utility_exFAT_system_sector_write.c"/>
-	<file category="source" name="FILEX/src/fx_utility_exFAT_unicode_name_hash_get.c"/>
-	<file category="source" name="FILEX/src/fx_utility_exFAT_upcase_table.c"/>
-	<file category="source" name="FILEX/src/fx_utility_FAT_entry_read.c"/>
-	<file category="source" name="FILEX/src/fx_utility_FAT_entry_write.c"/>
-	<file category="source" name="FILEX/src/fx_utility_FAT_flush.c"/>
-	<file category="source" name="FILEX/src/fx_utility_FAT_map_flush.c"/>
-	<file category="source" name="FILEX/src/fx_utility_FAT_sector_get.c"/>
-	<file category="source" name="FILEX/src/fx_utility_logical_sector_cache_entry_read.c"/>
-	<file category="source" name="FILEX/src/fx_utility_logical_sector_flush.c"/>
-	<file category="source" name="FILEX/src/fx_utility_logical_sector_read.c"/>
-	<file category="source" name="FILEX/src/fx_utility_logical_sector_write.c"/>
-	<file category="source" name="FILEX/src/fx_utility_memory_copy.c"/>
-	<file category="source" name="FILEX/src/fx_utility_memory_set.c"/>
-	<file category="source" name="FILEX/src/fx_utility_string_length_get.c"/>
-	<file category="source" name="FILEX/src/fx_utility_token_length_get.c"/>
-	<!-- Includes -->
-	<file category="header" name="FILEX/inc/fx_api.h"/>
-	<file category="header" name="FILEX/inc/fx_directory_exFAT.h"/>
-	<file category="header" name="FILEX/inc/fx_directory.h"/>
-	<file category="header" name="FILEX/inc/fx_fault_tolerant.h"/>
-	<file category="header" name="FILEX/inc/fx_file.h"/>
-	<file category="header" name="FILEX/inc/fx_media.h"/>
-	<file category="header" name="FILEX/inc/fx_system.h"/>
-	<file category="header" name="FILEX/inc/fx_unicode.h"/>
-	<file category="header" name="FILEX/inc/fx_user_sample.h"/>
-	<file category="header" name="FILEX/inc/fx_utility.h"/>
+        <file category="source" name="FILEX/src/fx_directory_attributes_read.c"/>
+        <file category="source" name="FILEX/src/fx_directory_attributes_set.c"/>
+        <file category="source" name="FILEX/src/fx_directory_create.c"/>
+        <file category="source" name="FILEX/src/fx_directory_default_get.c"/>
+        <file category="source" name="FILEX/src/fx_directory_default_get_copy.c"/>
+        <file category="source" name="FILEX/src/fx_directory_default_set.c"/>
+        <file category="source" name="FILEX/src/fx_directory_delete.c"/>
+        <file category="source" name="FILEX/src/fx_directory_entry_read.c"/>
+        <file category="source" name="FILEX/src/fx_directory_entry_write.c"/>
+        <file category="source" name="FILEX/src/fx_directory_exFAT_entry_read.c"/>
+        <file category="source" name="FILEX/src/fx_directory_exFAT_entry_write.c"/>
+        <file category="source" name="FILEX/src/fx_directory_exFAT_free_search.c"/>
+        <file category="source" name="FILEX/src/fx_directory_exFAT_unicode_entry_write.c"/>
+        <file category="source" name="FILEX/src/fx_directory_first_entry_find.c"/>
+        <file category="source" name="FILEX/src/fx_directory_first_full_entry_find.c"/>
+        <file category="source" name="FILEX/src/fx_directory_free_search.c"/>
+        <file category="source" name="FILEX/src/fx_directory_information_get.c"/>
+        <file category="source" name="FILEX/src/fx_directory_local_path_clear.c"/>
+        <file category="source" name="FILEX/src/fx_directory_local_path_get.c"/>
+        <file category="source" name="FILEX/src/fx_directory_local_path_get_copy.c"/>
+        <file category="source" name="FILEX/src/fx_directory_local_path_restore.c"/>
+        <file category="source" name="FILEX/src/fx_directory_local_path_set.c"/>
+        <file category="source" name="FILEX/src/fx_directory_long_name_get.c"/>
+        <file category="source" name="FILEX/src/fx_directory_long_name_get_extended.c"/>
+        <file category="source" name="FILEX/src/fx_directory_name_extract.c"/>
+        <file category="source" name="FILEX/src/fx_directory_name_test.c"/>
+        <file category="source" name="FILEX/src/fx_directory_next_entry_find.c"/>
+        <file category="source" name="FILEX/src/fx_directory_next_full_entry_find.c"/>
+        <file category="source" name="FILEX/src/fx_directory_rename.c"/>
+        <file category="source" name="FILEX/src/fx_directory_search.c"/>
+        <file category="source" name="FILEX/src/fx_directory_short_name_get.c"/>
+        <file category="source" name="FILEX/src/fx_directory_short_name_get_extended.c"/>
+        <file category="source" name="FILEX/src/fxe_directory_attributes_read.c"/>
+        <file category="source" name="FILEX/src/fxe_directory_attributes_set.c"/>
+        <file category="source" name="FILEX/src/fxe_directory_create.c"/>
+        <file category="source" name="FILEX/src/fxe_directory_default_get.c"/>
+        <file category="source" name="FILEX/src/fxe_directory_default_get_copy.c"/>
+        <file category="source" name="FILEX/src/fxe_directory_default_set.c"/>
+        <file category="source" name="FILEX/src/fxe_directory_delete.c"/>
+        <file category="source" name="FILEX/src/fxe_directory_first_entry_find.c"/>
+        <file category="source" name="FILEX/src/fxe_directory_first_full_entry_find.c"/>
+        <file category="source" name="FILEX/src/fxe_directory_information_get.c"/>
+        <file category="source" name="FILEX/src/fxe_directory_local_path_clear.c"/>
+        <file category="source" name="FILEX/src/fxe_directory_local_path_get.c"/>
+        <file category="source" name="FILEX/src/fxe_directory_local_path_get_copy.c"/>
+        <file category="source" name="FILEX/src/fxe_directory_local_path_restore.c"/>
+        <file category="source" name="FILEX/src/fxe_directory_local_path_set.c"/>
+        <file category="source" name="FILEX/src/fxe_directory_long_name_get.c"/>
+        <file category="source" name="FILEX/src/fxe_directory_long_name_get_extended.c"/>
+        <file category="source" name="FILEX/src/fxe_directory_name_test.c"/>
+        <file category="source" name="FILEX/src/fxe_directory_next_entry_find.c"/>
+        <file category="source" name="FILEX/src/fxe_directory_next_full_entry_find.c"/>
+        <file category="source" name="FILEX/src/fxe_directory_rename.c"/>
+        <file category="source" name="FILEX/src/fxe_directory_short_name_get.c"/>
+        <file category="source" name="FILEX/src/fxe_directory_short_name_get_extended.c"/>
+        <file category="source" name="FILEX/src/fxe_fault_tolerant_enable.c"/>
+        <file category="source" name="FILEX/src/fxe_file_allocate.c"/>
+        <file category="source" name="FILEX/src/fxe_file_attributes_read.c"/>
+        <file category="source" name="FILEX/src/fxe_file_attributes_set.c"/>
+        <file category="source" name="FILEX/src/fxe_file_best_effort_allocate.c"/>
+        <file category="source" name="FILEX/src/fxe_file_close.c"/>
+        <file category="source" name="FILEX/src/fxe_file_create.c"/>
+        <file category="source" name="FILEX/src/fxe_file_date_time_set.c"/>
+        <file category="source" name="FILEX/src/fxe_file_delete.c"/>
+        <file category="source" name="FILEX/src/fxe_file_extended_allocate.c"/>
+        <file category="source" name="FILEX/src/fxe_file_extended_best_effort_allocate.c"/>
+        <file category="source" name="FILEX/src/fxe_file_extended_relative_seek.c"/>
+        <file category="source" name="FILEX/src/fxe_file_extended_seek.c"/>
+        <file category="source" name="FILEX/src/fxe_file_extended_truncate.c"/>
+        <file category="source" name="FILEX/src/fxe_file_extended_truncate_release.c"/>
+        <file category="source" name="FILEX/src/fxe_file_open.c"/>
+        <file category="source" name="FILEX/src/fxe_file_read.c"/>
+        <file category="source" name="FILEX/src/fxe_file_relative_seek.c"/>
+        <file category="source" name="FILEX/src/fxe_file_rename.c"/>
+        <file category="source" name="FILEX/src/fxe_file_seek.c"/>
+        <file category="source" name="FILEX/src/fxe_file_truncate.c"/>
+        <file category="source" name="FILEX/src/fxe_file_truncate_release.c"/>
+        <file category="source" name="FILEX/src/fxe_file_write.c"/>
+        <file category="source" name="FILEX/src/fxe_file_write_notify_set.c"/>
+        <file category="source" name="FILEX/src/fxe_media_abort.c"/>
+        <file category="source" name="FILEX/src/fxe_media_cache_invalidate.c"/>
+        <file category="source" name="FILEX/src/fxe_media_check.c"/>
+        <file category="source" name="FILEX/src/fxe_media_close.c"/>
+        <file category="source" name="FILEX/src/fxe_media_close_notify_set.c"/>
+        <file category="source" name="FILEX/src/fxe_media_exFAT_format.c"/>
+        <file category="source" name="FILEX/src/fxe_media_extended_space_available.c"/>
+        <file category="source" name="FILEX/src/fxe_media_flush.c"/>
+        <file category="source" name="FILEX/src/fxe_media_format.c"/>
+        <file category="source" name="FILEX/src/fxe_media_open.c"/>
+        <file category="source" name="FILEX/src/fxe_media_open_notify_set.c"/>
+        <file category="source" name="FILEX/src/fxe_media_read.c"/>
+        <file category="source" name="FILEX/src/fxe_media_space_available.c"/>
+        <file category="source" name="FILEX/src/fxe_media_volume_get.c"/>
+        <file category="source" name="FILEX/src/fxe_media_volume_get_extended.c"/>
+        <file category="source" name="FILEX/src/fxe_media_volume_set.c"/>
+        <file category="source" name="FILEX/src/fxe_media_write.c"/>
+        <file category="source" name="FILEX/src/fxe_system_date_get.c"/>
+        <file category="source" name="FILEX/src/fxe_system_date_set.c"/>
+        <file category="source" name="FILEX/src/fxe_system_time_get.c"/>
+        <file category="source" name="FILEX/src/fxe_system_time_set.c"/>
+        <file category="source" name="FILEX/src/fxe_unicode_directory_create.c"/>
+        <file category="source" name="FILEX/src/fxe_unicode_directory_rename.c"/>
+        <file category="source" name="FILEX/src/fxe_unicode_file_create.c"/>
+        <file category="source" name="FILEX/src/fxe_unicode_file_rename.c"/>
+        <file category="source" name="FILEX/src/fxe_unicode_name_get.c"/>
+        <file category="source" name="FILEX/src/fxe_unicode_name_get_extended.c"/>
+        <file category="source" name="FILEX/src/fxe_unicode_short_name_get.c"/>
+        <file category="source" name="FILEX/src/fxe_unicode_short_name_get_extended.c"/>
+        <file category="source" name="FILEX/src/fx_fault_tolerant_add_bitmap_log.c"/>
+        <file category="source" name="FILEX/src/fx_fault_tolerant_add_checksum_log.c"/>
+        <file category="source" name="FILEX/src/fx_fault_tolerant_add_dir_log.c"/>
+        <file category="source" name="FILEX/src/fx_fault_tolerant_add_FAT_log.c"/>
+        <file category="source" name="FILEX/src/fx_fault_tolerant_apply_logs.c"/>
+        <file category="source" name="FILEX/src/fx_fault_tolerant_calculate_checksum.c"/>
+        <file category="source" name="FILEX/src/fx_fault_tolerant_cleanup_FAT_chain.c"/>
+        <file category="source" name="FILEX/src/fx_fault_tolerant_create_log_file.c"/>
+        <file category="source" name="FILEX/src/fx_fault_tolerant_enable.c"/>
+        <file category="source" name="FILEX/src/fx_fault_tolerant_read_directory_sector.c"/>
+        <file category="source" name="FILEX/src/fx_fault_tolerant_read_FAT.c"/>
+        <file category="source" name="FILEX/src/fx_fault_tolerant_read_log_file.c"/>
+        <file category="source" name="FILEX/src/fx_fault_tolerant_recover.c"/>
+        <file category="source" name="FILEX/src/fx_fault_tolerant_reset_log_file.c"/>
+        <file category="source" name="FILEX/src/fx_fault_tolerant_set_FAT_chain.c"/>
+        <file category="source" name="FILEX/src/fx_fault_tolerant_transaction_end.c"/>
+        <file category="source" name="FILEX/src/fx_fault_tolerant_transaction_fail.c"/>
+        <file category="source" name="FILEX/src/fx_fault_tolerant_transaction_start.c"/>
+        <file category="source" name="FILEX/src/fx_fault_tolerant_write_log_file.c"/>
+        <file category="source" name="FILEX/src/fx_file_allocate.c"/>
+        <file category="source" name="FILEX/src/fx_file_attributes_read.c"/>
+        <file category="source" name="FILEX/src/fx_file_attributes_set.c"/>
+        <file category="source" name="FILEX/src/fx_file_best_effort_allocate.c"/>
+        <file category="source" name="FILEX/src/fx_file_close.c"/>
+        <file category="source" name="FILEX/src/fx_file_create.c"/>
+        <file category="source" name="FILEX/src/fx_file_date_time_set.c"/>
+        <file category="source" name="FILEX/src/fx_file_delete.c"/>
+        <file category="source" name="FILEX/src/fx_file_extended_allocate.c"/>
+        <file category="source" name="FILEX/src/fx_file_extended_best_effort_allocate.c"/>
+        <file category="source" name="FILEX/src/fx_file_extended_relative_seek.c"/>
+        <file category="source" name="FILEX/src/fx_file_extended_seek.c"/>
+        <file category="source" name="FILEX/src/fx_file_extended_truncate.c"/>
+        <file category="source" name="FILEX/src/fx_file_extended_truncate_release.c"/>
+        <file category="source" name="FILEX/src/fx_file_open.c"/>
+        <file category="source" name="FILEX/src/fx_file_read.c"/>
+        <file category="source" name="FILEX/src/fx_file_relative_seek.c"/>
+        <file category="source" name="FILEX/src/fx_file_rename.c"/>
+        <file category="source" name="FILEX/src/fx_file_seek.c"/>
+        <file category="source" name="FILEX/src/fx_file_truncate.c"/>
+        <file category="source" name="FILEX/src/fx_file_truncate_release.c"/>
+        <file category="source" name="FILEX/src/fx_file_write.c"/>
+        <file category="source" name="FILEX/src/fx_file_write_notify_set.c"/>
+        <file category="source" name="FILEX/src/fx_media_abort.c"/>
+        <file category="source" name="FILEX/src/fx_media_boot_info_extract.c"/>
+        <file category="source" name="FILEX/src/fx_media_cache_invalidate.c"/>
+        <file category="source" name="FILEX/src/fx_media_check.c"/>
+        <file category="source" name="FILEX/src/fx_media_check_FAT_chain_check.c"/>
+        <file category="source" name="FILEX/src/fx_media_check_lost_cluster_check.c"/>
+        <file category="source" name="FILEX/src/fx_media_close.c"/>
+        <file category="source" name="FILEX/src/fx_media_close_notify_set.c"/>
+        <file category="source" name="FILEX/src/fx_media_exFAT_format.c"/>
+        <file category="source" name="FILEX/src/fx_media_extended_space_available.c"/>
+        <file category="source" name="FILEX/src/fx_media_flush.c"/>
+        <file category="source" name="FILEX/src/fx_media_format.c"/>
+        <file category="source" name="FILEX/src/fx_media_format_oem_name_set.c"/>
+        <file category="source" name="FILEX/src/fx_media_format_type_set.c"/>
+        <file category="source" name="FILEX/src/fx_media_format_volume_id_set.c"/>
+        <file category="source" name="FILEX/src/fx_media_open.c"/>
+        <file category="source" name="FILEX/src/fx_media_open_notify_set.c"/>
+        <file category="source" name="FILEX/src/fx_media_read.c"/>
+        <file category="source" name="FILEX/src/fx_media_space_available.c"/>
+        <file category="source" name="FILEX/src/fx_media_volume_get.c"/>
+        <file category="source" name="FILEX/src/fx_media_volume_get_extended.c"/>
+        <file category="source" name="FILEX/src/fx_media_volume_set.c"/>
+        <file category="source" name="FILEX/src/fx_media_write.c"/>
+        <file category="source" name="FILEX/src/fx_partition_offset_calculate.c"/>
+        <file category="source" name="FILEX/src/fx_ram_driver.c"/>
+        <file category="source" name="FILEX/src/fx_system_date_get.c"/>
+        <file category="source" name="FILEX/src/fx_system_date_set.c"/>
+        <file category="source" name="FILEX/src/fx_system_initialize.c"/>
+        <file category="source" name="FILEX/src/fx_system_time_get.c"/>
+        <file category="source" name="FILEX/src/fx_system_timer_entry.c"/>
+        <file category="source" name="FILEX/src/fx_system_time_set.c"/>
+        <file category="source" name="FILEX/src/fx_trace_event_insert.c"/>
+        <file category="source" name="FILEX/src/fx_trace_event_update.c"/>
+        <file category="source" name="FILEX/src/fx_trace_object_register.c"/>
+        <file category="source" name="FILEX/src/fx_trace_object_unregister.c"/>
+        <file category="source" name="FILEX/src/fx_unicode_directory_create.c"/>
+        <file category="source" name="FILEX/src/fx_unicode_directory_entry_change.c"/>
+        <file category="source" name="FILEX/src/fx_unicode_directory_entry_read.c"/>
+        <file category="source" name="FILEX/src/fx_unicode_directory_rename.c"/>
+        <file category="source" name="FILEX/src/fx_unicode_directory_search.c"/>
+        <file category="source" name="FILEX/src/fx_unicode_file_create.c"/>
+        <file category="source" name="FILEX/src/fx_unicode_file_rename.c"/>
+        <file category="source" name="FILEX/src/fx_unicode_length_get.c"/>
+        <file category="source" name="FILEX/src/fx_unicode_length_get_extended.c"/>
+        <file category="source" name="FILEX/src/fx_unicode_name_get.c"/>
+        <file category="source" name="FILEX/src/fx_unicode_name_get_extended.c"/>
+        <file category="source" name="FILEX/src/fx_unicode_short_name_get.c"/>
+        <file category="source" name="FILEX/src/fx_unicode_short_name_get_extended.c"/>
+        <file category="source" name="FILEX/src/fx_utility_16_unsigned_read.c"/>
+        <file category="source" name="FILEX/src/fx_utility_16_unsigned_write.c"/>
+        <file category="source" name="FILEX/src/fx_utility_32_unsigned_read.c"/>
+        <file category="source" name="FILEX/src/fx_utility_32_unsigned_write.c"/>
+        <file category="source" name="FILEX/src/fx_utility_64_unsigned_read.c"/>
+        <file category="source" name="FILEX/src/fx_utility_64_unsigned_write.c"/>
+        <file category="source" name="FILEX/src/fx_utility_absolute_path_get.c"/>
+        <file category="source" name="FILEX/src/fx_utility_exFAT_allocate_new_cluster.c"/>
+        <file category="source" name="FILEX/src/fx_utility_exFAT_bitmap_cache_prepare.c"/>
+        <file category="source" name="FILEX/src/fx_utility_exFAT_bitmap_cache_update.c"/>
+        <file category="source" name="FILEX/src/fx_utility_exFAT_bitmap_flush.c"/>
+        <file category="source" name="FILEX/src/fx_utility_exFAT_bitmap_free_cluster_find.c"/>
+        <file category="source" name="FILEX/src/fx_utility_exFAT_bitmap_initialize.c"/>
+        <file category="source" name="FILEX/src/fx_utility_exFAT_bitmap_start_sector_get.c"/>
+        <file category="source" name="FILEX/src/fx_utility_exFAT_cluster_free.c"/>
+        <file category="source" name="FILEX/src/fx_utility_exFAT_cluster_state_get.c"/>
+        <file category="source" name="FILEX/src/fx_utility_exFAT_cluster_state_set.c"/>
+        <file category="source" name="FILEX/src/fx_utility_exFAT_geometry_check.c"/>
+        <file category="source" name="FILEX/src/fx_utility_exFAT_name_hash_get.c"/>
+        <file category="source" name="FILEX/src/fx_utility_exFAT_size_calculate.c"/>
+        <file category="source" name="FILEX/src/fx_utility_exFAT_system_area_checksum_verify.c"/>
+        <file category="source" name="FILEX/src/fx_utility_exFAT_system_area_checksum_write.c"/>
+        <file category="source" name="FILEX/src/fx_utility_exFAT_system_area_format.c"/>
+        <file category="source" name="FILEX/src/fx_utility_exFAT_system_sector_write.c"/>
+        <file category="source" name="FILEX/src/fx_utility_exFAT_unicode_name_hash_get.c"/>
+        <file category="source" name="FILEX/src/fx_utility_exFAT_upcase_table.c"/>
+        <file category="source" name="FILEX/src/fx_utility_FAT_entry_read.c"/>
+        <file category="source" name="FILEX/src/fx_utility_FAT_entry_write.c"/>
+        <file category="source" name="FILEX/src/fx_utility_FAT_flush.c"/>
+        <file category="source" name="FILEX/src/fx_utility_FAT_map_flush.c"/>
+        <file category="source" name="FILEX/src/fx_utility_FAT_sector_get.c"/>
+        <file category="source" name="FILEX/src/fx_utility_logical_sector_cache_entry_read.c"/>
+        <file category="source" name="FILEX/src/fx_utility_logical_sector_flush.c"/>
+        <file category="source" name="FILEX/src/fx_utility_logical_sector_read.c"/>
+        <file category="source" name="FILEX/src/fx_utility_logical_sector_write.c"/>
+        <file category="source" name="FILEX/src/fx_utility_memory_copy.c"/>
+        <file category="source" name="FILEX/src/fx_utility_memory_set.c"/>
+        <file category="source" name="FILEX/src/fx_utility_string_length_get.c"/>
+        <file category="source" name="FILEX/src/fx_utility_token_length_get.c"/>
+        <!-- Includes -->
+        <file category="header" name="FILEX/inc/fx_api.h"/>
+        <file category="header" name="FILEX/inc/fx_directory_exFAT.h"/>
+        <file category="header" name="FILEX/inc/fx_directory.h"/>
+        <file category="header" name="FILEX/inc/fx_fault_tolerant.h"/>
+        <file category="header" name="FILEX/inc/fx_file.h"/>
+        <file category="header" name="FILEX/inc/fx_media.h"/>
+        <file category="header" name="FILEX/inc/fx_system.h"/>
+        <file category="header" name="FILEX/inc/fx_unicode.h"/>
+        <file category="header" name="FILEX/inc/fx_user_sample.h"/>
+        <file category="header" name="FILEX/inc/fx_utility.h"/>
 	<!-- Port include -->
 	<file category="header" name="FILEX/ports/cortex_m55/ac6/inc/fx_port.h"/>
 
@@ -709,11 +771,7 @@
       <files>
 	<file category="header" name="FILEX/driver/fx_sd_driver.h"/>
 	<file category="header" name="FILEX/driver/inc/fx_sd_driver_private.h"/>
-	<file category="header" name="FILEX/driver/inc/sd_core.h"/>
-	<file category="header" name="FILEX/driver/inc/sd.h"/>
 	<file category="source" name="FILEX/driver/src/fx_sd_driver.c"/>
-	<file category="source" name="FILEX/driver/src/sd.c"/>
-	<file category="source" name="FILEX/driver/src/sd_core.c"/>
 	<!-- Templates -->
 	<file category="source"       name="FILEX/samples/Demo_SD_FileX.c"    attr="template" select="AzureRTOS SD card Test App"/>
     </files>
@@ -1270,13 +1328,13 @@
       </RTE_Components_h>
       <files>
         <file category="source" name="NETX/driver/Src/nx_eth_phy.c"/>
-        <file category="source" name="NETX/driver/Src/nx_eqos_network_driver.c"/>
+        <file category="source" name="NETX/driver/Src/nx_eth_mac.c"/>
         <file category="header" name="NETX/driver/Config/nx_eth_user.h" version="1.0.0" attr="config"/>
         <file category="header" name="NETX/driver/Inc/nx_eth_phy_ctrl.h"/>
         <file category="header" name="NETX/driver/Inc/nx_eth_phy.h"/>
-        <file category="header" name="NETX/driver/Inc/nx_eqos_network_driver_private.h"/>
-        <file category="header" name="NETX/driver/Inc/nx_eqos_network_driver.h"/>
-        <file category="header" name="NETX/driver/Inc/eqos_hw.h"/>
+        <file category="header" name="NETX/driver/Inc/nx_eth_mac_private.h"/>
+        <file category="header" name="NETX/driver/Inc/nx_eth_mac.h"/>
+        <file category="header" name="NETX/driver/Inc/mac_hw.h"/>
       </files>
     </component>
 
@@ -1716,7 +1774,7 @@
 
     <!-- ====================== USBX Component Description ====================== -->
 
-    <component Cgroup="USBX" Csub="Core" Cversion="6.1.8" condition="AzureRTOS USBX" >
+    <component Cgroup="USBX" Csub="Core" Cversion="6.1.9" condition="AzureRTOS USBX" >
       <description>High-performance, USB Stack for embedded device</description>
       <files>
 	<!-- == Core Include == -->
@@ -1728,7 +1786,7 @@
         <file category="header" name="USBX/core/inc/ux_host_class_dpump.h"/>
         <file category="header" name="USBX/core/inc/ux_host_stack.h"/>
         <file category="header" name="USBX/core/inc/ux_system.h"/>
-        <file category="header" name="USBX/core/inc/ux_user.h"/>
+        <!--file category="header" name="USBX/core/inc/ux_user.h"/-->
         <file category="header" name="USBX/core/inc/ux_user_sample.h"/>
         <file category="header" name="USBX/core/inc/ux_utility.h"/>
 
@@ -1759,6 +1817,14 @@
         <file category="source" name="USBX/core/src/ux_device_stack_transfer_all_request_abort.c"/>
         <file category="source" name="USBX/core/src/ux_device_stack_transfer_request.c"/>
         <file category="source" name="USBX/core/src/ux_device_stack_uninitialize.c"/>
+        <file category="source" name="USBX/core/src/ux_device_class_dpump_read.c"/>
+        <file category="source" name="USBX/core/src/ux_device_class_dpump_thread.c"/>
+        <file category="source" name="USBX/core/src/ux_device_class_dpump_activate.c"/>
+        <file category="source" name="USBX/core/src/ux_device_class_dpump_write.c"/>
+        <file category="source" name="USBX/core/src/ux_device_class_dpump_initialize.c"/>
+        <file category="source" name="USBX/core/src/ux_device_class_dpump_change.c"/>
+        <file category="source" name="USBX/core/src/ux_device_class_dpump_deactivate.c"/>
+        <file category="source" name="USBX/core/src/ux_device_class_dpump_entry.c"/>
         <file category="source" name="USBX/core/src/ux_system_error_handler.c"/>
         <file category="source" name="USBX/core/src/ux_system_initialize.c"/>
         <file category="source" name="USBX/core/src/ux_system_uninitialize.c"/>
@@ -1821,22 +1887,128 @@
         <file category="source" name="USBX/core/src/ux_utility_timer_delete.c"/>
         <file category="source" name="USBX/core/src/ux_utility_unicode_to_string.c"/>
         <file category="source" name="USBX/core/src/ux_utility_virtual_address.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_interface_instance_delete.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_class_instance_create.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_device_address_set.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_interface_setting_select.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_device_configuration_get.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_bandwidth_check.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_bandwidth_claim.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_endpoint_instance_create.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_configuration_instance_delete.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_endpoint_transfer_abort.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_device_descriptor_read.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_hcd_unregister.c"/>
+        <file category="source" name="USBX/core/src/ux_host_class_dpump_deactivate.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_class_instance_verify.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_device_get.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_class_unregister.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_device_resources_free.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_new_interface_create.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_role_swap.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_interface_instance_create.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_bandwidth_release.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_class_call.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_device_string_get.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_new_device_create.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_configuration_interface_scan.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_configuration_descriptor_parse.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_rh_change_process.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_device_remove.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_interfaces_scan.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_device_configuration_activate.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_hnp_polling_thread_entry.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_hcd_register.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_hcd_thread_entry.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_rh_device_insertion.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_interface_set.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_class_interface_scan.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_transfer_request.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_enum_thread_entry.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_class_instance_get.c"/>
+        <file category="source" name="USBX/core/src/ux_host_class_dpump_write.c"/>
+        <file category="source" name="USBX/core/src/ux_host_class_dpump_endpoints_get.c"/>
+        <file category="source" name="USBX/core/src/ux_host_class_dpump_activate.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_delay_ms.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_hcd_transfer_request.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_endpoint_instance_delete.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_new_device_get.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_initialize.c"/>
+        <file category="source" name="USBX/core/src/ux_host_class_dpump_configure.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_device_configuration_select.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_class_instance_destroy.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_configuration_set.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_transfer_request_abort.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_uninitialize.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_new_endpoint_create.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_interface_endpoint_get.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_rh_device_extraction.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_class_register.c"/>
+        <file category="source" name="USBX/core/src/ux_host_class_dpump_ioctl.c"/>
+        <file category="source" name="USBX/core/src/ux_host_class_dpump_read.c"/>
+        <file category="source" name="USBX/core/src/ux_host_class_dpump_entry.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_configuration_enumerate.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_new_configuration_create.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_endpoint_reset.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_configuration_interface_get.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_device_configuration_reset.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_class_device_scan.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_device_configuration_deactivate.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_configuration_instance_create.c"/>
+        <file category="source" name="USBX/core/src/ux_host_stack_class_get.c"/>
+        <file category="source" name="USBX/core/src/ux_hcd_sim_host_asynch_schedule.c"/>
+        <file category="source" name="USBX/core/src/ux_hcd_sim_host_request_isochronous_transfer.c"/>
+        <file category="source" name="USBX/core/src/ux_hcd_sim_host_interrupt_endpoint_create.c"/>
+        <file category="source" name="USBX/core/src/ux_hcd_sim_host_initialize.c"/>
+        <file category="source" name="USBX/core/src/ux_hcd_sim_host_request_control_transfer.c"/>
+        <file category="source" name="USBX/core/src/ux_hcd_sim_host_transaction_schedule.c"/>
+        <file category="source" name="USBX/core/src/ux_hcd_sim_host_controller_disable.c"/>
+        <file category="source" name="USBX/core/src/ux_hcd_sim_host_asynchronous_endpoint_create.c"/>
+        <file category="source" name="USBX/core/src/ux_hcd_sim_host_periodic_tree_create.c"/>
+        <file category="source" name="USBX/core/src/ux_hcd_sim_host_regular_td_obtain.c"/>
+        <file category="source" name="USBX/core/src/ux_hcd_sim_host_port_reset.c"/>
+        <file category="source" name="USBX/core/src/ux_hcd_sim_host_transfer_abort.c"/>
+        <file category="source" name="USBX/core/src/ux_hcd_sim_host_frame_number_set.c"/>
+        <file category="source" name="USBX/core/src/ux_hcd_sim_host_asynch_queue_process.c"/>
+        <file category="source" name="USBX/core/src/ux_hcd_sim_host_entry.c"/>
+        <file category="source" name="USBX/core/src/ux_hcd_sim_host_port_status_get.c"/>
+        <file category="source" name="USBX/core/src/ux_hcd_sim_host_iso_queue_process.c"/>
+        <file category="source" name="USBX/core/src/ux_hcd_sim_host_ed_td_clean.c"/>
+        <file category="source" name="USBX/core/src/ux_hcd_sim_host_endpoint_reset.c"/>
+        <file category="source" name="USBX/core/src/ux_hcd_sim_host_uninitialize.c"/>
+        <file category="source" name="USBX/core/src/ux_hcd_sim_host_iso_schedule.c"/>
+        <file category="source" name="USBX/core/src/ux_hcd_sim_host_periodic_schedule.c"/>
+        <file category="source" name="USBX/core/src/ux_hcd_sim_host_request_bulk_transfer.c"/>
+        <file category="source" name="USBX/core/src/ux_hcd_sim_host_ed_obtain.c"/>
+        <file category="source" name="USBX/core/src/ux_hcd_sim_host_timer_function.c"/>
+        <file category="source" name="USBX/core/src/ux_hcd_sim_host_request_transfer.c"/>
+        <file category="source" name="USBX/core/src/ux_hcd_sim_host_isochronous_td_obtain.c"/>
+        <file category="source" name="USBX/core/src/ux_hcd_sim_host_periodic_endpoint_destroy.c"/>
+        <file category="source" name="USBX/core/src/ux_hcd_sim_host_isochronous_endpoint_create.c"/>
+        <file category="source" name="USBX/core/src/ux_hcd_sim_host_least_traffic_list_get.c"/>
+        <file category="source" name="USBX/core/src/ux_hcd_sim_host_asynchronous_endpoint_destroy.c"/>
+        <file category="source" name="USBX/core/src/ux_hcd_sim_host_frame_number_get.c"/>
+        <file category="source" name="USBX/core/src/ux_hcd_sim_host_request_interupt_transfer.c"/> 
+        <file category="source" name="USBX/core/src/ux_dcd_sim_slave_initialize_complete.c"/>
+        <file category="source" name="USBX/core/src/ux_dcd_sim_slave_frame_number_get.c"/>
+        <file category="source" name="USBX/core/src/ux_dcd_sim_slave_address_set.c"/>
+        <file category="source" name="USBX/core/src/ux_dcd_sim_slave_endpoint_destroy.c"/>
+        <file category="source" name="USBX/core/src/ux_dcd_sim_slave_endpoint_create.c"/>
+        <file category="source" name="USBX/core/src/ux_dcd_sim_slave_transfer_request.c"/>
+        <file category="source" name="USBX/core/src/ux_dcd_sim_slave_initialize.c"/>
+        <file category="source" name="USBX/core/src/ux_dcd_sim_slave_endpoint_status.c"/>
+        <file category="source" name="USBX/core/src/ux_dcd_sim_slave_function.c"/>
+        <file category="source" name="USBX/core/src/ux_dcd_sim_slave_endpoint_stall.c"/>
+        <file category="source" name="USBX/core/src/ux_dcd_sim_slave_transfer_abort.c"/>
+        <file category="source" name="USBX/core/src/ux_dcd_sim_slave_state_change.c"/>
+        <file category="source" name="USBX/core/src/ux_dcd_sim_slave_endpoint_reset.c"/>
     </files>
     </component>
-    <component Cgroup="USBX" Csub="CDC Device Class" Cversion="6.1.8" condition="AzureRTOS USBX" >
+    <component Cgroup="USBX" Csub="CDC Device Class" Cversion="6.1.9" condition="AzureRTOS USBX" >
       <description>High-performance, USB Stack for embedded device</description>
       <files>
 	<!-- == Device Class Include == -->
-        <file category="header" name="USBX/usbx_device_classes/inc/ux_device_class_audio10.h"/>
-        <file category="header" name="USBX/usbx_device_classes/inc/ux_device_class_audio20.h"/>
-        <file category="header" name="USBX/usbx_device_classes/inc/ux_device_class_audio.h"/>
         <file category="header" name="USBX/usbx_device_classes/inc/ux_device_class_cdc_acm.h"/>
-        <file category="header" name="USBX/usbx_device_classes/inc/ux_device_class_cdc_ecm.h"/>
-        <file category="header" name="USBX/usbx_device_classes/inc/ux_device_class_dfu.h"/>
-        <file category="header" name="USBX/usbx_device_classes/inc/ux_device_class_hid.h"/>
-        <file category="header" name="USBX/usbx_device_classes/inc/ux_device_class_pima.h"/>
-        <file category="header" name="USBX/usbx_device_classes/inc/ux_device_class_rndis.h"/>
-        <file category="header" name="USBX/usbx_device_classes/inc/ux_device_class_storage.h"/>
 	<!-- == CDC Device Class Src == -->
         <file category="source" name="USBX/usbx_device_classes/src/ux_device_class_cdc_acm_activate.c"/>
         <file category="source" name="USBX/usbx_device_classes/src/ux_device_class_cdc_acm_bulkin_thread.c"/>
@@ -1852,9 +2024,10 @@
         <file category="source" name="USBX/usbx_device_classes/src/ux_device_class_cdc_acm_write_with_callback.c"/>
     </files>
     </component>
-    <component Cgroup="USBX" Csub="Device Class Driver" Cversion="6.1.8" condition="AzureRTOS USBX" >
+    <component Cgroup="USBX" Csub="Device Class Driver" Cversion="6.1.9" condition="AzureRTOS USBX" >
       <description>High-performance, USB Stack for embedded device</description>
       <files>
+        <file category="source" name="USBX/device_class_driver/sys_ctrl_usb.h"/>
         <file category="source" name="USBX/device_class_driver/ux_dcd_dwc3_address_set.c"/>
         <file category="source" name="USBX/device_class_driver/ux_dcd_dwc3_bulk_transfer_callback.c"/>
         <file category="source" name="USBX/device_class_driver/ux_dcd_dwc3_clock_set.c"/>

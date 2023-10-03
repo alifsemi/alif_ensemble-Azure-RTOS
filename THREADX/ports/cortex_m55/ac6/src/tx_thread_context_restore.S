@@ -20,13 +20,19 @@
 /**************************************************************************/
 /**************************************************************************/
 
+#ifdef TX_INCLUDE_USER_DEFINE_FILE
+#include "tx_user.h"
+#endif
 
+#if (defined(TX_ENABLE_EXECUTION_CHANGE_NOTIFY) || defined(TX_EXECUTION_PROFILE_ENABLE))
+    .global  _tx_execution_isr_exit
+#endif
 /**************************************************************************/
 /*                                                                        */
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _tx_thread_context_restore                        Cortex-M55/AC6    */
-/*                                                           6.1          */
+/*                                                           6.2.1        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Scott Larson, Microsoft Corporation                                 */
@@ -45,7 +51,7 @@
 /*                                                                        */
 /*  CALLS                                                                 */
 /*                                                                        */
-/*    _tx_thread_schedule                   Thread scheduling routine     */
+/*    [_tx_execution_isr_exit]              Execution profiling ISR exit  */
 /*                                                                        */
 /*  CALLED BY                                                             */
 /*                                                                        */
@@ -56,6 +62,8 @@
 /*    DATE              NAME                      DESCRIPTION             */
 /*                                                                        */
 /*  09-30-2020      Scott Larson            Initial Version 6.1           */
+/*  03-08-2023      Scott Larson            Include tx_user.h,            */
+/*                                            resulting in version 6.2.1  */
 /*                                                                        */
 /**************************************************************************/
 // VOID   _tx_thread_context_restore(VOID)
@@ -68,7 +76,14 @@
     .thumb_func
 .type _tx_thread_context_restore, function
 _tx_thread_context_restore:
-    /* Just return!  */
+
+#if (defined(TX_ENABLE_EXECUTION_CHANGE_NOTIFY) || defined(TX_EXECUTION_PROFILE_ENABLE))
+    /* Call the ISR exit function to indicate an ISR is complete.  */
+    PUSH    {r0, lr}                                // Save return address
+    BL      _tx_execution_isr_exit                  // Call the ISR exit function
+    POP     {r0, lr}                                // Recover return address
+#endif
+
     BX      lr
 // }
     .end

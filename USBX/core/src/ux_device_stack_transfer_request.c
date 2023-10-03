@@ -90,7 +90,7 @@ UINT                    status;
 UX_SLAVE_ENDPOINT       *endpoint;
 ULONG                   device_state;
 
-    //printf("stack_transfer_request\n");
+
     /* Do we have to skip this transfer?  */
     if (transfer_request -> ux_slave_transfer_request_status_phase_ignore == UX_TRUE)
         return(UX_SUCCESS);
@@ -128,7 +128,6 @@ ULONG                   device_state;
 
     /* Get the endpoint associated with this transaction.  */
     endpoint =  transfer_request -> ux_slave_transfer_request_endpoint;
-
     
     /* If the endpoint is non Control, check the endpoint direction and set the data phase direction.  */
     if ((endpoint -> ux_slave_endpoint_descriptor.bmAttributes & UX_MASK_ENDPOINT_TYPE) != UX_CONTROL_ENDPOINT)
@@ -142,17 +141,10 @@ ULONG                   device_state;
             _ux_utility_delay_ms(100);
 
         /* Isolate the direction from the endpoint address.  */
-
         if ((endpoint -> ux_slave_endpoint_descriptor.bEndpointAddress & UX_ENDPOINT_DIRECTION) == UX_ENDPOINT_IN)
-        {
-
             transfer_request -> ux_slave_transfer_request_phase =  UX_TRANSFER_PHASE_DATA_OUT;
-        }
-        else
-        {
-
+        else    
             transfer_request -> ux_slave_transfer_request_phase =  UX_TRANSFER_PHASE_DATA_IN;
-        }
     }    
 
     /* See if we need to force a zero length packet at the end of the transfer. 
@@ -182,20 +174,14 @@ ULONG                   device_state;
     transfer_request -> ux_slave_transfer_request_requested_length =    slave_length;
     transfer_request -> ux_slave_transfer_request_in_transfer_length =  slave_length;
 
-
     /* Save the buffer pointer.  */
-    transfer_request -> ux_slave_transfer_request_current_data_pointer =
+    transfer_request -> ux_slave_transfer_request_current_data_pointer =  
                             transfer_request -> ux_slave_transfer_request_data_pointer;
-    //printf("%x\n",transfer_request -> ux_slave_transfer_request_current_data_pointer);
-
 
     /* Call the DCD driver transfer function.   */
     status =  dcd -> ux_slave_dcd_function(dcd, UX_DCD_TRANSFER_REQUEST, transfer_request);
 
-    //printf("STATUS in STACK %d\n",status);
-
     /* And return the status.  */
-
     return(status);
 
 }

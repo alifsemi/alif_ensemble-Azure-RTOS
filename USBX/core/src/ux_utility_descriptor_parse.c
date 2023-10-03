@@ -78,8 +78,6 @@ VOID  _ux_utility_descriptor_parse(UCHAR * raw_descriptor, UCHAR * descriptor_st
                         UINT descriptor_entries, UCHAR * descriptor)
 {
 
-	//for(int i=0; i< 93; i++)
-	   //printf(" %d   ", *(raw_descriptor+i));
     /* Loop on all the entries in this descriptor.  */
     while(descriptor_entries--)
     {
@@ -93,21 +91,18 @@ VOID  _ux_utility_descriptor_parse(UCHAR * raw_descriptor, UCHAR * descriptor_st
         case 4:
 
             *((ULONG *) descriptor) =  _ux_utility_long_get(raw_descriptor);
-            //printf("IN case 4 Descriptor value: %d\n",*descriptor);
             raw_descriptor +=  4;
             break;                   
 
         case 2:
 
             *((ULONG *) descriptor) = (ULONG) _ux_utility_short_get(raw_descriptor);
-            //printf("IN case 2 Descriptor value: %d\n",*descriptor);
             raw_descriptor += 2;
             break;                   
 
         default:
 
             *((ULONG *) descriptor) =  (ULONG) *raw_descriptor;
-           // printf("IN Default Descriptor value: %d\n",*descriptor);
             raw_descriptor++;
         }
 

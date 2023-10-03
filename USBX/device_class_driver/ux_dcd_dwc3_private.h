@@ -31,24 +31,24 @@ extern   "C" {
 
 /* Define DWC3 generic equivalences.  */
 
-#define UX_DCD_DWC3_SLAVE_CONTROLLER				0x90
-#define UX_DCD_DWC3_MAX_ED					4
-#define UX_DCD_DWC3_MAX_ENDP				        16
-#define UX_DCD_DWC3_IN_FIFO					3
-#define UX_DCD_DWC3_DATA_FIFO_OFFSET				0x00001000
-#define UX_DCD_DWC3_DATA_FIFO_SIZE				0x00001000
-#define UX_DCD_DWC3_RX_FIFO_SIZE				128
-#define UX_DCD_DWC3_TX_FIFO_SIZE				128
-#define UX_DCD_DWC3_NP_TX_FIFO_SIZE				96
-#define UX_DCD_DWC3_ENDPOINT_TX_FIFO_SIZE			96
-#define UX_DCD_DWC3_FLUSH_RX_FIFO				0x00000010
-#define UX_DCD_DWC3_FLUSH_TX_FIFO				0x00000020
-#define UX_DCD_DWC3_FLUSH_FIFO_ALL				0x00000010
-#define UX_DCD_DWC3_ENDPOINT_SPACE_SIZE				0x00000020
-#define UX_DCD_DWC3_ENDPOINT_CHANNEL_SIZE			0x00000020
+#define UX_DCD_DWC3_SLAVE_CONTROLLER                   0x90
+#define UX_DCD_DWC3_MAX_ED                             0x04
+#define UX_DCD_DWC3_MAX_ENDP                           16
+#define UX_DCD_DWC3_IN_FIFO                            3
+#define UX_DCD_DWC3_DATA_FIFO_OFFSET                   0x00001000
+#define UX_DCD_DWC3_DATA_FIFO_SIZE                     0x00001000
+#define UX_DCD_DWC3_RX_FIFO_SIZE                       128
+#define UX_DCD_DWC3_TX_FIFO_SIZE                       128
+#define UX_DCD_DWC3_NP_TX_FIFO_SIZE                    96
+#define UX_DCD_DWC3_ENDPOINT_TX_FIFO_SIZE              96
+#define UX_DCD_DWC3_FLUSH_RX_FIFO                      0x00000010
+#define UX_DCD_DWC3_FLUSH_TX_FIFO                      0x00000020
+#define UX_DCD_DWC3_FLUSH_FIFO_ALL                     0x00000010
+#define UX_DCD_DWC3_ENDPOINT_SPACE_SIZE                0x00000020
+#define UX_DCD_DWC3_ENDPOINT_CHANNEL_SIZE              0x00000020
 
-#define UX_DCD_DWC3_CONTROLLER_DELAY				72
-#define UX_DCD_DWC3_EVENT_BUFFER_SIZE				4096
+#define UX_DCD_DWC3_CONTROLLER_DELAY                   72
+#define UX_DCD_DWC3_EVENT_BUFFER_SIZE                  4096
 
 /* Define DWC3 USB device controller registers equivalences.  */
 /* Global Registers */
@@ -89,8 +89,6 @@ extern   "C" {
 #define UX_DCD_DWC3_GPRTBIMAP_FS1      0xc18c
 #define UX_DCD_DWC3_GUCTL2             0xc19c
 
-#define TX_BULKOUT_EVENT 0x02
-#define TX_BULKIN_EVENT  0x01
 #define UX_DCD_DWC3_VER_NUMBER         0xc1a0
 #define UX_DCD_DWC3_VER_TYPE           0xc1a4
 
@@ -134,100 +132,100 @@ extern   "C" {
 #define UX_DCD_GTXFIFOSIZ_TXFDEF(n)       ((n) & 0xffff)
 
 /* Define DWC3 USB device controller core reset values.  */
-#define UX_DCD_DWC3_FS_DCTL_CSRST				0x40000000
-#define UX_DCD_DWC3_FS_DCTL_EPENABLE				0x80F00000
-#define UX_DCD_DWC3_FS_DTCL_EPCONFIG				0x40F00A00
+#define UX_DCD_DWC3_FS_DCTL_CSRST                   0x40000000
+#define UX_DCD_DWC3_FS_DCTL_EPENABLE                0x80F00000
+#define UX_DCD_DWC3_FS_DTCL_EPCONFIG                0x40F00A00
 
-#define UX_DCD_DWC3_FS_DCTL_CSRST_STS				0x40000000
+#define UX_DCD_DWC3_FS_DCTL_CSRST_STS               0x40000000
 
-#define UX_DCD_DWC3_DCTL_LINK_STATUS				0x80F00A00
+#define UX_DCD_DWC3_DCTL_LINK_STATUS                0x80F00A00
 
 /* Define DWC3 USB device controller PHY config values.  */
-#define UX_DCD_DWC3_GEVENTADDR_LO				0x02040000
-#define UX_DCD_DWC3_GEVENTADDR_HI				0x00000000
-#define UX_DCD_DWC3_GEVENT_SIZE					0x00000030
-#define UX_DCD_DWC3_GEVENT_COUNT				0x00000000
+#define UX_DCD_DWC3_GEVENTADDR_LO                   0x02040000
+#define UX_DCD_DWC3_GEVENTADDR_HI                   0x00000000
+#define UX_DCD_DWC3_GEVENT_SIZE                     0x00000030
+#define UX_DCD_DWC3_GEVENT_COUNT                    0x00000000
 
 /* Define DWC3 USB device controller global event values */
-#define UX_DCD_DWC3_GUSB2PHYCFG_CFG				0x40101508 //PHY is 16-bit so values changed from 0x4000150F
-#define UX_DCD_DWC3_GUSB2PHYCFG_EPCMD_CFG			0x40002547
-#define UX_DCD_DWC3_FS_DCTL_EPENABLE				0x80F00000
-#define UX_DCD_DWC3_GUSB2PHYCFG_SUSPHY				BIT(6)
+#define UX_DCD_DWC3_GUSB2PHYCFG_CFG                 0x00001508
+#define UX_DCD_DWC3_GUSB2PHYCFG_EPCMD_CFG           0x40002547
+#define UX_DCD_DWC3_FS_DCTL_EPENABLE                0x80F00000
+#define UX_DCD_DWC3_GUSB2PHYCFG_SUSPHY              BIT(6)
 
 /* Define DWC3 USB device controller global core control values */
-#define UX_DCD_DWC3_GCTL_CFG					0x30c12234
+#define UX_DCD_DWC3_GCTL_CFG                       0x30c12234
 
 
 /* Define DWC3 USB device controller global soc bus config values */
-#define UX_DCD_DWC3_GSBUSCFG					0x00000009
+#define UX_DCD_DWC3_GSBUSCFG                       0x00000009
 
 /* Define DWC3 USB device configration with default address config values */
-#define UX_DCD_DWC3_DCFG_ADDR					0x00480800
-#define UX_DCD_DWC3_DCFG_ADDR_MASK				0x000001f8
+#define UX_DCD_DWC3_DCFG_ADDR                      0x00480800
+#define UX_DCD_DWC3_DCFG_ADDR_MASK                 0x000001f8
 
 /* Define DWC3 USB device event configration config values */
-#define UX_DCD_DWC3_DEV_INT_EN					0x00000007
+#define UX_DCD_DWC3_DEV_INT_EN                     0x00000007
 
 /* Define DWC3 USB global user control configration config values */
-#define UX_DCD_DWC3_GUCTL_CFG					0x02000010 //Changed value
+#define UX_DCD_DWC3_GUCTL_CFG                      0x02000010 //Changed value
 
 /* Define common config for devie endpoints ep/in/out/bulk/control/isoc/interrupt */
-#define UX_DCD_DWC3_DEPCMD_SCFG					0x00000409
-#define UX_DCD_DWC3_DEPCMD_COMMON_SCFG				0x00000401
+#define UX_DCD_DWC3_DEPCMD_SCFG                    0x00000409
+#define UX_DCD_DWC3_DEPCMD_COMMON_SCFG             0x00000401
 
 /* Define DWC3 USB device control endpoint ep0-out/ep0-in command configration config values */
-#define UX_DCD_DWC3_DEPCMD_EP0_OUT_PAR1				0x00000700
-#define UX_DCD_DWC3_DEPCMD_EP0_IN_PAR1				0x02000700
-#define UX_DCD_DWC3_DEPCMD_EP0_PAR0				0x00000200
-#define UX_DCD_DWC3_DEPCMD_EP0_PAR2				0x00000000
+#define UX_DCD_DWC3_DEPCMD_EP0_OUT_PAR1            0x00000700
+#define UX_DCD_DWC3_DEPCMD_EP0_IN_PAR1             0x02000700
+#define UX_DCD_DWC3_DEPCMD_EP0_PAR0                0x00000200
+#define UX_DCD_DWC3_DEPCMD_EP0_PAR2                0x00000000
 
 /* Define DWC3 USB device interrupt endpoint ep1-out/ep1-in command configration config values */
-#define UX_DCD_DWC3_DEPCMD_EP1_OUT_PAR1				0x04000700
-#define UX_DCD_DWC3_DEPCMD_EP1_IN_PAR1				0x06000700
-#define UX_DCD_DWC3_DEPCMD_EP1_OUT_PAR0				0x00002006
-#define UX_DCD_DWC3_DEPCMD_EP1_IN_PAR0				0x00022006
-#define UX_DCD_DWC3_DEPCMD_EP1_PAR2				0x00000000
+#define UX_DCD_DWC3_DEPCMD_EP1_OUT_PAR1             0x04000700
+#define UX_DCD_DWC3_DEPCMD_EP1_IN_PAR1              0x06000700
+#define UX_DCD_DWC3_DEPCMD_EP1_OUT_PAR0             0x00002006
+#define UX_DCD_DWC3_DEPCMD_EP1_IN_PAR0              0x00022006
+#define UX_DCD_DWC3_DEPCMD_EP1_PAR2                 0x00000000
 
 /* Define DWC3 USB device bulk endpoint ep2-out/ep2-in command configration config values */
-#define UX_DCD_DWC3_DEPCMD_EP2_OUT_PAR1				0x08000700
-#define UX_DCD_DWC3_DEPCMD_EP2_IN_PAR1				0x0A000700
-#define UX_DCD_DWC3_DEPCMD_EP2_OUT_PAR0				0x00001004
-#define UX_DCD_DWC3_DEPCMD_EP2_IN_PAR0				0x00041004
-#define UX_DCD_DWC3_DEPCMD_EP2_PAR2				0x00000000
+#define UX_DCD_DWC3_DEPCMD_EP2_OUT_PAR1             0x08000700
+#define UX_DCD_DWC3_DEPCMD_EP2_IN_PAR1              0x0A000700
+#define UX_DCD_DWC3_DEPCMD_EP2_OUT_PAR0             0x00001004
+#define UX_DCD_DWC3_DEPCMD_EP2_IN_PAR0              0x00041004
+#define UX_DCD_DWC3_DEPCMD_EP2_PAR2                 0x00000000
 
 /* Define DWC3 USB device isochronous endpoint ep3-out/ep3-in command configration config values */
-#define UX_DCD_DWC3_DEPCMD_EP3_OUT_PAR1				0x0C000700
-#define UX_DCD_DWC3_DEPCMD_EP3_IN_PAR1				0x0E000700
-#define UX_DCD_DWC3_DEPCMD_EP3_OUT_PAR0				0x00002002
-#define UX_DCD_DWC3_DEPCMD_EP3_IN_PAR0				0x00062002
-#define UX_DCD_DWC3_DEPCMD_EP3_PAR2				0x00000000
+#define UX_DCD_DWC3_DEPCMD_EP3_OUT_PAR1             0x0C000700
+#define UX_DCD_DWC3_DEPCMD_EP3_IN_PAR1              0x0E000700
+#define UX_DCD_DWC3_DEPCMD_EP3_OUT_PAR0             0x00002002
+#define UX_DCD_DWC3_DEPCMD_EP3_IN_PAR0              0x00062002
+#define UX_DCD_DWC3_DEPCMD_EP3_PAR2                 0x00000000
 
 /* Define DWC3 USB device endpoint command config for ep/0/1/2/3/in/out */
-#define UX_DCD_DWC3_DEPCMD_EP_XFERCFG_PAR0			0x00000001
-#define UX_DCD_DWC3_DEPCMD_EP_XFERCFG				0x00000402
+#define UX_DCD_DWC3_DEPCMD_EP_XFERCFG_PAR0          0x00000001
+#define UX_DCD_DWC3_DEPCMD_EP_XFERCFG               0x00000402
 
-#define UX_DCD_DWC3_DEPCMD_EP0_XFERCFG_PAR1			0x02041000
-#define UX_DCD_DWC3_DEPCMD_EP0_XFERCFG_PAR0			0x00000000
-#define UX_DCD_DWC3_DEPCMD_XFERCFG_EP0				0x00000506
+#define UX_DCD_DWC3_DEPCMD_EP0_XFERCFG_PAR1         0x02041000
+#define UX_DCD_DWC3_DEPCMD_EP0_XFERCFG_PAR0         0x00000000
+#define UX_DCD_DWC3_DEPCMD_XFERCFG_EP0              0x00000506
 
 
-#define UX_DCD_DWC3_DEPCMD_EP0_OUT_CFG1				0x80000200
-#define UX_DCD_DWC3_DEPCMD_EP0_OUT_CFG0				0x00000500
-#define UX_DCD_DWC3_DEPCMD_EP0_IN_CFG1				0x80000200
-#define UX_DCD_DWC3_DEPCMD_EP0_IN_CFG0				0x02000500
-#define UX_DCD_DWC3_DEPCMD_EP0_CFG_CMD				0x00000401
+#define UX_DCD_DWC3_DEPCMD_EP0_OUT_CFG1             0x80000200
+#define UX_DCD_DWC3_DEPCMD_EP0_OUT_CFG0             0x00000500
+#define UX_DCD_DWC3_DEPCMD_EP0_IN_CFG1              0x80000200
+#define UX_DCD_DWC3_DEPCMD_EP0_IN_CFG0              0x02000500
+#define UX_DCD_DWC3_DEPCMD_EP0_CFG_CMD              0x00000401
 
 /* Define DWC3 USB device endpoint activate command config for ep/0/1/2/3/in/out */
-#define UX_DCD_DWC3_DALEP_CMD					0x00000003
-#define UX_DCD_DWC3_DALEPENA_CMD				0x00000003
-#define UX_DCD_DWC3_DALEP_ALL_CMD				0x000000FF
+#define UX_DCD_DWC3_DALEP_CMD                   0x00000003
+#define UX_DCD_DWC3_DALEPENA_CMD                0x00000003
+#define UX_DCD_DWC3_DALEP_ALL_CMD               0x000000FF
 
 /*Issuing DEPSTRTXFER Command to ep_resource[0] (for EP 0/CONTROL/)*/
-#define UX_DCD_DWC3_DEPCMD_CONN_OUT_PARAM1			0x00041000
-#define UX_DCD_DWC3_DEPCMD_CONN_OUT_PARAM0			0x00000000
-#define UX_DCD_DWC3_DEPCMD_CONN_IN_PARAM1			0x02041000
-#define UX_DCD_DWC3_DEPCMD_CONN_IN_PARAM0			0x00000000
-#define UX_DCD_DWC3_DEPCMD_CONN_PARAM				0x00000506
+#define UX_DCD_DWC3_DEPCMD_CONN_OUT_PARAM1          0x00041000
+#define UX_DCD_DWC3_DEPCMD_CONN_OUT_PARAM0          0x00000000
+#define UX_DCD_DWC3_DEPCMD_CONN_IN_PARAM1           0x02041000
+#define UX_DCD_DWC3_DEPCMD_CONN_IN_PARAM0           0x00000000
+#define UX_DCD_DWC3_DEPCMD_CONN_PARAM               0x00000506
 
 /* The EP number goes 0..31 so ep0 is always out and ep1 is always in */
 #define UX_DCD_DALEPENA_EP(n)                  (0x00000001U << (n))
@@ -263,49 +261,49 @@ extern   "C" {
  */
 #define lower_32_bits(n) ((ULONG)(n))
 
-#define UX_DCD_DWC3_GUSB3PIPECTL_EXIT_PX		BIT(27)
-#define UX_DCD_DWC3_GUSB3PIPECTL_LFPSFILT		BIT(9)
+#define UX_DCD_DWC3_GUSB3PIPECTL_EXIT_PX          BIT(27)
+#define UX_DCD_DWC3_GUSB3PIPECTL_LFPSFILT         BIT(9)
 
 /* Configure GUSB2PHYCFG after sending DEPCMF for connection done */
-#define UX_DCD_DWC3_GUSB2PHYCFG_CONN		0x40001508
+#define UX_DCD_DWC3_GUSB2PHYCFG_CONN            0x40001508
 #define UX_DCD_DWC3_SCRATCH_BUFF_SIZE           4096
 
-#define BIT(nr)							(1 << (nr))
+#define BIT(nr)                                 (1 << (nr))
 
-#define UX_DCD_DWC3_EVENT_PENDING				BIT(0)
+#define UX_DCD_DWC3_EVENT_PENDING               BIT(0)
 
-#define UX_DCD_BOLT_EVENT_BUFFER_SIZE				4096
+#define UX_DCD_BOLT_EVENT_BUFFER_SIZE           4096
 
-#define UX_DCD_CLK_BASE_ADDRESS    0x1A010000
-#define ACLK_CTRL                0x820
-#define ACLK_CTRL_VAL            0x2
-#define ACLK_DIV                 0x824
-#define ACLK_DIV_VAL            0x0
+#define UX_DCD_CLK_BASE_ADDRESS                0x1A010000
+#define ACLK_CTRL                              0x820
+#define ACLK_CTRL_VAL                          0x2
+#define ACLK_DIV                               0x824
+#define ACLK_DIV_VAL                           0x0
 
 /* Start USB controller */
-#define UX_DCD_DWC3_DCTL_START					0x80F00000 //24-28 is C, before this 0
-#define UX_DCD_DWC3_DCTL_START_INIT				0x40F00000
-#define UX_DCD_DWC3_DCTL_CONN_DONE				0x80F00A00
+#define UX_DCD_DWC3_DCTL_START                  0x80000000 //24-28 is C, before this 0
+#define UX_DCD_DWC3_DCTL_START_INIT             0x40F00000
+#define UX_DCD_DWC3_DCTL_CONN_DONE              0x80F00A00
 
-#define UX_DCD_DWC3_NULL_VAL					0x00000000
+#define UX_DCD_DWC3_NULL_VAL                    0x00000000
 
 /* Global Event Size Registers */
-#define UX_DCD_GEVNTSIZ_INTMASK					BIT(31)
-#define UX_DCD_GEVNTSIZ_SIZE(n)					((n) & 0xffff)
-#define UX_DCD_GEVNTCOUNT_MASK					0xfffc
+#define UX_DCD_GEVNTSIZ_INTMASK                 BIT(31)
+#define UX_DCD_GEVNTSIZ_SIZE(n)                 ((n) & 0xffff)
+#define UX_DCD_GEVNTCOUNT_MASK                  0xfffc
 
 /* Device specific events */
-#define UX_DCD_EVENT_DISCONNECT				0
-#define UX_DCD_EVENT_RESET				1
-#define UX_DCD_EVENT_CONNECT_DONE			2
-#define UX_DCD_EVENT_LINK_STATUS_CHANGE		        3
-#define UX_DCD_EVENT_WAKEUP				4
-#define UX_DCD_EVENT_HIBER_REQ				5
-#define UX_DCD_EVENT_EOPF				6
-#define UX_DCD_EVENT_SOF				7
-#define UX_DCD_EVENT_ERRATIC_ERROR			9
-#define UX_DCD_EVENT_CMD_CMPL				10
-#define UX_DCD_EVENT_OVERFLOW				11
+#define UX_DCD_EVENT_DISCONNECT                 0
+#define UX_DCD_EVENT_RESET                      1
+#define UX_DCD_EVENT_CONNECT_DONE               2
+#define UX_DCD_EVENT_LINK_STATUS_CHANGE         3
+#define UX_DCD_EVENT_WAKEUP                     4
+#define UX_DCD_EVENT_HIBER_REQ                  5
+#define UX_DCD_EVENT_EOPF                       6
+#define UX_DCD_EVENT_SOF                        7
+#define UX_DCD_EVENT_ERRATIC_ERROR              9
+#define UX_DCD_EVENT_CMD_CMPL                   10
+#define UX_DCD_EVENT_OVERFLOW                   11
 
 
 #define UX_DCD_DCTL_KEEP_CONNECT               0x00080000U /* bit 19 */
@@ -317,9 +315,9 @@ extern   "C" {
 #define UX_DCD_DCTL_TSTCTRL_MASK          (0xf << 1)
 
 
-#define UX_DCD_EP_TRANSFER_STARTED				BIT(3)
-#define UX_DCD_EP_END_TRANSFER_PENDING			        BIT(4)
-#define UX_DCD_EP_DELAY_START					BIT(6)
+#define UX_DCD_EP_TRANSFER_STARTED             BIT(3)
+#define UX_DCD_EP_END_TRANSFER_PENDING         BIT(4)
+#define UX_DCD_EP_DELAY_START                  BIT(6)
 
 #define UX_DCD_EP_ENABLED                (0x00000001U << 0U)
 #define UX_DCD_EP_STALL                  (0x00000001U << 1U)
@@ -358,7 +356,7 @@ extern   "C" {
 #define UX_DCD_DGCMD_XMIT_FUNCTION        0x03
 #define UX_DCD_DGCMD_CMDACT               BIT(10)
 
-#define UX_DCD_DGCMD_STATUS(n)                 (((ULONG)(n) >> 15U) & 1U)
+#define UX_DCD_DGCMD_STATUS(n)                 (((ULONG)(n) >> 12U) & 0x0fU)
 #define UX_DCD_DGCMD_CMDIOC                    0x00000100U /* bit 8 */
 
 
@@ -377,35 +375,35 @@ extern   "C" {
 /* Global USB3 PIPE Control Register */
 #define UX_DCD_GUSB3PIPECTL_PHYSOFTRST         0x80000000U /* bit 31 */
 #define UX_DCD_GUSB3PIPECTL_SUSPHY             0x00020000U /* bit 17 */
-#define UX_DCD_GUSB3PIPECTL_UX_EXIT_PX		BIT(27)
+#define UX_DCD_GUSB3PIPECTL_UX_EXIT_PX         BIT(27)
 
 
 
 /* Global USB2 PHY Configuration Register */
-#define UX_DCD_GUSB2PHYCFG_PHYSOFTRST     BIT(31)
+#define UX_DCD_GUSB2PHYCFG_PHYSOFTRST             BIT(31)
 #define UX_DCD_GUSB2PHYCFG_U2_FREECLK_EXISTS      BIT(30)
-#define UX_DCD_GUSB2PHYCFG_SUSPHY         BIT(6)
-#define UX_DCD_GUSB2PHYCFG_ULPI_UTMI      BIT(4)
-#define UX_DCD_GUSB2PHYCFG_ENBLSLPM       BIT(8)
-#define UX_DCD_GUSB2PHYCFG_PHYIF(n)       (n << 3)
-#define UX_DCD_GUSB2PHYCFG_PHYIF_MASK     UX_DCD_GUSB2PHYCFG_PHYIF(1)
-#define UX_DCD_GUSB2PHYCFG_USBTRDTIM(n)   (n << 10)
-#define UX_DCD_GUSB2PHYCFG_USBTRDTIM_MASK UX_DCD_GUSB2PHYCFG_USBTRDTIM(0xf)
+#define UX_DCD_GUSB2PHYCFG_SUSPHY                 BIT(6)
+#define UX_DCD_GUSB2PHYCFG_ULPI_UTMI              BIT(4)
+#define UX_DCD_GUSB2PHYCFG_ENBLSLPM               BIT(8)
+#define UX_DCD_GUSB2PHYCFG_PHYIF(n)               (n << 3)
+#define UX_DCD_GUSB2PHYCFG_PHYIF_MASK             UX_DCD_GUSB2PHYCFG_PHYIF(1)
+#define UX_DCD_GUSB2PHYCFG_USBTRDTIM(n)           (n << 10)
+#define UX_DCD_GUSB2PHYCFG_USBTRDTIM_MASK         UX_DCD_GUSB2PHYCFG_USBTRDTIM(0xf)
 #define USBTRDTIM_UTMI_8_BIT            9
 #define USBTRDTIM_UTMI_16_BIT           5
 #define UTMI_PHYIF_16_BIT               1
 #define UTMI_PHYIF_8_BIT                0
 
 /* Device Configuration Register */
-#define UX_DCD_DWC3_DCFG_DEVADDR				0x00480800
+#define UX_DCD_DWC3_DCFG_DEVADDR                  0x00480800
 /* Device Configuration Register */
-#define UX_DCD_DWC3_DCFG_DEVADDR_RESET(addr)			((ULONG)(addr) << 3)
-#define UX_DCD_DWC3_DCFG_DEVADDR_MASK				UX_DCD_DWC3_DCFG_DEVADDR_RESET(0x7f)
-#define UX_DCD_DWC3_DCFG_DEVADDR_SET(addr)			((ULONG)(addr) << 3)
+#define UX_DCD_DWC3_DCFG_DEVADDR_RESET(addr)      ((ULONG)(addr) << 3)
+#define UX_DCD_DWC3_DCFG_DEVADDR_MASK             UX_DCD_DWC3_DCFG_DEVADDR_RESET(0x7f)
+#define UX_DCD_DWC3_DCFG_DEVADDR_SET(addr)        ((ULONG)(addr) << 3)
 
 
 /* Device control register configuration for connection change. */
-#define UX_DCD_DWC3_DCTL_CONNECT				0x80F00A00
+#define UX_DCD_DWC3_DCTL_CONNECT                  0x80F00A00
 
 /* TRB Length, PCM and Status */
 #define UX_DCD_DWC3_TRB_SIZE_MASK      (0x00ffffff)
@@ -462,7 +460,7 @@ extern   "C" {
 #define UX_DCD_DWC3_ED_TRANSFER_STATUS_IN_COMPLETION            2
 #define UX_DCD_DWC3_ED_TRANSFER_STATUS_OUT_COMPLETION           3
 
-#define UX_DCD_DWC3_ED_NUM_MASK					0x3E
+#define UX_DCD_DWC3_ED_NUM_MASK                0x3E
 
 #define UX_DCD_DWC3_DEPEVT_XFERCOMPLETE        0x01
 #define UX_DCD_DWC3_DEPEVT_XFERINPROGRESS      0x02
@@ -474,7 +472,7 @@ extern   "C" {
 /* For Command Complete Events */
 #define DEPEVT_PARAMETER_CMD(n) (((n) & (0xf << 8)) >> 8)
 
-#define UX_DCD_DWC3_ED_STATE_IDLE				0
+#define UX_DCD_DWC3_ED_STATE_IDLE                              0
 #define UX_DCD_DWC3_ED_STATE_DATA_TX                           1
 #define UX_DCD_DWC3_ED_STATE_DATA_RX                           2
 #define UX_DCD_DWC3_ED_STATE_STATUS_TX                         3
@@ -553,6 +551,7 @@ extern   "C" {
 
 #define UX_DCD_DSTS_USBLNKST_MASK         (0x0f << 18)
 #define UX_DCD_DSTS_USBLNKST(n)           (((n) & UX_DCD_DSTS_USBLNKST_MASK) >> 18)
+#define UX_DCD_DSTS_DEVCTRLHLT              BIT(22)
 
 
 /*
@@ -571,7 +570,7 @@ extern   "C" {
 
 #define UX_DCD_DCFG_SPEED_MASK                                 7U
 #define UX_DCD_DCFG_HIGHSPEED                                  0U
-#define UX_DCD_DCFG_LOWSPEED				1U
+#define UX_DCD_DCFG_LOWSPEED                                   1U
 
 /* Global HWPARAMS1 Register */
 #define UX_DCD_GHWPARAMS1_EN_PWROPT(n)         (((ULONG)(n) & ((ULONG)3 << 24U)) >> 24U)
@@ -747,84 +746,80 @@ typedef struct USB_LINE_CODING {
 typedef struct UX_DCD_DWC3_EVENT_BUFFER {
         VOID                    *buf;
         VOID                    *cache;
-        ULONG	                length;
-        ULONG			lpos;
-        ULONG			count;
-        ULONG			flags;
-	struct UX_DCD_DWC3_STRUCT
-				*dcd_dwc3;
+        ULONG                   length;
+        ULONG                   lpos;
+        ULONG                   count;
+        ULONG                   flags;
+        struct UX_DCD_DWC3_STRUCT   *dcd_dwc3;
 } UX_DCD_EVENT;
 
 typedef struct UX_DCD_DWC3_LINE_CODING {
-	UCHAR line_set[7];
+      UCHAR line_set[7];
 } UX_DCD_LINE;
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
 
-#define QUEUE_SIZE		8
+#define QUEUE_SIZE              8
 /* Define USB DWC3 DCD structure definition.  */
 
 typedef struct UX_DCD_DWC3_STRUCT
 {
 
-    struct USB_CTRL_REQUEST		SetupData ALIGNMENT_CACHELINE;
-    struct UX_DCD_EP_TRB_STRUCT		endp0_trb ALIGNMENT_CACHELINE;
-    struct UX_DCD_EP_TRB_STRUCT		endp0_trb_unaligned[2];
-    struct UX_DCD_DWC3_ED_STRUCT	eps[UX_DCD_ENDPOINTS_NUM]; /**< Endpoints */
-    struct UX_DCD_BULK_EP_STRUCT	BulkData[NO_OF_TRB_PER_EP] ALIGNMENT_CACHELINE;
+    struct USB_CTRL_REQUEST         SetupData ALIGNMENT_CACHELINE;
+    struct UX_DCD_EP_TRB_STRUCT     endp0_trb ALIGNMENT_CACHELINE;
+    struct UX_DCD_EP_TRB_STRUCT     endp0_trb_unaligned[2];
+    struct UX_DCD_DWC3_ED_STRUCT    eps[UX_DCD_ENDPOINTS_NUM]; /**< Endpoints */
+    struct UX_DCD_BULK_EP_STRUCT    BulkData[NO_OF_TRB_PER_EP] ALIGNMENT_CACHELINE;
 
-    struct UX_DCD_CTRL_EP_STRUCT	CtrlData ALIGNMENT_CACHELINE;
-    struct UX_SLAVE_DCD_STRUCT
-                    *ux_dcd_dwc3_dcd_owner;
-    struct UX_DCD_DWC3_ED_STRUCT
-                    ux_dcd_dwc3_ed[UX_DCD_ENDPOINTS_NUM];
-    struct UX_DCD_DWC3_EVENT_BUFFER
-		    *ux_dcd_dwc3_event;
-    struct UX_DCD_EP0_TRB_STRUCT	*ep0_trb;
-    struct UX_DCD_EP_PARAMS_STRUCT	EpParams;
-    struct USB_LINE_CODING	LineCoding ALIGNMENT_CACHELINE;
-    enum UX_DCD_EP0_STATE	ep0state;
+    struct UX_DCD_CTRL_EP_STRUCT    CtrlData ALIGNMENT_CACHELINE;
+    struct UX_SLAVE_DCD_STRUCT      *ux_dcd_dwc3_dcd_owner;
+    struct UX_DCD_DWC3_ED_STRUCT     ux_dcd_dwc3_ed[UX_DCD_ENDPOINTS_NUM];
+    struct UX_DCD_DWC3_EVENT_BUFFER  *ux_dcd_dwc3_event;
+    struct UX_DCD_EP0_TRB_STRUCT     *ep0_trb;
+    struct UX_DCD_EP_PARAMS_STRUCT    EpParams;
+    struct USB_LINE_CODING           LineCoding ALIGNMENT_CACHELINE;
+    enum UX_DCD_EP0_STATE            ep0state;
     enum UX_DCD_DEVICE_STATE    config_state;
-    enum ux_dcd_link_state	link_state;
-    ULONG		NumInEps;
-    ULONG		NumBytes;
-    ULONG		ConnectionDone;
-    ULONG		NumOutEps;
-    ULONG	    IsConfigDone;
-    ULONG		total_trb;
-    ULONG	    endp_flag;
-    ULONG	    TrbNum;
-    ULONG	    transfer_status;
+    enum ux_dcd_link_state      link_state;
+    ULONG       NumInEps;
+    ULONG       NumBytes;
+    ULONG       ConnectionDone;
+    ULONG       NumOutEps;
+    ULONG       IsConfigDone;
+    ULONG       total_trb;
+    ULONG       endp_flag;
+    ULONG       TrbNum;
+    ULONG       transfer_status;
     ULONG           ux_dcd_dwc3_base;
     ULONG           *ux_dcd_dwc3_debug;
     ULONG           event_lpos;
     ULONG           event_count;
     ULONG           endp_config;
     ULONG           *BufferPtr;
-    ULONG	    application_read;
+    ULONG           application_read;
     TX_SEMAPHORE    ux_dcd_dwc3_ep_slave_transfer_request_semaphore;
-    ULONG	    setup_packet_pending:1;
-    ULONG	    connected:1;
-    ULONG	    test_mode:1;
-    ULONG	    event_flag:1;
-    ULONG	    three_stage_setup:1;
-    ULONG	    ep0_expect_in:1;
-    ULONG	    IsocTrans:1;
+    ULONG           setup_packet_pending:1;
+    ULONG       connected:1;
+    ULONG       test_mode:1;
+    ULONG       event_flag:1;
+    ULONG       three_stage_setup:1;
+    ULONG       ep0_expect_in:1;
+    ULONG       IsocTrans:1;
 } UX_DCD_DWC3;
 
 
 
 /* Define USB DWC3 DCD prototypes.  */
 
-VOID	_ux_dcd_dwc3_controller_config_check(UX_DCD_DWC3 *dcd_dwc3);
+VOID    _ux_dcd_dwc3_controller_config_check(UX_DCD_DWC3 *dcd_dwc3);
 VOID    _ux_dcd_dwc3_controller_config_reset(UX_DCD_DWC3 *dcd_dwc3);
-UINT	_ux_dcd_dwc3_check_devt_event_type(ULONG dwc3_register);
-ULONG	_ux_dcd_dwc3_check_depevt_event_type(ULONG dwc3_register);
+UINT    _ux_dcd_dwc3_check_devt_event_type(ULONG dwc3_register);
+ULONG   _ux_dcd_dwc3_check_depevt_event_type(ULONG dwc3_register);
 UINT    _ux_dcd_dwc3_get_endpoint_num(ULONG dwc3_register);
 UINT    _ux_dcd_dwc3_function(UX_SLAVE_DCD *dcd, UINT function, VOID *parameter);
 VOID    _ux_dcd_dwc3_register_clear(UX_DCD_DWC3 *dcd_dwc3, ULONG dwc3_register, ULONG value);
-UINT	_ux_dcd_dwc3_function(UX_SLAVE_DCD *dcd, UINT function, VOID *parameter);
-UINT	_ux_dcd_dwc3_endpoint_create(UX_DCD_DWC3 *dcd_dwc3, UX_SLAVE_ENDPOINT *endpoint);
+UINT    _ux_dcd_dwc3_function(UX_SLAVE_DCD *dcd, UINT function, VOID *parameter);
+UINT    _ux_dcd_dwc3_endpoint_create(UX_DCD_DWC3 *dcd_dwc3, UX_SLAVE_ENDPOINT *endpoint);
 UINT    _ux_dcd_dwc3_transfer_callback(UX_DCD_DWC3 *dcd_dwc3, UX_SLAVE_TRANSFER *transfer_request);
 
 UINT    _ux_dcd_dwc3_bulk_transfer_callback(UX_DCD_DWC3 *dcd_dwc3, UX_SLAVE_TRANSFER *transfer_request);
@@ -840,16 +835,16 @@ UINT  _ux_dcd_dwc3_fifo_read(UX_DCD_DWC3 *dcd_dwc3, UCHAR *data_pointer, ULONG f
 UINT  _ux_dcd_dwc3_fifo_fill_stack(UX_DCD_DWC3 *dcd_dwc3, UCHAR *data_pointer, ULONG fifo_length);
 
 VOID    _ux_dcd_dwc3_register_set(UX_DCD_DWC3 *dcd_dwc3, ULONG dwc3_register, ULONG value);
-VOID	_ux_dcd_dwc3_enable_control_endpoint(UX_DCD_DWC3 *dcd_dwc3, ULONG size);
-UINT	_ux_dcd_RecvSetup(UX_DCD_DWC3 *dcd_dwc3);
+VOID    _ux_dcd_dwc3_enable_control_endpoint(UX_DCD_DWC3 *dcd_dwc3, ULONG size);
+UINT    _ux_dcd_RecvSetup(UX_DCD_DWC3 *dcd_dwc3);
 
 VOID _ux_dcd_EventBufferHandler(UX_DCD_DWC3 *dcd_dwc3);
 
-UINT	_ux_dcd_EpEnable(UX_DCD_DWC3 *dcd_dwc3, ULONG UsbEpNum, ULONG Dir,
+UINT    _ux_dcd_EpEnable(UX_DCD_DWC3 *dcd_dwc3, ULONG UsbEpNum, ULONG Dir,
                         ULONG Maxsize, ULONG Type, ULONG Restore);
-UINT	_ux_dcd_SetEpConfig(UX_DCD_DWC3 *dcd_dwc3, ULONG UsbEpNum, ULONG Dir,
+UINT    _ux_dcd_SetEpConfig(UX_DCD_DWC3 *dcd_dwc3, ULONG UsbEpNum, ULONG Dir,
                                                 ULONG Size, ULONG Type, ULONG Restore);
-UINT	_ux_dcd_SendEpCmd(UX_DCD_DWC3 *dcd_dwc3, ULONG UsbEpNum, ULONG Dir,
+UINT    _ux_dcd_SendEpCmd(UX_DCD_DWC3 *dcd_dwc3, ULONG UsbEpNum, ULONG Dir,
                                   ULONG Cmd, UX_DCD_EP_PARAMS Params);
 
 UINT _ux_dcd_EpGetTransferIndex(UX_DCD_DWC3 *dcd_dwc3, ULONG UsbEpNum,
@@ -871,13 +866,13 @@ UINT _ux_dcd_EpBufferSend(UX_DCD_DWC3 *dcd_dwc3, ULONG UsbEp,
 
 VOID _ux_dcd_SetEpHandler(UX_DCD_DWC3 *dcd_dwc3, ULONG Epnum,
                         ULONG Dir, VOID (*Handler)(VOID *, ULONG, ULONG, UCHAR *,
-				ULONG));
+                        ULONG));
 
 VOID BulkOutHandler(VOID *CallBackRef, ULONG RequestedBytes, ULONG BytesTxed,
-				UCHAR *transfer_request, ULONG TrbNum);
+                     UCHAR *transfer_request, ULONG TrbNum);
 
 VOID BulkInHandler(VOID *CallBackRef, ULONG RequestedBytes, ULONG BytesTxed,
-				UCHAR *transfer_request, ULONG TrbNum);
+             UCHAR *transfer_request, ULONG TrbNum);
 
 UINT _ux_dcd_SetDeviceAddress(UX_DCD_DWC3 *dcd_dwc3, ULONG  Addr);
 
@@ -917,10 +912,10 @@ UINT _ux_dcd_EpBufferRecv(UX_DCD_DWC3 *dcd_dwc3, ULONG UsbEp,
                                 UCHAR *BufferPtr, ULONG Length);
 
 VOID _ux_dcd_EpXferComplete(UX_DCD_DWC3 *dcd_dwc3, ULONG dwc3_register,
-					ULONG endp_number, UCHAR *transfer_request);
+                  ULONG endp_number, UCHAR *transfer_request);
 
 VOID _ux_dcd_EpXferNotReady(UX_DCD_DWC3 *dcd_dwc3, ULONG dwc3_register,
-				ULONG endp_number);
+                   ULONG endp_number);
 
 
 UINT _ux_dcd_Ep0Recv(UX_DCD_DWC3 *dcd_dwc3, ULONG *BufferPtr, ULONG BufferLen);
@@ -940,6 +935,7 @@ VOID  _ux_dcd_dwc3_gadget_setup_nump(UX_DCD_DWC3 *dcd_dwc3);
 VOID _ux_dcd_InitializeEps(UX_DCD_DWC3 *dcd_dwc3);
 VOID _ux_dcd_phy_reset(UX_DCD_DWC3 *dcd_dwc3);
 VOID  _ux_dcd_dwc3_interrupt_handler(VOID);
+VOID _ux_dcd_dwc3_clear_trb(UX_DCD_DWC3 *dcd_dwc3,ULONG endpoint_number);
 
 #ifdef  __cplusplus
 

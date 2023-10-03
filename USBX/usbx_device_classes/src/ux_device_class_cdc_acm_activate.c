@@ -92,7 +92,6 @@ UX_SLAVE_CLASS                          *class;
     /* If there is a activate function call it.  */
     if (cdc_acm -> ux_slave_class_cdc_acm_parameter.ux_slave_class_cdc_acm_instance_activate != UX_NULL)
     {        
-
         /* Invoke the application.  */
         cdc_acm -> ux_slave_class_cdc_acm_parameter.ux_slave_class_cdc_acm_instance_activate(cdc_acm);
     }

@@ -23,7 +23,7 @@
 #include "fx_sd_driver.h"
 #include "fx_sd_driver_private.h"
 
-const Diskio_TypeDef  *p_SD_Driver = &SD_Driver;
+const diskio_t  *p_SD_Driver = &SD_Driver;
 
 /* The SD driver relies on the fx_media_format call to be made prior to
    the fx_media_open call. The following call will format the default
@@ -212,7 +212,7 @@ VOID  _fx_sd_driver(FX_MEDIA *media_ptr)
                     /* Perform basic initialization here... since the boot record is going
                        to be read subsequently and again for volume name requests.  */
 
-                    status = p_SD_Driver->disk_initialize(SD_DEV_ID);
+                    status = p_SD_Driver->disk_initialize(SDMMC_DEV_ID);
 
                     /* Check status of SD initialize.  */
                     if (status == FX_SUCCESS)
