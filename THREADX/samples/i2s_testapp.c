@@ -29,6 +29,11 @@
 /* Project Includes */
 #include <Driver_SAI.h>
 #include <pinconf.h>
+#include "RTE_Components.h"
+#if defined(RTE_Compiler_IO_STDOUT)
+#include "retarget_stdout.h"
+#endif  /* RTE_Compiler_IO_STDOUT */
+
 
 /*Threadx Includes */
 #include "tx_api.h"
@@ -489,6 +494,17 @@ error_adc_initialize:
 /* Define main entry point.  */
 int main()
 {
+    #if defined(RTE_Compiler_IO_STDOUT_User)
+    int32_t ret;
+    ret = stdout_init();
+    if(ret != ARM_DRIVER_OK)
+    {
+        while(1)
+        {
+        }
+    }
+    #endif
+
     /* Enter the ThreadX kernel.  */
     tx_kernel_enter();
 }

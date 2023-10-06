@@ -20,6 +20,7 @@
  *           - Configuring the UTIMER Channel 3 for counter start triggering mode.
  *           - Configuring the UTIMER Channel 4 for driver A, double buffering capture mode.
  *           - Configuring the UTIMER Channel 5 for driver A, double buffering compare mode.
+ *           - Configuring the UTIMER Channel 6 for PWM signal generation.
  * @bug      None.
  * @Note     None
  ******************************************************************************/
@@ -29,6 +30,11 @@
 #include "Driver_UTIMER.h"
 #include "pinconf.h"
 #include "Driver_GPIO.h"
+#include "RTE_Components.h"
+#if defined(RTE_Compiler_IO_STDOUT)
+#include "retarget_stdout.h"
+#endif  /* RTE_Compiler_IO_STDOUT */
+
 
 /* GPIO related definitions */
 #define GPIO3                          3
@@ -44,7 +50,7 @@
 #define UTIMER_TRIGGER_MODE_THREAD_STACK_SIZE    (512U)
 #define UTIMER_CAPTURE_MODE_THREAD_STACK_SIZE    (512U)
 #define UTIMER_COMPARE_MODE_THREAD_STACK_SIZE    (512U)
-#define UTIMER_DT_MODE_THREAD_STACK_SIZE         (512U)
+#define UTIMER_PWM_MODE_THREAD_STACK_SIZE        (512U)
 
 /* UTIMER callback events */
 #define UTIMER_OVERFLOW_CB_EVENT                 (1U << 0U)
@@ -54,11 +60,12 @@
 #define UTIMER_COMPARE_A_BUF2_CB_EVENT           (1U << 4U)
 
 /* UTIMER interrupt wait time */
-#define UTIMER_BASIC_MODE_WAIT_TIME              (1U * TX_TIMER_TICKS_PER_SECOND)    /* 1 second wait time */
-#define UTIMER_BUFFERING_MODE_WAIT_TIME          (3U * TX_TIMER_TICKS_PER_SECOND)    /* 3 seconds wait time */
-#define UTIMER_TRIGGER_MODE_WAIT_TIME            (1U * TX_TIMER_TICKS_PER_SECOND)    /* 1 second wait time */
-#define UTIMER_CAPTURE_MODE_WAIT_TIME            (1U * TX_TIMER_TICKS_PER_SECOND)    /* 1 second wait time */
-#define UTIMER_COMPARE_MODE_WAIT_TIME            (5U * TX_TIMER_TICKS_PER_SECOND)    /* 5 seconds wait time */
+#define UTIMER_BASIC_MODE_WAIT_TIME              (1U * TX_TIMER_TICKS_PER_SECOND)              /* 1 second wait time */
+#define UTIMER_BUFFERING_MODE_WAIT_TIME          (3U * TX_TIMER_TICKS_PER_SECOND)              /* 3 seconds wait time */
+#define UTIMER_TRIGGER_MODE_WAIT_TIME            (1U * TX_TIMER_TICKS_PER_SECOND)              /* 1 second wait time */
+#define UTIMER_CAPTURE_MODE_WAIT_TIME            (1U * TX_TIMER_TICKS_PER_SECOND)              /* 1 second wait time */
+#define UTIMER_COMPARE_MODE_WAIT_TIME            (5U * TX_TIMER_TICKS_PER_SECOND)              /* 5 seconds wait time */
+#define UTIMER_PWM_MODE_WAIT_TIME                ((500U * TX_TIMER_TICKS_PER_SECOND)/1000)     /* 500ms seconds wait time */
 
 UCHAR                                            memory_area[DEMO_BYTE_POOL_SIZE];
 TX_BYTE_POOL                                     memory_pool;
@@ -67,11 +74,13 @@ TX_THREAD                                        buffering_mode_thread;
 TX_THREAD                                        trigger_mode_thread;
 TX_THREAD                                        capture_mode_thread;
 TX_THREAD                                        compare_mode_thread;
+TX_THREAD                                        pwm_mode_thread;
 TX_EVENT_FLAGS_GROUP                             basic_mode_event_flag;
 TX_EVENT_FLAGS_GROUP                             buffering_mode_event_flag;
 TX_EVENT_FLAGS_GROUP                             trigger_mode_event_flag;
 TX_EVENT_FLAGS_GROUP                             capture_mode_event_flag;
 TX_EVENT_FLAGS_GROUP                             compare_mode_event_flag;
+TX_EVENT_FLAGS_GROUP                             pwm_mode_event_flag;
 ULONG                                            events;
 
 /* UTIMER0 Driver instance */
@@ -81,124 +90,6 @@ ARM_DRIVER_UTIMER *ptrUTIMER = &DRIVER_UTIMER0;
 /* GPIO3 Driver instance */
 extern ARM_DRIVER_GPIO ARM_Driver_GPIO_(GPIO3);
 ARM_DRIVER_GPIO *ptrDrv = &ARM_Driver_GPIO_(GPIO3);
-
-/* For Release build disable printf and semihosting */
-#define DISABLE_SEMIHOSTING
-
-#ifdef DISABLE_SEMIHOSTING
-/* Also Disable Semihosting */
-#if __ARMCC_VERSION >= 6000000
-        __asm(".global __use_no_semihosting");
-#elif __ARMCC_VERSION >= 5000000
-        #pragma import(__use_no_semihosting)
-#else
-        #error Unsupported compiler
-#endif
-
-void _sys_exit(int return_code) {
-        while (1);
-}
-
-
-int _sys_open(void *p){
-
-   return 0;
-}
-
-
-int _sys_close(void *p){
-
-   return 0;
-}
-
-
-int _sys_read(void *p){
-
-   return 0;
-}
-
-int _sys_write(void *p){
-
-   return 0;
-}
-
-int _sys_istty(void *p){
-
-   return 0;
-}
-
-int _sys_seek(void *p){
-
-   return 0;
-}
-
-int _sys_flen(void *p){
-
-    return 0;
-}
-
-void _ttywrch(int ch){
-
-}
-
-#endif /* DISABLE_SEMIHOSTING */
-
-/**
- * @function    INT pinmux_config(ARM_UTIMER_MODE mode)
- * @brief       UTIMER hardware pin initialization using pinmux driver
- * @note        none
- * @param       mode
- * @retval      execution status
- */
-static INT pinmux_config(ARM_UTIMER_MODE mode)
-{
-    INT ret;
-
-    /* Trigger mode is configured on UTIMER channel 3, Configure P0_6 as UT3_A and P0_7 as UT3_B */
-    if (mode == ARM_UTIMER_MODE_TRIGGERING)
-    {
-        ret = pinconf_set(PORT_0, PIN_6, PINMUX_ALTERNATE_FUNCTION_5, PADCTRL_READ_ENABLE);
-        if(ret != ARM_DRIVER_OK) {
-            printf("\r\n Error in PINMUX.\r\n");
-            return -1;
-        }
-
-        ret = pinconf_set(PORT_0, PIN_7, PINMUX_ALTERNATE_FUNCTION_5, PADCTRL_READ_ENABLE);
-        if(ret != ARM_DRIVER_OK) {
-            printf("\r\n Error in PINMUX.\r\n");
-            return -1;
-        }
-    }
-    /* Capture mode is configured on UTIMER channel 4. Configure P1_0 as UT4_A and P1_1 as UT4_B */
-    else if (mode == ARM_UTIMER_MODE_CAPTURING)
-    {
-        ret = pinconf_set(PORT_1, PIN_0, PINMUX_ALTERNATE_FUNCTION_4, PADCTRL_READ_ENABLE);
-        if(ret != ARM_DRIVER_OK) {
-            printf("\r\n Error in PINMUX.\r\n");
-            return -1;
-        }
-        ret = pinconf_set(PORT_1, PIN_1, PINMUX_ALTERNATE_FUNCTION_4, PADCTRL_READ_ENABLE);
-        if(ret != ARM_DRIVER_OK) {
-            printf("\r\n Error in PINMUX.\r\n");
-            return -1;
-        }
-    }
-    /* Compare mode is configured on UTIMER channel 5, Configure P1_2 as utimer driver_A output */
-    else if (mode == ARM_UTIMER_MODE_COMPARING)
-    {
-        ret = pinconf_set(PORT_1, PIN_2, PINMUX_ALTERNATE_FUNCTION_4, 0);
-        if(ret != ARM_DRIVER_OK) {
-            printf("\r\n Error in PINMUX.\r\n");
-            return -1;
-        }
-    }
-    else
-    {
-        return -1;
-    }
-
-    return 0;
-}
 
 /**
  * @function    INT gpio_init(ARM_UTIMER_MODE mode)
@@ -670,9 +561,15 @@ static void utimer_trigger_mode_app(ULONG thread_input)
     count_array[0] = 0;            /*< initial counter value >*/
     count_array[1] = 0xBEBC200;    /*< over flow count value >*/
 
-    ret = pinmux_config(ARM_UTIMER_MODE_TRIGGERING);
-    if (ret) {
-        printf("pinmux failed\n");
+    /* trigger mode pin config */
+    ret = pinconf_set (PORT_0, PIN_6, PINMUX_ALTERNATE_FUNCTION_5, PADCTRL_READ_ENABLE);
+    if(ret != ARM_DRIVER_OK) {
+        printf("\r\n Error in PINMUX.\r\n");
+    }
+
+    ret = pinconf_set (PORT_0, PIN_7, PINMUX_ALTERNATE_FUNCTION_5, PADCTRL_READ_ENABLE);
+    if(ret != ARM_DRIVER_OK) {
+        printf("\r\n Error in PINMUX.\r\n");
     }
 
     ret = gpio_init(ARM_UTIMER_MODE_TRIGGERING);
@@ -818,10 +715,15 @@ static void utimer_capture_mode_app(ULONG thread_input)
     count_array[0] = 0;             /*< initial counter value >*/
     count_array[1] = 0x17D78400;    /*< over flow count value >*/
 
-    /* capture mode pin confg */
-    ret = pinmux_config(ARM_UTIMER_MODE_CAPTURING);
-    if (ret) {
-        printf("pinmux failed\n");
+    /* capture mode pin config */
+    ret = pinconf_set(PORT_1, PIN_0, PINMUX_ALTERNATE_FUNCTION_4, PADCTRL_READ_ENABLE);
+    if(ret != ARM_DRIVER_OK) {
+        printf("\r\n Error in PINMUX.\r\n");
+    }
+
+    ret = pinconf_set(PORT_1, PIN_1, PINMUX_ALTERNATE_FUNCTION_4, PADCTRL_READ_ENABLE);
+    if(ret != ARM_DRIVER_OK) {
+        printf("\r\n Error in PINMUX.\r\n");
     }
 
     /* GPIO pin confg */
@@ -976,15 +878,15 @@ static void utimer_compare_mode_app(ULONG thread_input)
      * DEC = 400000000
      * HEX = 0x17D78400
      *
-     * So count for 250ms = (250*(10^-6)/(0.0025*(10^-6)) = 100000000
+     * So count for 250ms = (250*(10^-3)/(0.0025*(10^-6)) = 100000000
      * DEC = 100000000
      * HEX = 0x5F5E100
      *
-     * So count for 500ms = (500*(10^-6)/(0.0025*(10^-6)) = 200000000
+     * So count for 500ms = (500*(10^-3)/(0.0025*(10^-6)) = 200000000
      * DEC = 200000000
      * HEX = 0xBEBC200
      *
-     * So count for 750ms = (750*(10^-6)/(0.0025*(10^-6)) = 300000000
+     * So count for 750ms = (750*(10^-3)/(0.0025*(10^-6)) = 300000000
      * DEC = 300000000
      * HEX = 0x11E1A300
      */
@@ -995,9 +897,9 @@ static void utimer_compare_mode_app(ULONG thread_input)
     count_array[4] =  0x11E1A300;        /*< compare a/b buf2 value>*/
 
     /* compare mode pin confg */
-    ret = pinmux_config(ARM_UTIMER_MODE_COMPARING);
-    if (ret) {
-        printf("pinmux failed\n");
+    ret = pinconf_set (PORT_1, PIN_2, PINMUX_ALTERNATE_FUNCTION_4, 0);
+    if(ret != ARM_DRIVER_OK) {
+        printf("\r\n Error in PINMUX.\r\n");
     }
 
     ret = ptrUTIMER->Initialize(channel, utimer_compare_mode_cb_func);
@@ -1105,10 +1007,164 @@ error_compare_mode_uninstall:
     printf("*** demo application: compare mode completed *** \r\n\n");
 }
 
+/**
+ * @function    void utimer_pwm_cb_func(event)
+ * @brief       utimer pwm mode callback function
+ * @note        none
+ * @param       event
+ * @retval      none
+ */
+static void utimer_pwm_cb_func(uint8_t event)
+{
+    if (event == ARM_UTIMER_EVENT_COMPARE_A) {
+        tx_event_flags_set(&pwm_mode_event_flag, UTIMER_COMPARE_A_CB_EVENT, TX_OR);
+    }
+    if (event == ARM_UTIMER_EVENT_OVER_FLOW) {
+        tx_event_flags_set(&pwm_mode_event_flag, UTIMER_OVERFLOW_CB_EVENT, TX_OR);
+    }
+}
+
+/**
+ * @function    void utimer_compare_mode_app(ULONG thread_input)
+ * @brief       utimer pwm mode application
+ * @note        none
+ * @param       none
+ * @retval      none
+ */
+static void utimer_pwm_mode_app(ULONG thread_input)
+{
+    int32_t ret;
+    uint8_t channel = 6;
+    uint32_t count_array[3], status;
+
+    /*
+     * utimer channel 6 is configured to generate PWM o/p signal of 75% duty cycle(driver A is enabled).
+     * observe output signal from P1_4.
+     */
+    printf("*** utimer demo application for pwm started ***\n");
+    /*
+     * System CLOCK frequency (F)= 400Mhz
+     *
+     * Time for 1 count T = 1/F = 1/(400*10^6) = 0.0025 * 10^-6
+     *
+     * To Increment or Decrement Timer by 1 count, takes 0.0025 micro sec
+     *
+     * So count for 400ms = (400*(10^-3)/(0.0025*(10^-6)) = 160000000
+     * DEC = 160000000
+     * HEX = 0x9896800
+     *
+     * So count for 100ms = (100*(10^-3)/(0.0025*(10^-6)) = 40000000
+     * DEC = 40000000
+     * HEX = 0x2625A00
+     */
+    count_array[0] =  0x0;               /*< initial counter value >*/
+    count_array[1] =  0x9896800;         /*< over flow count value >*/
+    count_array[2] =  0x2625A00;         /*< compare a/b value>*/
+
+    /*
+     * Note: User can change the duty cycle of output PWM signal by changing counter value.
+     * This demo testapp gives 75% duty cycle as you can see above the relation btw count_array[1] & count_array[2].
+     */
+
+    /* pwm mode pin config */
+    ret = pinconf_set (PORT_1, PIN_4, PINMUX_ALTERNATE_FUNCTION_4, 0);
+    if(ret != ARM_DRIVER_OK) {
+        printf("\r\n Error in PINMUX.\r\n");
+    }
+
+    ret = ptrUTIMER->Initialize (channel, utimer_pwm_cb_func);
+    if (ret != ARM_DRIVER_OK) {
+        printf("utimer channel %d failed initialize \n", channel);
+        return;
+    }
+
+    ret = ptrUTIMER->PowerControl (channel, ARM_POWER_FULL);
+    if (ret != ARM_DRIVER_OK) {
+        printf("utimer channel %d failed power up \n", channel);
+        goto error_pwm_mode_uninstall;
+    }
+
+    ret = ptrUTIMER->ConfigCounter (channel, ARM_UTIMER_MODE_COMPARING, ARM_UTIMER_COUNTER_UP);
+    if (ret != ARM_DRIVER_OK) {
+        printf("utimer channel %d mode configuration failed \n", channel);
+        goto error_pwm_mode_poweroff;
+    }
+
+    ret = ptrUTIMER->SetCount (channel, ARM_UTIMER_CNTR, count_array[0]);
+    if (ret != ARM_DRIVER_OK) {
+        printf("utimer channel %d set count failed \n", channel);
+        goto error_pwm_mode_poweroff;
+    }
+
+    ret = ptrUTIMER->SetCount (channel, ARM_UTIMER_CNTR_PTR, count_array[1]);
+    if (ret != ARM_DRIVER_OK) {
+        printf("utimer channel %d set count failed \n", channel);
+        goto error_pwm_mode_poweroff;
+    }
+
+    ret = ptrUTIMER->SetCount (channel, ARM_UTIMER_COMPARE_A, count_array[2]);
+    if (ret != ARM_DRIVER_OK) {
+        printf("utimer channel %d set count failed \n", channel);
+        goto error_pwm_mode_poweroff;
+    }
+
+    ret = ptrUTIMER->Start(channel);
+    if(ret != ARM_DRIVER_OK) {
+        printf("utimer channel %d failed to start \n", channel);
+        goto error_pwm_mode_poweroff;
+    } else {
+        printf("utimer channel %d :timer started\n", channel);
+    }
+
+    printf("PWM output signal generation started\n");
+    for (int i=0; i<20; i++)
+    {
+        status = tx_event_flags_get(&pwm_mode_event_flag, UTIMER_COMPARE_A_CB_EVENT | UTIMER_OVERFLOW_CB_EVENT, TX_OR_CLEAR, &events, UTIMER_PWM_MODE_WAIT_TIME);
+        if(status != TX_SUCCESS) {
+            printf("ERROR : event not received, timeout happened \n");
+            goto error_pwm_mode_poweroff;
+        }
+    }
+
+    ret = ptrUTIMER->Stop(channel, ARM_UTIMER_COUNTER_CLEAR);
+    if(ret != ARM_DRIVER_OK) {
+        printf("utimer channel %d failed to stop \n", channel);
+    } else {
+        printf("utimer channel %d: timer stopped\n", channel);
+    }
+
+error_pwm_mode_poweroff:
+
+    ret = ptrUTIMER->PowerControl (channel, ARM_POWER_OFF);
+    if (ret != ARM_DRIVER_OK) {
+        printf("utimer channel %d failed power off \n", channel);
+    }
+
+error_pwm_mode_uninstall:
+
+    ret = ptrUTIMER->Uninitialize (channel);
+    if(ret != ARM_DRIVER_OK) {
+        printf("utimer channel %d failed to un-initialize \n", channel);
+    }
+
+    printf("*** demo application: pwm mode completed *** \r\n\n");
+}
+
 
 /* Define main entry point.  */
 int main()
 {
+    #if defined(RTE_Compiler_IO_STDOUT_User)
+    int32_t ret;
+    ret = stdout_init();
+    if(ret != ARM_DRIVER_OK)
+    {
+        while(1)
+        {
+        }
+    }
+    #endif
+
     /* Enter the ThreadX kernel.  */
     tx_kernel_enter();
 }
@@ -1153,6 +1209,12 @@ void tx_application_define(void *first_unused_memory)
     status = tx_event_flags_create(&compare_mode_event_flag, "UTIMER_COMPARE_MODE_EVENT_FLAG");
     if (status != TX_SUCCESS) {
         printf("failed to create utimer compare mode event flag\r\n");
+    }
+
+    /* Create a event flag for utimer group.  */
+    status = tx_event_flags_create(&pwm_mode_event_flag, "UTIMER_PWM_MODE_EVENT_FLAG");
+    if (status != TX_SUCCESS) {
+        printf("failed to create utimer pwm mode event flag\r\n");
     }
 
     /* Allocate the stack for utimer basic mode thread */
@@ -1213,6 +1275,18 @@ void tx_application_define(void *first_unused_memory)
     status = tx_thread_create(&compare_mode_thread, "UTIMER COMPARE MODE THREAD", utimer_compare_mode_app, 0, pointer, UTIMER_COMPARE_MODE_THREAD_STACK_SIZE, 1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
     if (status != TX_SUCCESS) {
         printf("failed to create utimer compare mode thread\r\n");
+    }
+
+    /* Allocate the stack for utimer basic mode thread */
+    status = tx_byte_allocate(&memory_pool, (VOID **) &pointer, UTIMER_PWM_MODE_THREAD_STACK_SIZE, TX_NO_WAIT);
+    if (status != TX_SUCCESS) {
+        printf("failed to allocate memory for utimer PWM mode thread\r\n");
+    }
+
+    /* Create the utimer basic mode thread.  */
+    status = tx_thread_create(&pwm_mode_thread, "UTIMER PWM MODE THREAD", utimer_pwm_mode_app, 0, pointer, UTIMER_PWM_MODE_THREAD_STACK_SIZE, 1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
+    if (status != TX_SUCCESS) {
+        printf("failed to create utimer PWM mode thread\r\n");
     }
 }
 

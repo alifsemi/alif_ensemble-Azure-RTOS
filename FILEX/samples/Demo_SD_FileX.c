@@ -28,34 +28,11 @@
 
 /* include for Pin Mux config */
 #include "pinconf.h"
+#include "RTE_Components.h"
+#if defined(RTE_Compiler_IO_STDOUT)
+#include "retarget_stdout.h"
+#endif  /* RTE_Compiler_IO_STDOUT */
 
-/* For Release build disable printf and semihosting */
-//#define DISABLE_PRINTF
-
-#ifdef DISABLE_PRINTF
-#define printf(fmt, ...) (0)
-/* Also Disable Semihosting */
-#if __ARMCC_VERSION >= 6000000
-__asm(".global __use_no_semihosting");
-#elif __ARMCC_VERSION >= 5000000
-#pragma import(__use_no_semihosting)
-#else
-#error Unsupported compiler
-#endif
-
-void _sys_exit(int return_code) {
-    while (1);
-}
-
-int _sys_open(void *p){
-
-    return 0;
-}
-
-void _ttywrch(int ch){
-
-}
-#endif
 
 #define TEST_FILE "TestFile34.txt"
 /* Define Test Requirement <Test File Name> */
@@ -314,7 +291,18 @@ void tx_application_define(void *first_unused_memory){
     return;
 }
 
-int main(){
+int main()
+{
+    #if defined(RTE_Compiler_IO_STDOUT_User)
+    int32_t ret;
+    ret = stdout_init();
+    if(ret != ARM_DRIVER_OK)
+    {
+        while(1)
+        {
+        }
+    }
+    #endif
 
     tx_kernel_enter();
 

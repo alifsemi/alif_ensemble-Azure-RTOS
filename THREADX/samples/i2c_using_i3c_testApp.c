@@ -38,6 +38,11 @@
 /* Project Includes */
 /* I3C Driver */
 #include "Driver_I3C.h"
+#include "RTE_Components.h"
+#if defined(RTE_Compiler_IO_STDOUT)
+#include "retarget_stdout.h"
+#endif  /* RTE_Compiler_IO_STDOUT */
+
 
 /* PINMUX Driver */
 #include "pinconf.h"
@@ -45,63 +50,6 @@
 /* i3c Driver */
 extern ARM_DRIVER_I3C Driver_I3C;
 static ARM_DRIVER_I3C *I3Cdrv = &Driver_I3C;
-
-/* For Release build disable printf and semihosting */
-#define DISABLE_SEMIHOSTING
-
-#ifdef DISABLE_SEMIHOSTING
-/* Also Disable Semihosting */
-#if __ARMCC_VERSION >= 6000000
-        __asm(".global __use_no_semihosting");
-#elif __ARMCC_VERSION >= 5000000
-        #pragma import(__use_no_semihosting)
-#else
-        #error Unsupported compiler
-#endif
-
-void _sys_exit(int return_code) {
-        while (1);
-}
-
-int _sys_open(void *p){
-
-   return 0;
-}
-
-int _sys_close(void *p){
-
-   return 0;
-}
-
-int _sys_read(void *p){
-
-   return 0;
-}
-
-int _sys_write(void *p){
-
-   return 0;
-}
-
-int _sys_istty(void *p){
-
-   return 0;
-}
-
-int _sys_seek(void *p){
-
-   return 0;
-}
-
-int _sys_flen(void *p){
-
-    return 0;
-}
-
-void _ttywrch(int ch){
-
-}
-#endif /* DISABLE_SEMIHOSTING */
 
 void i2c_using_i3c_demo_thread_entry(ULONG thread_input);
 
@@ -118,12 +66,7 @@ TX_EVENT_FLAGS_GROUP    event_flags_i3c;
 /* i3c callback events */
 typedef enum _I3C_CB_EVENT{
     I3C_CB_EVENT_SUCCESS        = (1 << 0),
-    I3C_CB_EVENT_ERROR          = (1 << 1),
-    I3C_CB_EVENT_MST_TX_DONE    = (1 << 2),
-    I3C_CB_EVENT_MST_RX_DONE    = (1 << 3),
-    I3C_CB_EVENT_SLV_TX_DONE    = (1 << 4),
-    I3C_CB_EVENT_SLV_RX_DONE    = (1 << 5),
-    I3C_CB_EVENT_DYN_ADDR_ASSGN = (1 << 6)
+    I3C_CB_EVENT_ERROR          = (1 << 1)
 }I3C_CB_EVENT;
 
 /**
@@ -167,36 +110,6 @@ void I3C_callback(UINT event)
     {
         /* Transfer Error: Wake-up Thread. */
         tx_event_flags_set(&event_flags_i3c, I3C_CB_EVENT_ERROR, TX_OR);
-    }
-
-    if (event & ARM_I3C_EVENT_MST_TX_DONE)
-    {
-        /* Transfer Success: Wake-up Thread. */
-        tx_event_flags_set(&event_flags_i3c, I3C_CB_EVENT_MST_TX_DONE, TX_OR);
-    }
-
-    if (event & ARM_I3C_EVENT_MST_RX_DONE)
-    {
-        /* Transfer Success: Wake-up Thread. */
-        tx_event_flags_set(&event_flags_i3c, I3C_CB_EVENT_MST_RX_DONE, TX_OR);
-    }
-
-    if (event & ARM_I3C_EVENT_SLV_TX_DONE)
-    {
-        /* Transfer Success: Wake-up Thread. */
-        tx_event_flags_set(&event_flags_i3c, I3C_CB_EVENT_SLV_TX_DONE, TX_OR);
-    }
-
-    if (event & ARM_I3C_EVENT_SLV_RX_DONE)
-    {
-        /* Transfer Success: Wake-up Thread. */
-        tx_event_flags_set(&event_flags_i3c, I3C_CB_EVENT_SLV_RX_DONE, TX_OR);
-    }
-
-    if (event & ARM_I3C_EVENT_SLV_DYN_ADDR_ASSGN)
-    {
-        /* Transfer Success: Wake-up Thread. */
-        tx_event_flags_set(&event_flags_i3c, I3C_CB_EVENT_DYN_ADDR_ASSGN, TX_OR);
     }
 }
 
@@ -385,7 +298,7 @@ void i2c_using_i3c_demo_thread_entry(ULONG thread_input)
              */
             wait_timer_tickes = 100;
             ret = tx_event_flags_get(&event_flags_i3c, \
-                               I3C_CB_EVENT_MST_TX_DONE | I3C_CB_EVENT_ERROR, \
+                               I3C_CB_EVENT_SUCCESS | I3C_CB_EVENT_ERROR, \
                                TX_OR_CLEAR,                               \
                                &actual_events,                            \
                                wait_timer_tickes);
@@ -395,7 +308,7 @@ void i2c_using_i3c_demo_thread_entry(ULONG thread_input)
                 goto error_detach;
             }
 
-            if(actual_events & I3C_CB_EVENT_MST_TX_DONE)
+            if(actual_events & I3C_CB_EVENT_SUCCESS)
             {
                 /* TX Success: Got ACK from slave */
                 printf("\r\n \t\t >> i=%d TX Success: Got ACK from slave addr:0x%X.\r\n",  \
@@ -434,7 +347,7 @@ void i2c_using_i3c_demo_thread_entry(ULONG thread_input)
              */
             wait_timer_tickes = 100;
             ret = tx_event_flags_get(&event_flags_i3c, \
-                               I3C_CB_EVENT_MST_RX_DONE | I3C_CB_EVENT_ERROR, \
+                               I3C_CB_EVENT_SUCCESS | I3C_CB_EVENT_ERROR, \
                                TX_OR_CLEAR,                               \
                                &actual_events,                            \
                                wait_timer_tickes);
@@ -445,7 +358,7 @@ void i2c_using_i3c_demo_thread_entry(ULONG thread_input)
             }
 
             /* Display received data depending on whether slave has given ACK or NACK.*/
-            if(actual_events & I3C_CB_EVENT_MST_RX_DONE)
+            if(actual_events & I3C_CB_EVENT_SUCCESS)
             {
                 /* RX Success: Got ACK from slave */
                 printf("\r\n \t\t >> i=%d RX Success: Got ACK from slave addr:0x%X.\r\n",  \
@@ -506,6 +419,17 @@ error_uninitialize:
 /* Define main entry point.  */
 int main()
 {
+    #if defined(RTE_Compiler_IO_STDOUT_User)
+    int32_t ret;
+    ret = stdout_init();
+    if(ret != ARM_DRIVER_OK)
+    {
+        while(1)
+        {
+        }
+    }
+    #endif
+
     /* Enter the ThreadX kernel.  */
     tx_kernel_enter();
 }

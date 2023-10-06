@@ -39,25 +39,11 @@
 
 /* PINMUX Driver */
 #include "pinconf.h"
+#include "RTE_Components.h"
+#if defined(RTE_Compiler_IO_STDOUT)
+#include "retarget_stdout.h"
+#endif  /* RTE_Compiler_IO_STDOUT */
 
-/* For Release build disable printf and semihosting */
-#define DISABLE_PRINTF
-
-#ifdef DISABLE_PRINTF
-    #define printf(fmt, ...) (0)
-    /* Also Disable Semihosting */
-    #if __ARMCC_VERSION >= 6000000
-            __asm(".global __use_no_semihosting");
-    #elif __ARMCC_VERSION >= 5000000
-            #pragma import(__use_no_semihosting)
-    #else
-            #error Unsupported compiler
-    #endif
-
-    void _sys_exit(int return_code) {
-            while (1);
-    }
-#endif
 
 /* i3c Driver instance 0 */
 extern ARM_DRIVER_I3C Driver_I3C;
@@ -85,12 +71,7 @@ TX_EVENT_FLAGS_GROUP    event_flags_i3c;
 /* i3c callback events */
 typedef enum {
     I3C_CB_EVENT_SUCCESS        = (1 << 0),
-    I3C_CB_EVENT_ERROR          = (1 << 1),
-    I3C_CB_EVENT_MST_TX_DONE    = (1 << 2),
-    I3C_CB_EVENT_MST_RX_DONE    = (1 << 3),
-    I3C_CB_EVENT_SLV_TX_DONE    = (1 << 4),
-    I3C_CB_EVENT_SLV_RX_DONE    = (1 << 5),
-    I3C_CB_EVENT_DYN_ADDR_ASSGN = (1 << 6)
+    I3C_CB_EVENT_ERROR          = (1 << 1)
 }I3C_CB_EVENTS;
 
 /**
@@ -134,31 +115,6 @@ void I3C_callback(UINT event)
     {
         /* Transfer Error: Wake-up Thread. */
         tx_event_flags_set(&event_flags_i3c, I3C_CB_EVENT_ERROR, TX_OR);
-    }
-    if (event & ARM_I3C_EVENT_MST_TX_DONE)
-    {
-        /* Master Transfer Success: Wake-up Thread. */
-        tx_event_flags_set(&event_flags_i3c, I3C_CB_EVENT_MST_TX_DONE, TX_OR);
-    }
-    if (event & ARM_I3C_EVENT_MST_RX_DONE)
-    {
-        /* Master Receive Success: Wake-up Thread. */
-        tx_event_flags_set(&event_flags_i3c, I3C_CB_EVENT_MST_RX_DONE, TX_OR);
-    }
-    if (event & ARM_I3C_EVENT_SLV_TX_DONE)
-    {
-        /* Slave Transfer Success: Wake-up Thread. */
-        tx_event_flags_set(&event_flags_i3c, I3C_CB_EVENT_SLV_TX_DONE, TX_OR);
-    }
-    if (event & ARM_I3C_EVENT_SLV_RX_DONE)
-    {
-        /* Slave Receive Success: Wake-up Thread. */
-        tx_event_flags_set(&event_flags_i3c, I3C_CB_EVENT_SLV_RX_DONE, TX_OR);
-    }
-    if (event & ARM_I3C_EVENT_SLV_DYN_ADDR_ASSGN)
-    {
-        /* Dynamic Address Assign Success: Wake-up Thread. */
-        tx_event_flags_set(&event_flags_i3c, I3C_CB_EVENT_DYN_ADDR_ASSGN, TX_OR);
     }
 }
 
@@ -230,7 +186,7 @@ void i3c_master_loopback_demo_thread_entry(ULONG thread_input)
     ret = I3Cdrv->Control(I3C_MASTER_SET_BUS_MODE,  \
                           I3C_BUS_MODE_PURE);
 
-    PMU_delay_loop_us(1000);
+    sys_busy_loop_us(1000);
 
     /* Attach all i3c slave using dynamic address */
 
@@ -247,7 +203,7 @@ void i3c_master_loopback_demo_thread_entry(ULONG thread_input)
                                  slave_addr[0],I3C_SLV_TAR);
 
     /* Delay */
-    PMU_delay_loop_us(1000);
+    sys_busy_loop_us(1000);
 
     /* set tx_data to 0 */
     tx_data[0] =  0x00;
@@ -257,7 +213,7 @@ void i3c_master_loopback_demo_thread_entry(ULONG thread_input)
         len = 1;
 
         /* Delay */
-        PMU_delay_loop_us(100);
+        sys_busy_loop_us(100);
 
         tx_data[0] += 1;
 
@@ -270,7 +226,7 @@ void i3c_master_loopback_demo_thread_entry(ULONG thread_input)
         }
 
         ret = tx_event_flags_get(&event_flags_i3c, \
-                           I3C_CB_EVENT_MST_TX_DONE |I3C_CB_EVENT_ERROR,\
+                           I3C_CB_EVENT_SUCCESS | I3C_CB_EVENT_ERROR, \
                            TX_OR_CLEAR,                               \
                            &actual_events,                            \
                            TX_WAIT_FOREVER);
@@ -281,7 +237,7 @@ void i3c_master_loopback_demo_thread_entry(ULONG thread_input)
         }
 
         /* Delay */ /* FIXME use tx_thread_sleep */
-        PMU_delay_loop_us(1000);
+        sys_busy_loop_us(1000);
 
         /* Reset rx_data buffer */
         rx_data[0] = 0x00;
@@ -295,7 +251,7 @@ void i3c_master_loopback_demo_thread_entry(ULONG thread_input)
         }
 
         ret = tx_event_flags_get(&event_flags_i3c, \
-                           I3C_CB_EVENT_MST_RX_DONE|I3C_CB_EVENT_ERROR, \
+                           I3C_CB_EVENT_SUCCESS | I3C_CB_EVENT_ERROR, \
                            TX_OR_CLEAR,                               \
                            &actual_events,                            \
                            TX_WAIT_FOREVER);
@@ -338,6 +294,17 @@ error_uninitialize:
 /* Define main entry point.  */
 int main()
 {
+    #if defined(RTE_Compiler_IO_STDOUT_User)
+    int32_t ret;
+    ret = stdout_init();
+    if(ret != ARM_DRIVER_OK)
+    {
+        while(1)
+        {
+        }
+    }
+    #endif
+
     /* Enter the ThreadX kernel.  */
     tx_kernel_enter();
 }

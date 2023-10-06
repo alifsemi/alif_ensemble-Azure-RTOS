@@ -27,9 +27,10 @@
 /* Project Includes */
 /* Camera Controller Driver */
 #include "Driver_CPI.h"
-
-/* Camera Resolution. */
-#include "Camera_Common.h"
+#include "RTE_Components.h"
+#if defined(RTE_Compiler_IO_STDOUT)
+#include "retarget_stdout.h"
+#endif  /* RTE_Compiler_IO_STDOUT */
 
 /* PINMUX Driver */
 #include "pinconf.h"
@@ -84,10 +85,6 @@ TX_EVENT_FLAGS_GROUP                camera_event_flags;
 #define MT9M114_ADDITIONAL_WIDTH                          0
 #define MT9M114_ADDITIONAL_HEIGHT                         0
 #endif
-
-/* MT9M114 Camera Sensor Resolution. */
-#define MT9M114_CAMERA_RESOLUTION_VGA_640x480             0
-#define MT9M114_CAMERA_RESOLUTION                         MT9M114_CAMERA_RESOLUTION_VGA_640x480
 
 #if (MT9M114_CAMERA_RESOLUTION == MT9M114_CAMERA_RESOLUTION_VGA_640x480)
 #define FRAME_WIDTH                                       (640 + MT9M114_ADDITIONAL_WIDTH)
@@ -588,7 +585,7 @@ int camera_image_conversion(IMAGE_CONVERSION image_conversion,
                This demo thread does:
                  - initialize i2c and Camera hardware pins
                     using PinMux Driver;
-                 - initialize Camera driver with Camera Resolution
+                 - initialize Camera driver
                  - capture one frame
                    - captured data will be stored in to allocated
                      frame buffer address
@@ -615,7 +612,6 @@ void camera_demo_thread_entry(ULONG thread_input)
     ULONG actual_events     = 0;
     ULONG wait_timer_tickes = 0;
 
-    ARM_CAMERA_RESOLUTION camera_resolution = 0;
     ARM_DRIVER_VERSION version;
 
     printf("\r\n \t\t >>> MT9M114 Camera Sensor demo with Azure RTOS ThreadX is starting up!!! <<< \r\n");
@@ -643,13 +639,7 @@ void camera_demo_thread_entry(ULONG thread_input)
     version = CAMERAdrv->GetVersion();
     printf("\r\n Camera driver version api:0x%X driver:0x%X \r\n",version.api, version.drv);
 
-    /* Initialize CAMERA driver with Camera Resolution */
-    if (MT9M114_CAMERA_RESOLUTION == MT9M114_CAMERA_RESOLUTION_VGA_640x480)
-    {
-        camera_resolution = CAMERA_RESOLUTION_VGA_640x480;
-    }
-
-    ret = CAMERAdrv->Initialize(camera_resolution, camera_callback);
+    ret = CAMERAdrv->Initialize(camera_callback);
     if(ret != ARM_DRIVER_OK)
     {
         printf("\r\n Error: CAMERA Initialize failed.\r\n");
@@ -839,6 +829,17 @@ error_uninitialize:
 /* Define main entry point.  */
 int main()
 {
+    #if defined(RTE_Compiler_IO_STDOUT_User)
+    int32_t ret;
+    ret = stdout_init();
+    if(ret != ARM_DRIVER_OK)
+    {
+        while(1)
+        {
+        }
+    }
+    #endif
+
     /* Enter the ThreadX kernel.  */
     tx_kernel_enter();
 }

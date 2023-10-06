@@ -31,67 +31,9 @@
 #include "pinconf.h"
 #include "Driver_Flash.h"
 #include "Driver_GPIO.h"
-
-/* For Release build disable printf and semihosting */
-#define DISABLE_SEMIHOSTING
-
-#ifdef DISABLE_SEMIHOSTING
-/* Also Disable Semihosting */
-#if __ARMCC_VERSION >= 6000000
-        __asm(".global __use_no_semihosting");
-#elif __ARMCC_VERSION >= 5000000
-        #pragma import(__use_no_semihosting)
-#else
-        #error Unsupported compiler
-#endif
-
-void _sys_exit(int return_code) {
-        while (1);
-}
-
-
-int _sys_open(void *p){
-
-   return 0;
-}
-
-
-int _sys_close(void *p){
-
-   return 0;
-}
-
-
-int _sys_read(void *p){
-
-   return 0;
-}
-
-int _sys_write(void *p){
-
-   return 0;
-}
-
-int _sys_istty(void *p){
-
-   return 0;
-}
-
-int _sys_seek(void *p){
-
-   return 0;
-}
-
-int _sys_flen(void *p){
-
-    return 0;
-}
-
-void _ttywrch(int ch){
-
-}
-
-#endif /* DISABLE_SEMIHOSTING */
+#if defined(RTE_Compiler_IO_STDOUT)
+#include "retarget_stdout.h"
+#endif  /* RTE_Compiler_IO_STDOUT */
 
 
 /* ISSI Flash Driver instance */
@@ -229,9 +171,9 @@ static INT setup_pinmux(void)
  */
 void demo_thread_entry(ULONG thread_input)
 {
-	INT status;
-	UINT ret, index, iter = 0, count = 0;
-	ARM_DRIVER_VERSION version;
+    INT status;
+    UINT ret, index, iter = 0, count = 0;
+    ARM_DRIVER_VERSION version;
     ARM_FLASH_INFO *flash_info;
 
     (void) thread_input;
@@ -400,33 +342,44 @@ error_uninitialize :
 
 error_pinmux :
 
-	printf("\r\n ISSI Flash demo thread exiting...\r\n");
+    printf("\r\n ISSI Flash demo thread exiting...\r\n");
 }
 
 /* Define main entry point.  */
 int main()
 {
-	/* Enter the ThreadX kernel.  */
-	tx_kernel_enter();
+    #if defined(RTE_Compiler_IO_STDOUT_User)
+    int32_t ret;
+    ret = stdout_init();
+    if(ret != ARM_DRIVER_OK)
+    {
+        while(1)
+        {
+        }
+    }
+    #endif
+
+    /* Enter the ThreadX kernel.  */
+    tx_kernel_enter();
 }
 
 
 /* Define what the initial system looks like.  */
 void tx_application_define(void *first_unused_memory)
 {
-	UCHAR    *pointer = first_unused_memory;
-	INT      status  = 0;
+    UCHAR    *pointer = first_unused_memory;
+    INT      status  = 0;
 
-	/* Create the main thread.  */
-	status = tx_thread_create(&demo_thread, "demo_thread", demo_thread_entry, 0,
+    /* Create the main thread.  */
+    status = tx_thread_create(&demo_thread, "demo_thread", demo_thread_entry, 0,
             pointer, DEMO_STACK_SIZE,
             1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
 
-	if (status != TX_SUCCESS)
-	{
-		printf("Could not create Flash demo thread \n");
-		return;
-	}
+    if (status != TX_SUCCESS)
+    {
+        printf("Could not create Flash demo thread \n");
+        return;
+    }
 }
 
 /************************ (C) COPYRIGHT ALIF SEMICONDUCTOR *****END OF FILE****/

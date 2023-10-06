@@ -25,6 +25,11 @@
 #include "ux_device_stack.h"
 #include "ux_device_class_cdc_acm.h"
 #include "system_utils.h"
+#include "RTE_Components.h"
+#if defined(RTE_Compiler_IO_STDOUT)
+#include "retarget_stdout.h"
+#endif  /* RTE_Compiler_IO_STDOUT */
+
 
 /* Define constants.  */
 #define ONE_KB                            1024
@@ -199,6 +204,16 @@ UCHAR language_id_framework[] = {
 
 int  main(void)
 {
+    #if defined(RTE_Compiler_IO_STDOUT_User)
+    int32_t ret;
+    ret = stdout_init();
+    if(ret != ARM_DRIVER_OK)
+    {
+        while(1)
+        {
+        }
+    }
+    #endif
 
     /* Enter the ThreadX kernel.  */
     printf("Started USBx driver app\n");

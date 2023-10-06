@@ -13,6 +13,9 @@
   -->
 
   <releases>
+    <release version="0.3.2" date="2023-09-20">
+      - Update sample test apps
+    </release>
       <release version="0.3.1" date="2023-09-13">
       - Update B0 THREADX Sample 	
       - Update B0 FILEX Driver and sample
@@ -399,6 +402,7 @@
 	<file category="source"       name="THREADX/samples/demo_threadx.c"    attr="template" select="AzureRTOS THREADX Sample App"/>
     <!--  AzureRTOS templates -->
 	<file category="source"       name="THREADX/samples/LED_blink_app.c"          attr="template" select="AzureRTOS LED Blinky"/>
+	<file category="source"       name="THREADX/samples/LED_Breathe_testapp.c"    attr="template" select="AzureRTOS LED PWM"/>
 	<file category="source"       name="THREADX/samples/LPTIMER_app.c"            attr="template" select="AzureRTOS LPTIMER App"/>
 	<file category="source"       name="THREADX/samples/rtc_testApp.c"            attr="template" select="AzureRTOS Real Time Counter App"/>
 	<file category="source"       name="THREADX/samples/uart2_testApp.c"          attr="template" select="AzureRTOS UART2 App"/>
@@ -414,7 +418,7 @@
 	<file category="source"       name="THREADX/samples/bayer.c"			  attr="template" select="AzureRTOS Camera test App"/>
 	<file category="source"       name="THREADX/samples/bayer2rgb.c"		  attr="template" select="AzureRTOS Camera test App"/>
 	<file category="header"		  name="THREADX/samples/Include/bayer.h"          attr="template" select="AzureRTOS Camera test App"/>
-	<file category="source"       name="THREADX/samples/adc_testApp.c"		  attr="template" select="AzureRTOS ADC test App"/>
+	<file category="source"       name="THREADX/samples/adc_testapp.c"		  attr="template" select="AzureRTOS ADC test App"/>
 	<file category="source"       name="THREADX/samples/dac_testapp.c"		  attr="template" select="AzureRTOS DAC test App"/>
 	<file category="source"       name="THREADX/samples/ARX3A0_Camera_Sensor_testApp.c"        attr="template" select="AzureRTOS MIPI CSI2 Image capture App"/>
 	<file category="source"       name="THREADX/samples/bayer.c"			  attr="template" select="AzureRTOS MIPI CSI2 Image capture App"/>
@@ -422,7 +426,7 @@
 	<file category="header"		  name="THREADX/samples/Include/bayer.h"          attr="template" select="AzureRTOS MIPI CSI2 Image capture App"/>
 	<file category="source"       name="THREADX/samples/CRC_testapp.c"		  attr="template" select="AzureRTOS CRC testApp"/>
 	<file category="source"       name="THREADX/samples/mix_bus_i2c_i3c_testApp.c"    attr="template" select="AzureRTOS I3C/I2C Mix bus testApp"/>
-	<file category="source"       name="THREADX/samples/Comparator_testapp.c"	  attr="template" select="AzureRTOS Comparator testApp"/>
+	<file category="source"       name="THREADX/samples/CMP_testapp.c"	  attr="template" select="AzureRTOS Comparator testApp"/>
 	<file category="source"       name="THREADX/samples/MRAM_Threadx.c"    attr="template" select="AzureRTOS MRAM flash testApp"/>
 	<file category="source"       name="THREADX/samples/HWSEM_Threadx.c"    attr="template" select="AzureRTOS HWSEM testApp"/>
 	<file category="source"       name="THREADX/samples/MIPI_Interface_Video_testApp.c"    attr="template" select="AzureRTOS Viewfinder testApp"/>
@@ -444,7 +448,7 @@
 	</files>
     </component>
     
-     <component Cgroup="Kernel" Csub="ARM_Port" Cversion="6.2.1" condition="RTOS AzureRTOS" >
+     <component Cgroup="Kernel" Csub="ARMClang_Port" Cversion="6.2.1" condition="RTOS AzureRTOS" >
       <description>ARM release version 6.2.1</description>
        <files>
        <!-- Ports for ARM-->

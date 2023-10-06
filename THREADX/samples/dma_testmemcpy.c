@@ -25,10 +25,14 @@
 #include <string.h>
 #include <RTE_Components.h>
 #include CMSIS_device_header
+#if defined(RTE_Compiler_IO_STDOUT)
+#include "retarget_stdout.h"
+#endif  /* RTE_Compiler_IO_STDOUT */
 
-/* Enable Debug logs */
-#define DMA_DEBUG
-//#define DMA_DEBUG_GET_STATUS
+
+#ifdef RTE_Compiler_IO_STDOUT
+#include "retarget_stdout.h"
+#endif
 
 /* Enable the DMA controller to test */
 //#define TEST_DMA0
@@ -43,9 +47,6 @@
 #define DMA0 0                  /* DMA0 */
 #define DMA1 1                  /* DMA1 */
 #define DMA2 2                  /* DMA2 */
-
-/* To test a particular BS, BLEN and transfer len */
-bool test_point = true;
 
 #define DMA_BS       BS_BYTE_8
 #define DMA_BLEN     16
@@ -65,16 +66,16 @@ bool test_point = true;
  */
 #define ACTUAL_BUFF_SIZE (MAX_TRANSFER_LEN + 1024)
 
-uint8_t  src_buff[ACTUAL_BUFF_SIZE];
-uint8_t  dst_buff[ACTUAL_BUFF_SIZE];
+static uint8_t  src_buff[ACTUAL_BUFF_SIZE];
+static uint8_t  dst_buff[ACTUAL_BUFF_SIZE];
 
 #define DMA_MEMCPY_THREAD_STACK_SIZE      1024
 #define DMA_MEMCPY_THREAD_THRD_PRIO       0
 #define DMA_MEMCPY_THREAD_PREEMPT_THRSHLD DMA_MEMCPY_THREAD_THRD_PRIO
 
-TX_THREAD            dma_memcpy_thrd;
-char                 dma_memcpy_thread_stack[DMA_MEMCPY_THREAD_STACK_SIZE];
-TX_EVENT_FLAGS_GROUP dma_memcpy_event_flags;
+static TX_THREAD            dma_memcpy_thrd;
+static char                 dma_memcpy_thread_stack[DMA_MEMCPY_THREAD_STACK_SIZE];
+static TX_EVENT_FLAGS_GROUP dma_memcpy_event_flags;
 
 
 #define DMA_SEND_COMPLETE_EVENT (1 << 0)
@@ -82,36 +83,45 @@ TX_EVENT_FLAGS_GROUP dma_memcpy_event_flags;
 
 
 /**
-  \fn          void CreateBuffer(void *buf, uint32_t size)
-  \brief       Create src buffer to trasmit
+  \fn          void fillbuffer(void *buf, uint32_t size)
+  \brief       Fill src buffer
   \param[in]   buf Pointer to the buffer
   \param[in]   size Buffer Size
 */
-void CreateBuffer(void *buf, uint32_t size) {
+static void fillbuffer(void *buf, uint32_t size)
+{
     uint8_t *ptr = (uint8_t*)buf;
     uint32_t cnt;
 
-    for (cnt = 0; cnt < size; cnt++)
-        ptr[cnt] = cnt + 1;
+    for(cnt = 0; cnt < size; cnt++)
+        ptr[cnt] = (uint8_t)cnt + 1;
 }
 
 /**
-  \fn          void CompareBuffers (uint32_t len)
+  \fn          void comparebuffers(uint8_t *src, uint8_t *dst,
+                                   uint32_t transfer_len, uint32_t dst_buff_size)
   \brief       Compare the src and dst buffers
+  \param[in]   src Pointer to the src buffer
+  \param[in]   dst Pointer to the dst buffer
+  \param[in]   transfer_len Transfer length
+  \param[in]   dst_buff_size Total size of the dst_buff
+  \return      0 for Success otherwise Error
 */
-int32_t CompareBuffers (uint32_t len)
+static int32_t comparebuffers(uint8_t *src, uint8_t *dst,
+                              uint32_t transfer_len, uint32_t dst_buff_size)
 {
     int32_t  ret;
     uint32_t cnt;
 
-    ret = memcmp(src_buff, dst_buff, len);
+    ret = memcmp(src, dst, transfer_len);
 
-    if(ret == 0) {
-        for (cnt = len; cnt < ACTUAL_BUFF_SIZE; cnt++) {
-            if (dst_buff[cnt] != 0 ) {
-#ifdef DMA_DEBUG
-                printf(" DMA Memcpy COPIED MORE BYTES\n");
-#endif
+    if(ret == 0)
+    {
+        for (cnt = transfer_len; cnt < dst_buff_size; cnt++)
+        {
+            if (dst[cnt] != 0 )
+            {
+                printf(" DMA COPIED MORE BYTES\n");
                 return -1;
             }
         }
@@ -123,12 +133,12 @@ int32_t CompareBuffers (uint32_t len)
 }
 
 /**
-  \fn          void dma_cb (uint32_t event, int8_t peri_num)
+  \fn          void dma_cb(uint32_t event, int8_t peri_num)
   \brief       Callback routine from the dma driver
   \param[in]   event Event for which the callback has been called
   \param[in]   peri_num Peripheral number
 */
-void dma_cb (uint32_t event, int8_t peri_num)
+void dma_cb(uint32_t event, int8_t peri_num)
 {
     (void)peri_num;
 
@@ -145,191 +155,126 @@ void dma_cb (uint32_t event, int8_t peri_num)
 }
 
 /**
-  \fn          void dma_memcpy_thread_entry (ULONG arg)
+  \fn          void dma_memcpy_thread_entry(ULONG arg)
   \brief       DMA Thread to handle transmission
   \param[in]   argument Pointer to the argument
 */
-void dma_memcpy_thread_entry (ULONG arg)
+void dma_memcpy_thread_entry(ULONG arg)
 {
-      ARM_DRIVER_VERSION   version;
-      ARM_DRIVER_DMA       *dma_drv;
-      ARM_DMA_CAPABILITIES cap;
-      uint32_t             status;
-#ifdef DMA_DEBUG
-      uint32_t             count = 0;
-#endif
-      DMA_Handle_Type      handle;
-      ARM_DMA_PARAMS       params;
-      ARM_DMA_BS_Type      bs;
-      uint8_t              blen;
-      int32_t              ret;
-      uint32_t             len;
-      ULONG                actual_flags;
+    ARM_DRIVER_VERSION   version;
+    ARM_DRIVER_DMA       *dma_drv;
+    int32_t              status;
+    DMA_Handle_Type      handle;
+    ARM_DMA_PARAMS       params;
+    int32_t              ret;
+    ULONG                actual_flags;
+    ARM_DMA_BS_Type      bs   = DMA_BS;
+    uint8_t              blen = DMA_BLEN;
+    uint32_t             len  = DMA_XFER_LEN;
 
 
-      (void)arg;
-      extern ARM_DRIVER_DMA ARM_Driver_DMA_(DMA1);
-      extern ARM_DRIVER_DMA ARM_Driver_DMA_(DMA2);
-      extern ARM_DRIVER_DMA ARM_Driver_DMA_(DMA0);
+    extern ARM_DRIVER_DMA ARM_Driver_DMA_(DMA1);
+    extern ARM_DRIVER_DMA ARM_Driver_DMA_(DMA2);
+    extern ARM_DRIVER_DMA ARM_Driver_DMA_(DMA0);
+
+    (void)arg;
 
 #ifdef TEST_DMA0
-      dma_drv = &ARM_Driver_DMA_(DMA0);
+    dma_drv = &ARM_Driver_DMA_(DMA0);
 #elif defined(TEST_DMA1)
-      dma_drv = &ARM_Driver_DMA_(DMA1);
+    dma_drv = &ARM_Driver_DMA_(DMA1);
 #else //DMA2
-      dma_drv = &ARM_Driver_DMA_(DMA2);
+    dma_drv = &ARM_Driver_DMA_(DMA2);
 #endif
 
-      /* Verify the DMA API version for compatibility*/
-      version = dma_drv->GetVersion ();
-#ifdef DMA_DEBUG
-      printf ("DMA API version = %d\n", version.api);
-#else
-      (void)version;
-#endif
+    /* Verify the DMA API version for compatibility*/
+    version = dma_drv->GetVersion();
+    printf ("DMA API version = %d\n", version.api);
 
-      /* Verify if DMA protocol is supported */
-      cap = dma_drv->GetCapabilities ();
-      if (!cap.mem_to_mem)
-          return;
+    /* Initializes DMA interface */
+    status = dma_drv->Initialize();
+    if(status)
+    {
+        printf ("DMA Init FAILED = %d\n", status);
+        while(1);
+    }
 
-      /* Initializes DMA interface */
-      status = dma_drv->Initialize ();
-      if(status) {
-#ifdef DMA_DEBUG
-          printf ("DMA init status = %d\n", status);
-#endif
-          return;
-      }
+    /* Power control for DMA */
+    status = dma_drv->PowerControl(ARM_POWER_FULL);
+    if(status)
+    {
+        printf ("DMA Power FAILED = %d\n", status);
+        while(1);
+    }
 
-      /* Power control for DMA */
-      status = dma_drv->PowerControl(ARM_POWER_FULL);
-      if(status) {
-#ifdef DMA_DEBUG
-          printf ("DMA Enable Power failed = %d\n", status);
-#endif
-          return;
-      }
+    /* Allocate handle for DMA */
+    status = dma_drv->Allocate(&handle);
+    if(status)
+    {
+        printf ("DMA Channel Allocation FAILED = %d\n", status);
+        while(1);
+    }
 
-      /* Allocate handle for DMA */
-      status = dma_drv->Allocate(&handle);
-      if(status) {
-#ifdef DMA_DEBUG
-          printf ("DMA channel allocation failed = %d\n", status);
-#endif
-          return;
-      }
+    params.peri_reqno = -1;
+    params.dir        = ARM_DMA_MEM_TO_MEM;
+    params.cb_event   = dma_cb;
+    params.src_addr   = &src_buff;
+    params.dst_addr   = &dst_buff;
 
-      params.peri_reqno = -1;
-      params.dir = ARM_DMA_MEM_TO_MEM;
-      params.cb_event   = dma_cb;
-      params.src_addr = &src_buff;
-      params.dst_addr = &dst_buff;
+    params.burst_size = bs;
+    params.burst_len  = blen;
+    params.num_bytes  = len;
 
-#ifdef DMA_DEBUG
-      printf ("DMA MEMCPY START CNT = %ul\n", ARM_PMU_Get_CCNTR());
-#endif
-      for (len = 1; len < MAX_TRANSFER_LEN; len++) {
-          for (bs = BS_BYTE_1; bs < BS_BYTE_16; bs++) {
-              for (blen = 1; blen < 17; blen++) {
+    printf("DMA MEMCPY STARTED : Burst Size = %d, Burst len = %d, Transfer Len = %d\n", bs, blen, len);
 
-                  /*
-                   * Skip through the bs, blen and len values and run only for the
-                   * requested parameteres
-                   */
-                  if(test_point) {
-                      if ((bs != DMA_BS)  || (blen != DMA_BLEN) || (len != DMA_XFER_LEN))
-                          continue;
-                  }
+    /* Start transfer */
+    status = dma_drv->Start(&handle, &params);
+    if(status || (handle < 0))
+    {
+        printf("DMA Start FAILED = %d\n", status);
+        while(1);
+    }
 
-#ifdef  DMA_DEBUG
-                  printf(" DMA Memcpy STARTED for BS=%d, BLEN = %d\n", bs, blen);
-#endif
-                  params.burst_size = bs;
-                  params.burst_len  = blen;
-                  params.num_bytes  = len;
+    /* wait for the dma callback */
+    tx_event_flags_get(&dma_memcpy_event_flags,
+                       DMA_SEND_COMPLETE_EVENT | DMA_ABORT_EVENT,
+                       TX_OR_CLEAR,
+                       &actual_flags,
+                       TX_WAIT_FOREVER);
 
-                  /* Start transfer */
-                  status = dma_drv->Start(&handle, &params);
-                  if(status || (handle < 0)) {
-#ifdef DMA_DEBUG
-                      printf(" DMA Memcpy FAILED for BS=%d, BLEN = %d, status = %d\n", bs, blen, status);
-#endif
-                      continue;
-                  }
+    if(actual_flags & DMA_ABORT_EVENT)
+    {
+        printf("DMA ABORT OCCURRED \n");
+        while(1);
+    }
 
-#ifdef TEST_DMA_STOP
-                  /* Test Case for Stop functionality in the middle of a operation */
-                  status = dma_drv->Stop(&handle);
-                  if(status || (handle < 0)) {
-#ifdef DMA_DEBUG
-                      printf(" DMA STop FAILED for BS=%d, BLEN = %d, status = %d\n", bs, blen, status);
-#endif
-                      while(1);
-                  }
-#endif
-#ifdef DMA_DEBUG_GET_STATUS
-                  while(1) {
-                      status = dma_drv->GetStatus(&handle, &count);
-                      printf ("DMA count = %d\n", count);
+    /* Now the buffer is ready, compare it */
+    ret = comparebuffers(src_buff, dst_buff, len, ACTUAL_BUFF_SIZE);
+    if(ret)
+    {
+      printf("DMA MEMCPY *FAILED* \n");
+    }
+    else
+    {
+      printf("DMA MEMCPY SUCCESS\n");
+    }
 
-                      if (status || (count == len))
-                          break;
-                  }
-#endif
+    status = dma_drv->DeAllocate(&handle);
+    if(status)
+    {
+        printf("DMA DeAllocate Failed = %d\n", status);
+        while(1);
+    }
 
-                  /* wait for the dma callback */
-                  tx_event_flags_get(&dma_memcpy_event_flags,
-                                     DMA_SEND_COMPLETE_EVENT|DMA_ABORT_EVENT,
-                                     TX_OR_CLEAR,
-                                     &actual_flags,
-                                     TX_WAIT_FOREVER);
+    /* Power control for DMA */
+    status = dma_drv->PowerControl(ARM_POWER_OFF);
+    if(status)
+    {
+        printf ("DMA PowerOff failed = %d\n", status);
+        while(1);
+    }
 
-                  /* Now the buffer is ready, compare it */
-                  ret = CompareBuffers (len);
-                  if(ret) {
-#ifdef DMA_DEBUG
-                      printf(" DMA Memcpy *FAILED* for BS=%d, BLEN = %d xfer_len=%d\n", bs, blen, len);
-#endif
-                      while(1);
-                  }
-                  else {
-#ifdef DMA_DEBUG
-                          printf(" DMA Memcpy SUCCESS for BS=%d, BLEN = %d xfer_len=%d\n", bs, blen, len);
-#endif
-                  }
-
-                  if(!test_point)
-                      memset (dst_buff, 0 , ACTUAL_BUFF_SIZE);
-
-              }
-          }
-      }
-
-#ifdef DMA_DEBUG
-      printf ("DMA MEMCPY STOP CNT = %d\n", ARM_PMU_Get_CCNTR());
-#endif
-
-      status = dma_drv->DeAllocate(&handle);
-      if(status) {
-#ifdef DMA_DEBUG
-          printf ("DMA DeAllocate = %d\n", status);
-#endif
-          while(1);
-      }
-
-      /* Power control for DMA */
-      status = dma_drv->PowerControl(ARM_POWER_OFF);
-      if(status) {
-#ifdef DMA_DEBUG
-          printf ("DMA PowerOff failed = %d\n", status);
-#endif
-          while(1);
-      }
-
-#ifdef DMA_DEBUG
-      printf(" DMA TEST COMPLETED \n");
-#endif
+    printf("DMA TEST COMPLETED \n");
 }
 
 /**
@@ -345,10 +290,10 @@ void tx_application_define(void *first_unused_memory)
 
     memset (dst_buff, 0 , ACTUAL_BUFF_SIZE);
 
-    RTSS_CleanDCache_by_Addr (dst_buff, ACTUAL_BUFF_SIZE);
+    RTSS_CleanDCache_by_Addr(dst_buff, ACTUAL_BUFF_SIZE);
 
     /* Create random data for the DMA Source data*/
-    CreateBuffer((void*)src_buff, ACTUAL_BUFF_SIZE);
+    fillbuffer((void*)src_buff, ACTUAL_BUFF_SIZE);
 
     status = tx_thread_create(&dma_memcpy_thrd,
                               "DMA MEMCPY Thread",
@@ -362,18 +307,14 @@ void tx_application_define(void *first_unused_memory)
                               TX_AUTO_START);
     if(status)
     {
-#ifdef DMA_DEBUG
         printf("\r\nCouldn't create TX Thread\n. Exiting..\n");
-#endif
         while(1);
     }
 
     status = tx_event_flags_create(&dma_memcpy_event_flags, "DMA MEMCPY EVENT FLAGS");
     if(status)
     {
-#ifdef DMA_DEBUG
         printf("\r\nCouldn't create Events Flags\n. Exiting..\n");
-#endif
         while(1);
     }
 }
@@ -385,6 +326,17 @@ void tx_application_define(void *first_unused_memory)
 */
 int main (void)
 {
+    #if defined(RTE_Compiler_IO_STDOUT_User)
+    int32_t ret;
+    ret = stdout_init();
+    if(ret != ARM_DRIVER_OK)
+    {
+        while(1)
+        {
+        }
+    }
+    #endif
+
     /* Enter the ThreadX kernel.  */
     tx_kernel_enter();
 }

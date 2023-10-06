@@ -26,69 +26,15 @@
 
 /* Cpi Driver */
 #include "Driver_CPI.h"
-
-/* Camera Resolution. */
-#include "Camera_Common.h"
+#if defined(RTE_Compiler_IO_STDOUT)
+#include "retarget_stdout.h"
+#endif  /* RTE_Compiler_IO_STDOUT */
 
 /* PINMUX Driver */
 #include "pinconf.h"
 
-/* For Release build disable printf and semihosting */
-#define DISABLE_PRINTF
-#ifdef DISABLE_PRINTF
-    #define printf(fmt, ...) (0)
-    /* Also Disable Semihosting */
-    #if __ARMCC_VERSION >= 6000000
-            __asm(".global __use_no_semihosting");
-    #elif __ARMCC_VERSION >= 5000000
-            #pragma import(__use_no_semihosting)
-    #else
-            #error Unsupported compiler
-    #endif
-
-    void _sys_exit(int return_code) {
-            while (1);
-    }
-
-    int _sys_open(void *p){
-
-       return 0;
-    }
-
-    int _sys_close(void *p){
-
-       return 0;
-    }
-
-    int _sys_read(void *p){
-
-       return 0;
-    }
-
-    int _sys_write(void *p){
-
-       return 0;
-    }
-
-    int _sys_istty(void *p){
-
-       return 0;
-    }
-
-    int _sys_seek(void *p){
-
-       return 0;
-    }
-
-    int _sys_flen(void *p){
-
-        return 0;
-    }
-
-    void _ttywrch(int ch){
-
-    }
-#endif
+/* SE Services */
+#include "se_services_port.h"
 
 /* Camera  Driver instance 0 */
 extern ARM_DRIVER_CPI Driver_CPI;
@@ -431,8 +377,9 @@ void camera_demo_thread_entry(ULONG thread_input)
     INT   ret = 0;
     ULONG actual_events = 0;
     ULONG wait_timer_ticks = 0;
+    UINT  service_error_code;
+    UINT  error_code;
 
-    ARM_CAMERA_RESOLUTION camera_resolution = 0;
     ARM_DRIVER_VERSION version;
 
     printf("\r\n \t\t >>> ARX3A0 Camera Sensor demo with Azure RTOS ThreadX is starting up!!! <<< \r\n");
@@ -458,20 +405,33 @@ void camera_demo_thread_entry(ULONG thread_input)
         return;
     }
 
+
+    /* Initialize the SE services */
+    se_services_port_init();
+
+    /* Enable MIPI Clocks */
+    error_code = SERVICES_clocks_enable_clock(se_services_s_handle, CLKEN_CLK_100M, true, &service_error_code);
+    if(error_code != SERVICES_REQ_SUCCESS)
+    {
+        printf("SE: MIPI 100MHz clock enable = %d\n", error_code);
+        return;
+    }
+
+    error_code = SERVICES_clocks_enable_clock(se_services_s_handle, CLKEN_HFOSC, true, &service_error_code);
+    if(error_code != SERVICES_REQ_SUCCESS)
+    {
+        printf("SE: MIPI 38.4Mhz(HFOSC) clock enable = %d\n", error_code);
+        goto error_disable_100mhz_clk;
+    }
+
     version = CAMERAdrv->GetVersion();
     printf("\r\n Camera driver version api:0x%X driver:0x%X \r\n",version.api, version.drv);
 
-    /* Initialize CAMERA driver with Camera Resolution */
-    if (ARX3A0_CAMERA_RESOLUTION == ARX3A0_CAMERA_RESOLUTION_560x560)
-    {
-        camera_resolution = CAMERA_RESOLUTION_560x560;
-    }
-
-    ret = CAMERAdrv->Initialize(camera_resolution, camera_callback);
+    ret = CAMERAdrv->Initialize(camera_callback);
     if(ret != ARM_DRIVER_OK)
     {
         printf("\r\n Error: CAMERA Initialize failed.\r\n");
-        return;
+        goto error_disable_hfosc_clk;
     }
 
     /* Power up Camera peripheral */
@@ -491,7 +451,7 @@ void camera_demo_thread_entry(ULONG thread_input)
     }
 
     /* Control configuration for camera sensor */
-    ret = CAMERAdrv->Control(CPI_CAMERA_SENSOR_CONFIGURE, CAMERA_RESOLUTION_560x560);
+    ret = CAMERAdrv->Control(CPI_CAMERA_SENSOR_CONFIGURE, 0);
     if(ret != ARM_DRIVER_OK)
     {
         printf("\r\n Error: CAMERA SENSOR Configuration failed.\r\n");
@@ -638,6 +598,16 @@ error_uninitialize_camera:
     if(ret != ARM_DRIVER_OK)
         printf("\r\n Error: CAMERA Uninitialize failed.\r\n");
 
+error_disable_hfosc_clk:
+    error_code = SERVICES_clocks_enable_clock(se_services_s_handle, CLKEN_HFOSC, false, &service_error_code);
+    if(error_code != SERVICES_REQ_SUCCESS)
+        printf("SE: MIPI 38.4Mhz(HFOSC)  clock disable = %d\n", error_code);
+
+error_disable_100mhz_clk:
+    error_code = SERVICES_clocks_enable_clock(se_services_s_handle, CLKEN_CLK_100M, false, &service_error_code);
+    if(error_code != SERVICES_REQ_SUCCESS)
+        printf("SE: MIPI 100MHz clock disable = %d\n", error_code);
+
     printf("\r\n XXX Camera demo thread is exiting XXX...\r\n");
 
     /* wait forever */
@@ -647,8 +617,19 @@ error_uninitialize_camera:
 /* Define main entry point.  */
 int main()
 {
+    #if defined(RTE_Compiler_IO_STDOUT_User)
+    int32_t ret;
+    ret = stdout_init();
+    if(ret != ARM_DRIVER_OK)
+    {
+        while(1)
+        {
+        }
+    }
+    #endif
+
     /* Enter the ThreadX kernel.  */
-	tx_kernel_enter();
+    tx_kernel_enter();
 }
 
 /* Define what the initial system looks like.  */

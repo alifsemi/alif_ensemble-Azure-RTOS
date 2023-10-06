@@ -46,24 +46,13 @@
 /* include for PDM Driver */
 #include "Driver_PDM.h"
 #include "pinconf.h"
+#include "RTE_Components.h"
+#if defined(RTE_Compiler_IO_STDOUT)
+#include "retarget_stdout.h"
+#endif  /* RTE_Compiler_IO_STDOUT */
 
-/* For Release build disable printf and semihosting */
-#define DISABLE_PRINTF
-
-#ifdef DISABLE_PRINTF
-    #define printf(fmt, ...) (0)
-    /* Also Disable Semihosting */
-    #if __ARMCC_VERSION >= 6000000
-            __asm(".global __use_no_semihosting");
-    #elif __ARMCC_VERSION >= 5000000
-            #pragma import(__use_no_semihosting)
-    #else
-            #error Unsupported compiler
-    #endif
-
-    void _sys_exit(int return_code) {
-            while (1);
-    }
+#if !defined(M55_HE)
+#error "This Demo application works only on RTSS_HE"
 #endif
 
 #define ENABLE              1
@@ -314,6 +303,17 @@ error_uninitialize:
 /* Define main entry point.  */
 int main()
 {
+    #if defined(RTE_Compiler_IO_STDOUT_User)
+    int32_t ret;
+    ret = stdout_init();
+    if(ret != ARM_DRIVER_OK)
+    {
+        while(1)
+        {
+        }
+    }
+    #endif
+
     /* Enter the ThreadX kernel.  */
     tx_kernel_enter();
 }

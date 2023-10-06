@@ -28,57 +28,14 @@
 
 /* PINMUX Driver */
 #include "pinconf.h"
+#include "RTE_Components.h"
+#if defined(RTE_Compiler_IO_STDOUT)
+#include "retarget_stdout.h"
+#endif  /* RTE_Compiler_IO_STDOUT */
+
 
 /*touch screen driver */
 #include "Driver_Touch_Screen.h"
-
-/* Enable/Disable Redirect printf to UART.
-* Providing option to user to select where to display GT911 touch screen coordinates.
-*/
-
-#define PRINTF_REDIRECT	0
-
-#if PRINTF_REDIRECT
-
-/* USART Driver */
-#include "Driver_USART.h"
-#include "uart.h"
-#include <RTE_Components.h>
-#include CMSIS_device_header
-
-/* UART Driver instance (UART0-UART7) */
-#define UART      4
-
-/* UART Driver */
-extern ARM_DRIVER_USART ARM_Driver_USART_(UART);
-
-/* UART Driver instance */
-static ARM_DRIVER_USART *USARTdrv = &ARM_Driver_USART_(UART);
-
-/* Disable Semihosting */
-#if __ARMCC_VERSION >= 6000000
-__asm(".global __use_no_semihosting");
-#elif __ARMCC_VERSION >= 5000000
-#pragma import(__use_no_semihosting)
-#else
-#error Unsupported compiler
-#endif
-
-void _sys_exit(int return_code)
-{
-    while (1);
-}
-
-/* Used by fputc() */
-void uartWrite(char c);
-
-/* Used by fgetc() */
-char uartRead(void);
-
-FILE __stdout;
-FILE __stdin;
-
-#endif
 
 /* Touch screen driver instance */
 extern ARM_DRIVER_TOUCH_SCREEN GT911;
@@ -92,10 +49,6 @@ void touchscreen_demo_thread_entry(ULONG thread_input);
 #define GT911_TOUCH_I2C_SDA_PIN_NO       PIN_2
 #define GT911_TOUCH_I2C_SCL_PORT         PORT_7
 #define GT911_TOUCH_I2C_SCL_PIN_NO       PIN_3
-#define PRINTF_REDIRECT_UART_RX_PORT     PORT_12
-#define PRINTF_REDIRECT_UART_RX_PIN_NO   PIN_1
-#define PRINTF_REDIRECT_UART_TX_PORT     PORT_12
-#define PRINTF_REDIRECT_UART_TX_PIN_NO   PIN_2
 #define ACTIVE_TOUCH_POINTS              5
 
 /* Define the ThreadX object control blocks...  */
@@ -106,77 +59,6 @@ TX_THREAD                                touchscreen_thread;
 TX_BYTE_POOL                             byte_pool_0;
 UCHAR                                    memory_area[DEMO_BYTE_POOL_SIZE];
 
-#if PRINTF_REDIRECT
-
-/* Redefine standard fputc function to redirect printf to UART instead of standard output */
-int fputc(int c, FILE * stream)
-{
-    uartWrite(c);
-    /* return the character written to denote a successful write */
-    return c;
-}
-
-/* Redefine standard fgetc function to get input from UART instead of standard input */
-int fgetc(FILE * stream)
-{
-    char c = uartRead();
-    /* To echo Received characters back to serial Terminal */
-    uartWrite(c);
-    return c;
-}
-
-/* Used by fputc() */
-void uartWrite(char c)
-{
-    UART_Type *uart_reg_ptr = (UART_Type *)UART4_BASE;
-
-    /* wait until uart is to ready to send */
-    while ( (uart_reg_ptr->UART_USR & UART_USR_TRANSMIT_FIFO_NOT_FULL) == 0 );
-
-    /* write a char to thr transmit holding register */
-    uart_reg_ptr->UART_THR = c;
-}
-
-/* Used by fgetc() */
-char uartRead(void)
-{
-    /* Device specific code to Receive a byte from RX pin.
-     * return received chararacter(byte)
-     */
-    UART_Type *uart_reg_ptr = (UART_Type *)UART4_BASE;
-
-    /* wait until uart is ready to receive */
-    while ( (uart_reg_ptr->UART_USR & UART_USR_RECEIVE_FIFO_NOT_EMPTY) == 0 );
-
-    /* read a char from receive buffer register */
-    return (int32_t)uart_reg_ptr->UART_RBR;
-}
-
-/**
-  \fn          void UART_callback(UINT event)
-  \brief       UART callback
-  \param[in]   event: UART Event
-  \return      none
-  */
-void UART_callback(UINT event)
-{
-    if (event & ARM_USART_EVENT_SEND_COMPLETE)
-    {
-        /* We are using polling method so interrupt events not used*/
-    }
-
-    if (event & ARM_USART_EVENT_RECEIVE_COMPLETE)
-    {
-        /* We are using polling method so interrupt events not used*/
-    }
-
-    if (event & ARM_USART_EVENT_RX_TIMEOUT)
-    {
-        /* We are using polling method so interrupt events not used*/
-    }
-}
-
-#endif
 
 /**
   \fn          int hardware_cfg(void)
@@ -233,28 +115,6 @@ int hardware_cfg(void)
         return ret;
     }
 
-#if PRINTF_REDIRECT
-    /* Configure GPIO Pin : P12_1 as UART4 RX_B
-     * Pad function: PADCTRL_READ_ENABLE
-     */
-    ret = pinconf_set (PRINTF_REDIRECT_UART_RX_PORT, PRINTF_REDIRECT_UART_RX_PIN_NO, PINMUX_ALTERNATE_FUNCTION_2,
-                      PADCTRL_READ_ENABLE);
-    if(ret != ARM_DRIVER_OK)
-    {
-        printf("\r\n Error: UART PINMUX as receiver failed.\r\n");
-        return ret;
-    }
-
-    /* Configure GPIO Pin : P12_2 as UART4 TX_B */
-    ret = pinconf_set (PRINTF_REDIRECT_UART_TX_PORT, PRINTF_REDIRECT_UART_TX_PIN_NO, PINMUX_ALTERNATE_FUNCTION_2, 0);
-    if(ret != ARM_DRIVER_OK)
-    {
-        printf("\r\n Error: UART PINMUX as transmitter failed.\r\n");
-        return ret;
-    }
-
-#endif
-
     return ARM_DRIVER_OK;
 }
 
@@ -287,58 +147,6 @@ void touchscreen_demo_thread_entry(ULONG thread_input)
         /* Error in hardware configuration */
         printf("\r\n Error: Hardware configuration failed.\r\n");
     }
-
-#if PRINTF_REDIRECT
-
-    /* Initialize UART driver */
-    ret = USARTdrv->Initialize(UART_callback);
-    if(ret != ARM_DRIVER_OK)
-    {
-        /* Error in UART Initialize. */
-        printf("\r\n ERROR: Initialize UART failed.\r\n");
-        return;
-    }
-
-    /* Power up UART peripheral */
-    ret = USARTdrv->PowerControl(ARM_POWER_FULL);
-    if(ret != ARM_DRIVER_OK)
-    {
-        /* Error in UART Power Up. */
-        printf("ERROR: UART power ON failed.\r\n");
-        goto error_uninitialize_UART;
-    }
-
-    /* Configure UART to 115200 Bits/sec */
-    ret = USARTdrv->Control(ARM_USART_MODE_ASYNCHRONOUS |
-                              ARM_USART_DATA_BITS_8       |
-                              ARM_USART_PARITY_NONE       |
-                              ARM_USART_STOP_BITS_1       |
-                              ARM_USART_FLOW_CONTROL_NONE, 115200);
-    if(ret != ARM_DRIVER_OK)
-    {
-        /* Error in UART Control. */
-        printf("ERROR: UART configuration failed.\r\n");
-        goto error_UART_poweroff;
-    }
-
-    /* Enable Receiver and Transmitter lines */
-    ret =  USARTdrv->Control(ARM_USART_CONTROL_TX, 1);
-    if(ret != ARM_DRIVER_OK)
-    {
-        /* Error in UART Control TX. */
-        printf("ERROR: UART transmitter configuration failed.\r\n");
-        goto error_UART_poweroff;
-    }
-
-    ret =  USARTdrv->Control(ARM_USART_CONTROL_RX, 1);
-    if(ret != ARM_DRIVER_OK)
-    {
-        /* Error in UART Control RX. */
-        printf("ERROR: UART receiver configuration failed.\r\n");
-        goto error_UART_poweroff;
-    }
-
-#endif
 
     /* Touch screen version */
     version = Drv_Touchscreen->GetVersion();
@@ -403,34 +211,23 @@ error_GT911_uninitialize:
         return;
     }
 
-#if PRINTF_REDIRECT
 
-error_UART_poweroff:
-    /* Received error Power off UART peripheral */
-    ret = USARTdrv->PowerControl(ARM_POWER_OFF);
-    if(ret != ARM_DRIVER_OK)
-    {
-        /* Error in UART Power OFF. */
-        printf("ERROR: Could not power OFF UART\n");
-        return;
-    }
-
-error_uninitialize_UART:
-    /* Received error Un-initialize UART driver */
-    ret = USARTdrv->Uninitialize();
-    if(ret != ARM_DRIVER_OK)
-    {
-        /* Error in UART Uninitialize. */
-        printf("ERROR: Could not uninitialize UART\n");
-        return;
-    }
-
-#endif
 }
 
 /* Define main entry point.  */
 int main()
 {
+    #if defined(RTE_Compiler_IO_STDOUT_User)
+    int32_t ret;
+    ret = stdout_init();
+    if(ret != ARM_DRIVER_OK)
+    {
+        while(1)
+        {
+        }
+    }
+    #endif
+
     /* Enter the ThreadX kernel.  */
     tx_kernel_enter();
 }
