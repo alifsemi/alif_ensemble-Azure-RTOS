@@ -80,7 +80,6 @@ ULONG                                   value;
 ULONG                                   request_length;
 ULONG                                   transmit_length;
 
-    //printf("Enter into _ux_device_class_cdc_acm_control_request function\n");
     /* Get the class container.  */
     class =  command -> ux_slave_class_command_class_ptr;
 
@@ -103,38 +102,30 @@ ULONG                                   transmit_length;
     request_length =   _ux_utility_short_get(transfer_request -> ux_slave_transfer_request_setup + UX_SETUP_LENGTH);
 
     transmit_length = request_length ;
-
-
+    
     /* Here we proceed only the standard request we know of at the device level.  */
     switch (request)
     {
 
         case UX_SLAVE_CLASS_CDC_ACM_SET_CONTROL_LINE_STATE:
 
-        	//printf("Enter into UX_SLAVE_CLASS_CDC_ACM_SET_CONTROL_LINE_STATE\n");
             /* Reset current line state values. */
             cdc_acm -> ux_slave_class_cdc_acm_data_dtr_state = 0;
             cdc_acm -> ux_slave_class_cdc_acm_data_rts_state = 0;
 
             /* Get the line state parameters from the host.  DTR signal. */
             if (value & UX_SLAVE_CLASS_CDC_ACM_LINE_STATE_DTR)
-            {
-            	//printf("DTR\n");
-                cdc_acm -> ux_slave_class_cdc_acm_data_dtr_state = UX_TRUE;
-            }
+                cdc_acm -> ux_slave_class_cdc_acm_data_dtr_state = UX_TRUE;               
 
             /* Get the line state parameters from the host.  RTS signal. */
             if (value & UX_SLAVE_CLASS_CDC_ACM_LINE_STATE_RTS)
-            {
-            	//printf("RTS\n");
-                cdc_acm -> ux_slave_class_cdc_acm_data_rts_state = UX_TRUE;
-            }
+                cdc_acm -> ux_slave_class_cdc_acm_data_rts_state = UX_TRUE;               
                 
             /* If there is a parameter change function call it.  */
             if (cdc_acm -> ux_slave_class_cdc_acm_parameter.ux_slave_class_cdc_acm_parameter_change != UX_NULL)
             {        
         
-    		    /* Invoke the application.  */
+                /* Invoke the application.  */
                 cdc_acm -> ux_slave_class_cdc_acm_parameter.ux_slave_class_cdc_acm_parameter_change(cdc_acm);
             }
 
@@ -142,7 +133,6 @@ ULONG                                   transmit_length;
 
         case UX_SLAVE_CLASS_CDC_ACM_GET_LINE_CODING:
 
-        	//printf("Enter into UX_SLAVE_CLASS_CDC_ACM_GET_LINE_CODING\n");
             /* Setup the length appropriately.  */
             if (request_length >  UX_SLAVE_CLASS_CDC_ACM_LINE_CODING_RESPONSE_SIZE) 
                 transmit_length = UX_SLAVE_CLASS_CDC_ACM_LINE_CODING_RESPONSE_SIZE;
@@ -157,25 +147,23 @@ ULONG                                   transmit_length;
             /* Set the phase of the transfer to data out.  */
             transfer_request -> ux_slave_transfer_request_phase =  UX_TRANSFER_PHASE_DATA_OUT;
             
-            //printf("TRANSFER request pointer address = %x\n",transfer_request);
-
             /* Perform the data transfer.  */
             _ux_device_stack_transfer_request(transfer_request, transmit_length, request_length);
             break; 
             
         case UX_SLAVE_CLASS_CDC_ACM_SET_LINE_CODING:
 
-          // printf("Enter into UX_SLAVE_CLASS_CDC_ACM_SET_LINE_CODING\n");
             /* Get the line coding parameters from the host.  */
             cdc_acm -> ux_slave_class_cdc_acm_baudrate  = _ux_utility_long_get(transfer_request -> ux_slave_transfer_request_data_pointer + UX_SLAVE_CLASS_CDC_ACM_LINE_CODING_BAUDRATE_STRUCT);
             cdc_acm -> ux_slave_class_cdc_acm_stop_bit  = *(transfer_request -> ux_slave_transfer_request_data_pointer + UX_SLAVE_CLASS_CDC_ACM_LINE_CODING_STOP_BIT_STRUCT);
             cdc_acm -> ux_slave_class_cdc_acm_parity    = *(transfer_request -> ux_slave_transfer_request_data_pointer + UX_SLAVE_CLASS_CDC_ACM_LINE_CODING_PARITY_STRUCT);
             cdc_acm -> ux_slave_class_cdc_acm_data_bit  = *(transfer_request -> ux_slave_transfer_request_data_pointer + UX_SLAVE_CLASS_CDC_ACM_LINE_CODING_DATA_BIT_STRUCT);
 
-	        /* If there is a parameter change function call it.  */
+            /* If there is a parameter change function call it.  */
             if (cdc_acm -> ux_slave_class_cdc_acm_parameter.ux_slave_class_cdc_acm_parameter_change != UX_NULL)
             {        
-    		    /* Invoke the application.  */
+        
+                /* Invoke the application.  */
                 cdc_acm -> ux_slave_class_cdc_acm_parameter.ux_slave_class_cdc_acm_parameter_change(cdc_acm);
             }
 

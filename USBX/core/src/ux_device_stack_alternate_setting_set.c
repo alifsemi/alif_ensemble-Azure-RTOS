@@ -34,7 +34,7 @@
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _ux_device_stack_alternate_setting_set              PORTABLE C      */
-/*                                                           6.1          */
+/*                                                           6.1.9        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Chaoqiong Xiao, Microsoft Corporation                               */
@@ -78,6 +78,9 @@
 /*                                            definitions, verified       */
 /*                                            memset and memcpy cases,    */
 /*                                            resulting in version 6.1    */
+/*  10-15-2021     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            calculated payload size,    */
+/*                                            resulting in version 6.1.9  */
 /*                                                                        */
 /**************************************************************************/
 UINT  _ux_device_stack_alternate_setting_set(ULONG interface_value, ULONG alternate_setting_value)
@@ -101,9 +104,9 @@ ULONG                            endpoints_pool_number;
 UX_SLAVE_CLASS_COMMAND          class_command;
 UX_SLAVE_CLASS                  *class;
 UINT                            status;
+ULONG                           max_transfer_length, n_trans;
 #endif
 
-    printf("Alternate settings\n");
     /* If trace is enabled, insert this event into the trace buffer.  */
     UX_TRACE_IN_LINE_INSERT(UX_TRACE_DEVICE_STACK_ALTERNATE_SETTING_SET, interface_value, alternate_setting_value, 0, 0, UX_TRACE_DEVICE_STACK_EVENTS, 0, 0)
 
@@ -149,9 +152,7 @@ UINT                            status;
     /* If the host is requesting a change of alternate setting to the current one,
        we do not need to do any work.  */
     if (interface -> ux_slave_interface_descriptor.bAlternateSetting == alternate_setting_value)
-    {
         return(UX_SUCCESS);       
-    }
 
 #if defined(UX_DEVICE_ALTERNATE_SETTING_SUPPORT_DISABLE)
 
@@ -195,7 +196,7 @@ UINT                            status;
             if (configuration_descriptor.bConfigurationValue == device -> ux_slave_device_configuration_selected)
             {
 
-    		    /* Limit the search in current configuration descriptor. */
+                /* Limit the search in current configuration descriptor. */
                 device_framework_length = configuration_descriptor.wTotalLength;
 
                 /* We have found the configuration value that was selected by the host   
@@ -210,7 +211,7 @@ UINT                            status;
 
                     /* And its type.  */
                     descriptor_type = *(device_framework + 1); 
-
+                
                     /* Check if this is an interface descriptor. */
                     if (descriptor_type == UX_INTERFACE_DESCRIPTOR_ITEM)
                     {
@@ -230,7 +231,7 @@ UINT                            status;
                                we mount all the endpoints for this interface, we need to
                                unmount the endpoints associated with the previous alternate setting.  */
                             endpoint =  interface -> ux_slave_interface_first_endpoint;
-			    while (endpoint != UX_NULL)
+                            while (endpoint != UX_NULL)
                             {
 
                                 /* Abort any pending transfer.  */
@@ -271,7 +272,7 @@ UINT                            status;
                         
                                 /* And its type.  */
                                 descriptor_type =  *(device_framework + 1);
-
+                                        
                                 /* Check if this is an endpoint descriptor.  */
                                 switch(descriptor_type)
                                 {
@@ -308,10 +309,34 @@ UINT                            status;
                                                     _ux_system_endpoint_descriptor_structure,
                                                     UX_ENDPOINT_DESCRIPTOR_ENTRIES,
                                                     (UCHAR *) &endpoint -> ux_slave_endpoint_descriptor);
-                        
+
                                     /* Now we create a transfer request to accept transfer on this endpoint.  */
                                     transfer_request =  &endpoint -> ux_slave_endpoint_transfer_request;
                                         
+                                    /* Validate descriptor wMaxPacketSize.  */
+                                    UX_ASSERT(endpoint -> ux_slave_endpoint_descriptor.wMaxPacketSize != 0);
+
+                                    /* Calculate endpoint transfer payload max size.  */
+                                    max_transfer_length =
+                                            endpoint -> ux_slave_endpoint_descriptor.wMaxPacketSize &
+                                                                                UX_MAX_PACKET_SIZE_MASK;
+                                    if ((_ux_system_slave -> ux_system_slave_speed == UX_HIGH_SPEED_DEVICE) &&
+                                        (endpoint -> ux_slave_endpoint_descriptor.bmAttributes & 0x1u))
+                                    {
+                                        n_trans = endpoint -> ux_slave_endpoint_descriptor.wMaxPacketSize &
+                                                                    UX_MAX_NUMBER_OF_TRANSACTIONS_MASK;
+                                        if (n_trans)
+                                        {
+                                            n_trans >>= UX_MAX_NUMBER_OF_TRANSACTIONS_SHIFT;
+                                            n_trans ++;
+                                            max_transfer_length *= n_trans;
+                                        }
+                                    }
+
+                                    /* Validate max transfer size and save it.  */
+                                    UX_ASSERT(max_transfer_length <= UX_SLAVE_REQUEST_DATA_MAX_LENGTH);
+                                    transfer_request -> ux_slave_transfer_request_transfer_length = max_transfer_length;
+
                                     /* We store the endpoint in the transfer request as well.  */
                                     transfer_request -> ux_slave_transfer_request_endpoint =  endpoint;
                                         

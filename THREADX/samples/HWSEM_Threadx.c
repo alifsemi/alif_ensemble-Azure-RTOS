@@ -37,10 +37,14 @@
 
 /* include for UART Driver */
 #include "Driver_USART.h"
-/* PINMUX Driver */
-#include "Driver_PINMUX_AND_PINPAD.h"
+/* pin configuration driver */
+#include <pinconf.h>
 /* HWSEM Driver */
 #include "Driver_HWSEM.h"
+#if defined(RTE_Compiler_IO_STDOUT)
+#include "retarget_stdout.h"
+#endif  /* RTE_Compiler_IO_STDOUT */
+
 
 #ifdef M55_HP
 const char * startup_msg = "\n<<<<M55_HP : HWSEM testApp starting up>>>>\r\n";
@@ -65,68 +69,6 @@ UCHAR                   memory_area[DEMO_BYTE_POOL_SIZE];
 TX_EVENT_FLAGS_GROUP    event_flags_uart;
 TX_EVENT_FLAGS_GROUP    event_flags_hwsem;
 
-
-/* For Release build disable printf and semihosting */
-#define DISABLE_SEMIHOSTING
-
-#ifdef DISABLE_SEMIHOSTING
-/* Also Disable Semihosting */
-#if __ARMCC_VERSION >= 6000000
-        __asm(".global __use_no_semihosting");
-#elif __ARMCC_VERSION >= 5000000
-        #pragma import(__use_no_semihosting)
-#else
-        #error Unsupported compiler
-#endif
-
-void _sys_exit(int return_code) {
-        while (1);
-}
-
-
-int _sys_open(void *p){
-
-   return 0;
-}
-
-
-int _sys_close(void *p){
-
-   return 0;
-}
-
-
-int _sys_read(void *p){
-
-   return 0;
-}
-
-int _sys_write(void *p){
-
-   return 0;
-}
-
-int _sys_istty(void *p){
-
-   return 0;
-}
-
-int _sys_seek(void *p){
-
-   return 0;
-}
-
-int _sys_flen(void *p){
-
-    return 0;
-}
-
-void _ttywrch(int ch){
-
-}
-
-#endif /* DISABLE_SEMIHOSTING */
-
 #define UART_CB_TX_EVENT          0x01
 
 #define HWSEM_CB_EVENT            0x01
@@ -134,7 +76,7 @@ void _ttywrch(int ch){
 /* HWSEM Driver instance */
 #define HWSEM                     0
 /* Mention the Uart instance */
-#define UART                      6
+#define UART                      4
 
 /* UART Driver */
 extern ARM_DRIVER_USART ARM_Driver_USART_(UART);
@@ -206,22 +148,18 @@ int32_t hardware_init(void)
     int32_t ret = ARM_DRIVER_OK;
     ARM_DRIVER_VERSION version;
 
-    /* PINMUX UART6_A */
+    /* UART4_RX_B */
+    ret = pinconf_set(PORT_12, PIN_1, PINMUX_ALTERNATE_FUNCTION_2, PADCTRL_READ_ENABLE);
 
-    /* Configure GPIO Pin : P1_14 as UART6_RX_A */
-    ret = PINMUX_Config(PORT_NUMBER_1, PIN_NUMBER_14, PINMUX_ALTERNATE_FUNCTION_1);
-
-    if (ret != ARM_DRIVER_OK)
+    if (ret)
     {
         return ARM_DRIVER_ERROR;
     }
 
-    /* PINMUX UART6_A */
+    /* UART4_TX_B */
+    ret = pinconf_set(PORT_12, PIN_2, PINMUX_ALTERNATE_FUNCTION_2, 0);
 
-    /* Configure GPIO Pin : P1_15 as UART6_TX_A */
-    ret = PINMUX_Config(PORT_NUMBER_1, PIN_NUMBER_15, PINMUX_ALTERNATE_FUNCTION_1);
-
-    if (ret != ARM_DRIVER_OK)
+    if (ret)
     {
         return ARM_DRIVER_ERROR;
     }
@@ -323,7 +261,7 @@ void Hwsem_Thread_0_entry(ULONG thread_input)
     while(1)
     {
         /* Acquire the lock */
-        ret_hwsem = HWSEMdrv->Lock();
+        ret_hwsem = HWSEMdrv->TryLock();
 
         if (ret_hwsem == ARM_DRIVER_ERROR)
         {
@@ -339,12 +277,18 @@ void Hwsem_Thread_0_entry(ULONG thread_input)
             if (ret_hwsem == TX_SUCCESS)
             {
                 /* Acquire the lock */
-                ret_hwsem = HWSEMdrv->Lock();
+                ret_hwsem = HWSEMdrv->TryLock();
             }
             else
             {
                 ret_hwsem = ARM_DRIVER_ERROR_BUSY;
             }
+        }
+
+        if (ret_hwsem != ARM_DRIVER_OK)
+        {
+            printf("\r\n HWSEM lock failed\n");
+            goto error_lock;
         }
 
         /* Initialize the UART Driver */
@@ -421,7 +365,7 @@ void Hwsem_Thread_0_entry(ULONG thread_input)
         }
 
         /* Unlock the HW Semaphore */
-        HWSEMdrv->UnLock();
+        HWSEMdrv->Unlock();
 
         if (ret_hwsem == ARM_DRIVER_ERROR)
         {
@@ -438,7 +382,7 @@ void Hwsem_Thread_0_entry(ULONG thread_input)
 
 error_hw_init:
     /* Unlock the HW Semaphore */
-    HWSEMdrv->UnLock();
+    HWSEMdrv->Unlock();
 error_lock:
     /* Uninitialize the HWSEM Driver */
     HWSEMdrv->Uninitialize();
@@ -451,6 +395,17 @@ error_initialize:
 //* Define main entry point.  */
 int main()
 {
+    #if defined(RTE_Compiler_IO_STDOUT_User)
+    int32_t ret;
+    ret = stdout_init();
+    if(ret != ARM_DRIVER_OK)
+    {
+        while(1)
+        {
+        }
+    }
+    #endif
+
     /* Enter the ThreadX kernel.  */
     tx_kernel_enter();
 }
@@ -503,5 +458,3 @@ void tx_application_define(void *first_unused_memory)
     }
 
 }
-
-/************************ (C) COPYRIGHT ALIF SEMICONDUCTOR *****END OF FILE****/

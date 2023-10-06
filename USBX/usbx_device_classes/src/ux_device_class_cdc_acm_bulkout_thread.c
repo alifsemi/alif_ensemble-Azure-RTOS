@@ -86,7 +86,6 @@ UX_SLAVE_INTERFACE              *interface;
 UX_SLAVE_TRANSFER               *transfer_request;
 UINT                            status;
 
-    printf("UX_device_class_cdc_acm_bulkout_thread\n");
     /* Cast properly the cdc_acm instance.  */
     UX_THREAD_EXTENSION_PTR_GET(cdc_acm, UX_SLAVE_CLASS_CDC_ACM, cdc_acm_class)
 
@@ -118,8 +117,7 @@ UINT                            status;
         while (device -> ux_slave_device_state == UX_DEVICE_CONFIGURED)
         {
 
-	        printf("BULK OUT Thread called from Stack\n");
-    	    /* Send the request to the device controller.  */
+            /* Send the request to the device controller.  */
             status =  _ux_device_stack_transfer_request(transfer_request, endpoint -> ux_slave_endpoint_descriptor.wMaxPacketSize,
                                                                 endpoint -> ux_slave_endpoint_descriptor.wMaxPacketSize);
 
@@ -127,15 +125,13 @@ UINT                            status;
             if (status == UX_SUCCESS)
             {
 
-    	    /* Check the state of the transfer.  If there is an error, we do not proceed with this report. */
+                /* Check the state of the transfer.  If there is an error, we do not proceed with this report. */
                 if (transfer_request -> ux_slave_transfer_request_completion_code == UX_SUCCESS)
                 {
 
-			        printf("Calling Read callback\n");
                     /* If there is a callback defined by the application, send the transaction event to it.  */
                     if (cdc_acm -> ux_device_class_cdc_acm_read_callback != UX_NULL)
 
-			            printf("Calling Read callback\n");
                         /* Callback exists. */
                         cdc_acm -> ux_device_class_cdc_acm_read_callback(cdc_acm, UX_SUCCESS, transfer_request -> ux_slave_transfer_request_data_pointer,
                                                                                     transfer_request -> ux_slave_transfer_request_actual_length);
@@ -146,11 +142,9 @@ UINT                            status;
 
                     /* We have an error. If there is a callback defined by the application, send the transaction event to it.  */
                     if (cdc_acm -> ux_device_class_cdc_acm_read_callback != UX_NULL)
-			        {
-				        printf("Calling NULL Read callback\n");
-                        	/* Callback exists. */
+
+                        /* Callback exists. */
                         cdc_acm -> ux_device_class_cdc_acm_read_callback(cdc_acm, status, UX_NULL, 0);
-			        }
 
                 }
             }

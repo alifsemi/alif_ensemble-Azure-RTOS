@@ -73,15 +73,9 @@ VOID  _ux_utility_long_put(UCHAR * address, ULONG value)
 
     /* In order to make this function endian agnostic and memory alignment
        independent, we write a byte at a time from the address.  */
-    *address =  (UCHAR) (value & 0xff);
-    address++;
-
-    *address =  (UCHAR) ((value >> 8) & 0xff);
-    address++;
-
-    *address =  (UCHAR) ((value >> 16) & 0xff);
-    address++;
-
+    *address++ =  (UCHAR) (value & 0xff);
+    *address++ =  (UCHAR) ((value >> 8) & 0xff);
+    *address++ =  (UCHAR) ((value >> 16) & 0xff);
     *address =    (UCHAR) ((value >> 24) & 0xff);
 
     /* Return to caller.  */

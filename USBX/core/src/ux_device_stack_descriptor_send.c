@@ -112,7 +112,6 @@ UCHAR                           *string_framework;
 ULONG                           string_framework_length;
 ULONG                           string_length;
 
-//    printf("host_length in descriptor_send [%x]\n", host_length);
     /* If trace is enabled, insert this event into the trace buffer.  */
     UX_TRACE_IN_LINE_INSERT(UX_TRACE_DEVICE_STACK_DESCRIPTOR_SEND, descriptor_type, request_index, 0, 0, UX_TRACE_DEVICE_STACK_EVENTS, 0, 0)
 
@@ -143,14 +142,12 @@ ULONG                           string_length;
     /* Default descriptor length is host length.  */
     length =  host_length;
 
-//    printf("Descriptor type [%x] host_lenth [%x] length [%x]\n", descriptor_type, 
-//		    host_length, length);
     /* What type of descriptor do we need to return?  */
     switch (descriptor_type)
     {
 
     case UX_DEVICE_DESCRIPTOR_ITEM:
-    	//printf("UX_DEVICE_DESCRIPTOR_ITEM\n");
+
 		/* Setup device descriptor length.  */
         if (host_length > UX_DEVICE_DESCRIPTOR_LENGTH)
             length =  UX_DEVICE_DESCRIPTOR_LENGTH;
@@ -171,14 +168,10 @@ ULONG                           string_length;
             host_length > UX_OTG_DESCRIPTOR_LENGTH)
             length =  UX_OTG_DESCRIPTOR_LENGTH;
 
-//	printf("device_framework_length [%x]\n", _ux_system_slave -> ux_system_slave_device_framework_length);
         /* We may or may not have a device qualifier descriptor.  */
         device_framework =  _ux_system_slave -> ux_system_slave_device_framework;
         device_framework_length =  _ux_system_slave -> ux_system_slave_device_framework_length;
         device_framework_end = device_framework + device_framework_length;
-
-//	printf("device_framework [%x] [%x] [%x] [%x]\n", *device_framework, *(device_framework + 0x1),
-//			device_framework, device_framework_end);
 
         /* Parse the device framework and locate a device qualifier descriptor.  */
         while (device_framework < device_framework_end)
@@ -187,16 +180,9 @@ ULONG                           string_length;
             /* Get descriptor length.  */
             descriptor_length =  (ULONG) *device_framework;
 
-	    //printf("descritpor length after framework [%x]\n", descriptor_length);
             /* Check if this is a descriptor expected.  */
             if (*(device_framework + 1) == descriptor_type)
             {
-
-//		    printf("copying descriptor in data pointer [%x] [%x]\n", 
-//				    device_framework, *device_framework);
-//		    printf("copying descriptor in data pointer [%x] [%x]\n", 
-//				    (device_framework + 0x1), *(device_framework+0x1));
-//		    printf("length [%x] host_length [%x]\n", length, host_length);
 
                 /* Copy the device descriptor into the transfer request memory.  */
                 _ux_utility_memory_copy(transfer_request -> ux_slave_transfer_request_data_pointer,
@@ -212,9 +198,7 @@ ULONG                           string_length;
 
             /* Point to the next descriptor.  */
             device_framework +=  descriptor_length;
-		//printf("Exiting from USBX stack\n");
-
-	}
+        }
         break;
 
 #ifndef UX_BOS_SUPPORT_DISABLE
@@ -224,7 +208,7 @@ ULONG                           string_length;
     case UX_OTHER_SPEED_DESCRIPTOR_ITEM:
         /* Fall through.  */
     case UX_CONFIGURATION_DESCRIPTOR_ITEM:
-    	 //printf("UX_CONFIGURATION_DESCRIPTOR_ITEM\n");
+
         if (descriptor_type == UX_OTHER_SPEED_DESCRIPTOR_ITEM)
         {
 

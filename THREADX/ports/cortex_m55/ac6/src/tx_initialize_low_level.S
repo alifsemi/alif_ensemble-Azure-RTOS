@@ -20,6 +20,9 @@
 /**************************************************************************/
 /**************************************************************************/
 
+#ifdef TX_INCLUDE_USER_DEFINE_FILE
+#include "tx_user.h"
+#endif
 
 /* Setup the stack and heap areas.  */
 
@@ -31,7 +34,7 @@ HEAP_SIZE           =     0x00000000
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _tx_initialize_low_level                          Cortex-M55/AC6    */
-/*                                                           6.1          */
+/*                                                           6.2.1        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Scott Larson, Microsoft Corporation                                 */
@@ -65,6 +68,8 @@ HEAP_SIZE           =     0x00000000
 /*    DATE              NAME                      DESCRIPTION             */
 /*                                                                        */
 /*  09-30-2020      Scott Larson            Initial Version 6.1           */
+/*  03-08-2023      Scott Larson            Include tx_user.h,            */
+/*                                            resulting in version 6.2.1  */
 /*                                                                        */
 /**************************************************************************/
 // VOID   _tx_initialize_low_level(VOID)
@@ -105,12 +110,12 @@ _tx_initialize_low_level:
     STR     r1, [r0]                                // Save system stack pointer
 
     /* Configure SysTick.  */
-    LDR     r0, =SystemCoreClock		    // Build address of SystemCoreClock
-    LDR     r1, [r0]				    // Pickup SystemCoreClock
-    LDR     r2, =_tx_timer_ticks_per_second	    // Build address of configured ticks per second
-    LDR     r0, [r2]				    // Pickup the ticks per second
+    LDR     r0, =SystemCoreClock		            // Build address of SystemCoreClock
+    LDR     r1, [r0]				                // Pickup SystemCoreClock
+    LDR     r2, =_tx_timer_ticks_per_second	        // Build address of configured ticks per second
+    LDR     r0, [r2]				                // Pickup the ticks per second
     UDIV    r1, r1, r0
-    SUB     r1, #1				    // We now have the value for Systick RVR
+    SUB     r1, #1				                    // We now have the value for Systick RVR
     MOV     r0, #0xE000E000                         // Build address of NVIC registers
     STR     r1, [r0, #0x14]                         // Setup SysTick Reload Value
     MOV     r1, #0x7                                // Build SysTick Control Enable Value
@@ -156,10 +161,14 @@ __tx_IntHandler:
 // VOID InterruptHandler (VOID)
 // {
     PUSH    {r0,lr}     // Save LR (and dummy r0 to maintain stack alignment)
-
+#if (defined(TX_ENABLE_EXECUTION_CHANGE_NOTIFY) || defined(TX_EXECUTION_PROFILE_ENABLE))
+    BL      _tx_execution_isr_enter             // Call the ISR enter function
+#endif
     /* Do interrupt handler work here */
     /* .... */
-
+#if (defined(TX_ENABLE_EXECUTION_CHANGE_NOTIFY) || defined(TX_EXECUTION_PROFILE_ENABLE))
+    BL      _tx_execution_isr_exit              // Call the ISR exit function
+#endif
     POP     {r0,lr}
     BX      LR
 // }
@@ -176,7 +185,13 @@ SysTick_Handler:
 // VOID TimerInterruptHandler (VOID)
 // {
     PUSH    {r0,lr}     // Save LR (and dummy r0 to maintain stack alignment)
+#if (defined(TX_ENABLE_EXECUTION_CHANGE_NOTIFY) || defined(TX_EXECUTION_PROFILE_ENABLE))
+    BL      _tx_execution_isr_enter             // Call the ISR enter function
+#endif
     BL      _tx_timer_interrupt
+#if (defined(TX_ENABLE_EXECUTION_CHANGE_NOTIFY) || defined(TX_EXECUTION_PROFILE_ENABLE))
+    BL      _tx_execution_isr_exit              // Call the ISR exit function
+#endif
     POP     {r0,lr}
     BX      LR
 // }
@@ -225,7 +240,7 @@ _unhandled_usage_loop:
     BL      _tx_thread_stack_error_handler          // Call ThreadX/user handler
     POP     {r0,lr}                                 // Restore LR and dummy reg
 
-#ifdef TX_ENABLE_EXECUTION_CHANGE_NOTIFY
+#if (defined(TX_ENABLE_EXECUTION_CHANGE_NOTIFY) || defined(TX_EXECUTION_PROFILE_ENABLE))
     // Call the thread exit function to indicate the thread is no longer executing.
     PUSH    {r0, lr}                                // Save LR (and r0 just for alignment)
     BL      _tx_execution_thread_exit               // Call the thread exit function

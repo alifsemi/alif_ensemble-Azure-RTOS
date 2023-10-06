@@ -29,6 +29,8 @@
 #include "ux_device_stack.h"
 #include "RTE_Device.h"
 #include "RTE_Components.h"
+#include "sys_ctrl_usb.h"
+#include "power.h"
 #include CMSIS_device_header
 
 
@@ -38,15 +40,30 @@ TX_EVENT_FLAGS_GROUP BULKIN_BULKOUT_FLAG;
 UINT  _ux_dcd_dwc3_initialize()
 {
 
-UX_SLAVE_DCD    *dcd;
-UX_DCD_DWC3	*dcd_dwc3;
-UX_DCD_EVENT	*dcd_evt;
-ULONG           dwc3_register;
-ULONG		ScratchBuff;
-ULONG		*ScratchBuff_ptr;
-ULONG		Ret_Scratch;
-UINT            semaphore_create_status;
-UINT            status;
+    UX_SLAVE_DCD    *dcd;
+    UX_DCD_DWC3     *dcd_dwc3;
+    UX_DCD_EVENT    *dcd_evt;
+    ULONG           dwc3_register;
+    ULONG           ScratchBuff;
+    ULONG           *ScratchBuff_ptr;
+    ULONG           Ret_Scratch;
+    UINT            status;
+    LONG            retries;
+    
+    /* Enable 20MHZ clock for USB  */
+    enable_cgu_clk20m();
+        
+    /* Enable peripheral clk for USB  */
+    enable_usb_periph_clk();
+    
+    /* Power NOT masked for USB phy  */
+    enable_usb_phy_power();
+
+    /* Disable the Isolation for USB Phy */
+    disable_usb_phy_isolation();    
+
+    /* USB phy reset */    
+    usb_ctrl2_phy_power_on_reset_clear();
 
     /* Get the pointer to the DCD.  */
     dcd =  &_ux_system_slave -> ux_system_slave_dcd;
@@ -64,14 +81,14 @@ UINT            status;
     status = _ux_utility_event_flags_create(&BULKIN_BULKOUT_FLAG,"USB_BULKIN_BULKOUT_EVENT_FLAG");
     if (status != UX_SUCCESS)
     {
-	return UX_EVENT_ERROR;
+        return UX_EVENT_ERROR;
     }
     /* Set the pointer to the DWC3 DCD.  */
     dcd -> ux_slave_dcd_controller_hardware =  (VOID *) dcd_dwc3;
 
     /* Save the base address of the controller.  */
-    dcd -> ux_slave_dcd_io =     USB0_BASE;
-    dcd_dwc3 -> ux_dcd_dwc3_base =  USB0_BASE;
+    dcd -> ux_slave_dcd_io =     USB_BASE;
+    dcd_dwc3 -> ux_dcd_dwc3_base =  USB_BASE;
 
     /* Set the generic DCD owner for the DWC3 DCD.  */
     dcd_dwc3 -> ux_dcd_dwc3_dcd_owner =  dcd;
@@ -91,12 +108,12 @@ UINT            status;
     dcd_evt -> cache = _ux_utility_memory_allocate(UX_NO_ALIGN, UX_REGULAR_MEMORY, UX_DCD_DWC3_EVENT_BUFFER_SIZE);
 
     if(dcd_evt -> cache == UX_NULL)
-	return(UX_MEMORY_INSUFFICIENT);
+        return(UX_MEMORY_INSUFFICIENT);
 
     dcd_evt -> buf = _ux_utility_memory_allocate(UX_NO_ALIGN, UX_REGULAR_MEMORY, UX_DCD_DWC3_EVENT_BUFFER_SIZE);
 
     if(dcd_evt -> buf == UX_NULL)
-	return(UX_MEMORY_INSUFFICIENT);
+        return(UX_MEMORY_INSUFFICIENT);
 
     memset(dcd_evt -> buf , 0, DCD_DWC3_EVT_BUFF);
 
@@ -114,7 +131,13 @@ UINT            status;
           return(UX_MEMORY_INSUFFICIENT);
     ScratchBuff = (ULONG)ScratchBuff_ptr;
     /* Perform the core soft reset.  */
-    _ux_dcd_dwc3_register_write(dcd_dwc3, UX_DCD_DWC3_DCTL, UX_DCD_DWC3_FS_DCTL_CSRST);
+    dwc3_register =  _ux_dcd_dwc3_register_read(dcd_dwc3, UX_DCD_DWC3_DCTL);
+
+    dwc3_register |= UX_DCD_DWC3_FS_DCTL_CSRST;
+
+    _ux_dcd_dwc3_register_write(dcd_dwc3, UX_DCD_DWC3_DCTL, dwc3_register);
+
+    retries = 1000;
 
     /* Wait for Soft Reset to be completed.  */
     do
@@ -122,28 +145,34 @@ UINT            status;
         /* Read the RST Control register.  */
         dwc3_register =  _ux_dcd_dwc3_register_read(dcd_dwc3, UX_DCD_DWC3_DCTL);
 
-    } while (dwc3_register & UX_DCD_DWC3_FS_DCTL_CSRST_STS);
+        if(!(dwc3_register & UX_DCD_DWC3_FS_DCTL_CSRST))
+             goto done;
 
+    } while(-- retries);
+
+    if(retries == 0)
+        return UX_ERROR;
+
+done:
     /* Spec says wait for 50 cycles.  */
     _ux_dcd_dwc3_delay(50);
 
     _ux_dcd_phy_reset(dcd_dwc3);
 
-    /************ Checking Hibernate ***********************/
-        dwc3_register = _ux_dcd_dwc3_register_read(dcd_dwc3, UX_DCD_DWC3_GCTL);
-        dwc3_register &= ~UX_DCD_GCTL_SCALEDOWN_MASK;
-        dwc3_register &= ~UX_DCD_GCTL_DISSCRAMBLE;
-        dwc3_register &= ~UX_DCD_GCTL_DSBLCLKGTNG;
-        dwc3_register |= UX_DCD_GCTL_U2EXIT_LFPS;
+       /* setup global control registers */
+    dwc3_register = _ux_dcd_dwc3_register_read(dcd_dwc3, UX_DCD_DWC3_GCTL);
+    dwc3_register &= ~UX_DCD_GCTL_SCALEDOWN_MASK;
+    dwc3_register &= ~UX_DCD_GCTL_DISSCRAMBLE;
+    dwc3_register &= ~UX_DCD_GCTL_DSBLCLKGTNG;
+    dwc3_register |= UX_DCD_GCTL_U2EXIT_LFPS;
 
     _ux_dcd_dwc3_register_write(dcd_dwc3, UX_DCD_DWC3_GCTL, dwc3_register);
 
-    /*********************************************************/
-
     _ux_dcd_dwc3_delay(50);
+
+     /*Configure Global USB2 PHY Configuration Register */
 
     _ux_dcd_dwc3_register_write(dcd_dwc3, UX_DCD_DWC3_GUSB2PHYCFG(0), UX_DCD_DWC3_GUSB2PHYCFG_CFG);
-    _ux_dcd_dwc3_delay(50);
 
     /* Initialize DCD USB event buffer.  */
     dcd_evt -> lpos = 0;
@@ -158,10 +187,12 @@ UINT            status;
     dcd_dwc3->NumOutEps = (UX_DCD_DWC3_NUM_EPS(reg_val) -
                         dcd_dwc3->NumInEps);
 
-
     _ux_dcd_InitializeEps(dcd_dwc3);
 
     Ret_Scratch = _ux_dcd_SetupScratchpad(dcd_dwc3, ScratchBuff);
+
+    if(Ret_Scratch != 0)
+         return Ret_Scratch;
 
     /* Set speed on Controller */
     _ux_dcd_set_speed(dcd_dwc3);
@@ -173,134 +204,39 @@ UINT            status;
     _ux_dcd_dwc3_register_write(dcd_dwc3, UX_DCD_DWC3_GUCTL, UX_DCD_DWC3_GUCTL_CFG);
 
 
-   /* Check controller config before issuing DEPCMD always */
-    _ux_dcd_dwc3_controller_config_check(dcd_dwc3);
-    /* Issuing DEPSTARTCFG Command to ep_resource[0] (for EP 0/CONTROL/) */
-   _ux_dcd_dwc3_register_write(dcd_dwc3, UX_DCD_DWC3_DEP_BASE(0) + UX_DCD_DWC3_DEPCMD, UX_DCD_DWC3_DEPCMD_SCFG);
-    do{
-        /* Read the device endpoint Command register.  */
-        dwc3_register =  _ux_dcd_dwc3_register_read(dcd_dwc3, UX_DCD_DWC3_DEP_BASE(0) +
-								UX_DCD_DWC3_DEPCMD);
-    }while ((dwc3_register & 0x400) != 0);
-    _ux_dcd_dwc3_controller_config_reset(dcd_dwc3);
-
-
-    /* Initializing endpoints here ...... */
-
-    /* Check controller config before issuing DEPCMD always */
-    _ux_dcd_dwc3_controller_config_check(dcd_dwc3);
-    /* Issuing DEPCFG Command to ep_resource[0] (for EP 0 OUT/CONTROL/) */
-    _ux_dcd_dwc3_register_write(dcd_dwc3, UX_DCD_DWC3_DEP_BASE(0) + UX_DCD_DWC3_DEPCMDPAR1, UX_DCD_DWC3_DEPCMD_EP0_OUT_PAR1);
-    _ux_dcd_dwc3_register_write(dcd_dwc3, UX_DCD_DWC3_DEP_BASE(0) + UX_DCD_DWC3_DEPCMDPAR0, UX_DCD_DWC3_DEPCMD_EP0_PAR0);
-    _ux_dcd_dwc3_register_write(dcd_dwc3, UX_DCD_DWC3_DEP_BASE(0) + UX_DCD_DWC3_DEPCMDPAR2, UX_DCD_DWC3_DEPCMD_EP0_PAR2);
-    _ux_dcd_dwc3_register_write(dcd_dwc3, UX_DCD_DWC3_DEP_BASE(0) + UX_DCD_DWC3_DEPCMD, UX_DCD_DWC3_DEPCMD_COMMON_SCFG);
-    do{
-        /* Read the device endpoint Command register.  */
-        dwc3_register =  _ux_dcd_dwc3_register_read(dcd_dwc3, UX_DCD_DWC3_DEP_BASE(0) +
-								UX_DCD_DWC3_DEPCMD);
-    }while ((dwc3_register & 0x400) != 0);
-    _ux_dcd_dwc3_controller_config_reset(dcd_dwc3);
-
-
-    /* Check controller config before issuing DEPCMD always */
-    _ux_dcd_dwc3_controller_config_check(dcd_dwc3);
-   /* Issuing DEPCFG Command to ep_resource[1] (for EP 0 IN/CONTROL/) */
-    _ux_dcd_dwc3_register_write(dcd_dwc3, UX_DCD_DWC3_DEP_BASE(1) + UX_DCD_DWC3_DEPCMDPAR1, UX_DCD_DWC3_DEPCMD_EP0_IN_PAR1);
-    _ux_dcd_dwc3_register_write(dcd_dwc3, UX_DCD_DWC3_DEP_BASE(1) + UX_DCD_DWC3_DEPCMDPAR0, UX_DCD_DWC3_DEPCMD_EP0_PAR0);
-    _ux_dcd_dwc3_register_write(dcd_dwc3, UX_DCD_DWC3_DEP_BASE(1) + UX_DCD_DWC3_DEPCMDPAR2, UX_DCD_DWC3_DEPCMD_EP0_PAR2);
-    _ux_dcd_dwc3_register_write(dcd_dwc3, UX_DCD_DWC3_DEP_BASE(1) + UX_DCD_DWC3_DEPCMD, UX_DCD_DWC3_DEPCMD_COMMON_SCFG);
-    do{
-        /* Read the device endpoint Command register.  */
-        dwc3_register =  _ux_dcd_dwc3_register_read(dcd_dwc3, UX_DCD_DWC3_DEP_BASE(1) +
-								UX_DCD_DWC3_DEPCMD);
-       // printf("EP0 IN register value:%x\n",dwc3_register);
-    }while ((dwc3_register & 0x400) != 0);
-    _ux_dcd_dwc3_controller_config_reset(dcd_dwc3);
-
-
-    /* Check controller config before issuing DEPCMD always  */
-        _ux_dcd_dwc3_controller_config_check(dcd_dwc3);
-        /* Issuing DEPCFG Command to ep_resource[0] (for EP 2 BULK OUT/) */
-        _ux_dcd_dwc3_register_write(dcd_dwc3, UX_DCD_DWC3_DEP_BASE(4) + UX_DCD_DWC3_DEPCMDPAR1, UX_DCD_DWC3_DEPCMD_EP2_OUT_PAR1);
-        _ux_dcd_dwc3_register_write(dcd_dwc3, UX_DCD_DWC3_DEP_BASE(4) + UX_DCD_DWC3_DEPCMDPAR0, UX_DCD_DWC3_DEPCMD_EP2_OUT_PAR0);
-        _ux_dcd_dwc3_register_write(dcd_dwc3, UX_DCD_DWC3_DEP_BASE(4) + UX_DCD_DWC3_DEPCMDPAR2, UX_DCD_DWC3_DEPCMD_EP2_PAR2);
-        _ux_dcd_dwc3_register_write(dcd_dwc3, UX_DCD_DWC3_DEP_BASE(4) + UX_DCD_DWC3_DEPCMD, UX_DCD_DWC3_DEPCMD_COMMON_SCFG);
-        do{
-            /* Read the device endpoint Command register.  */
-            dwc3_register =  _ux_dcd_dwc3_register_read(dcd_dwc3, UX_DCD_DWC3_DEP_BASE(4) +
-								UX_DCD_DWC3_DEPCMD);
-        }while ((dwc3_register & 0x400) != 0);
-        _ux_dcd_dwc3_controller_config_reset(dcd_dwc3);
-
-
-        /* Check controller config before issuing DEPCMD always */
-        _ux_dcd_dwc3_controller_config_check(dcd_dwc3);
-       /* Issuing DEPCFG Command to ep_resource[1] (for EP 2 BULK IN/) */
-        _ux_dcd_dwc3_register_write(dcd_dwc3, UX_DCD_DWC3_DEP_BASE(5) + UX_DCD_DWC3_DEPCMDPAR1, UX_DCD_DWC3_DEPCMD_EP2_IN_PAR1);
-        _ux_dcd_dwc3_register_write(dcd_dwc3, UX_DCD_DWC3_DEP_BASE(5) + UX_DCD_DWC3_DEPCMDPAR0, UX_DCD_DWC3_DEPCMD_EP2_IN_PAR0);
-        _ux_dcd_dwc3_register_write(dcd_dwc3, UX_DCD_DWC3_DEP_BASE(5) + UX_DCD_DWC3_DEPCMDPAR2, UX_DCD_DWC3_DEPCMD_EP2_PAR2);
-        _ux_dcd_dwc3_register_write(dcd_dwc3, UX_DCD_DWC3_DEP_BASE(5) + UX_DCD_DWC3_DEPCMD, UX_DCD_DWC3_DEPCMD_COMMON_SCFG);
-        do{
-            /* Read the device endpoint Command register.  */
-            dwc3_register =  _ux_dcd_dwc3_register_read(dcd_dwc3, UX_DCD_DWC3_DEP_BASE(5) +
-								UX_DCD_DWC3_DEPCMD);
-        }while ((dwc3_register & 0x400) != 0);
-        _ux_dcd_dwc3_controller_config_reset(dcd_dwc3);
-
-
-
-    /* Check controller config before issuing DEPCMD always */
-    _ux_dcd_dwc3_controller_config_check(dcd_dwc3);
-   /* Issuing Transfer Resource command for each initialized endpoint */
-    _ux_dcd_dwc3_register_write(dcd_dwc3, UX_DCD_DWC3_DEP_BASE(0) + UX_DCD_DWC3_DEPCMDPAR0, UX_DCD_DWC3_DEPCMD_EP_XFERCFG_PAR0);
-    _ux_dcd_dwc3_register_write(dcd_dwc3, UX_DCD_DWC3_DEP_BASE(0) + UX_DCD_DWC3_DEPCMD, UX_DCD_DWC3_DEPCMD_EP_XFERCFG);
-    do{
-        /* Read the device endpoint Command register.  */
-        dwc3_register =  _ux_dcd_dwc3_register_read(dcd_dwc3, UX_DCD_DWC3_DEP_BASE(0) +
-								UX_DCD_DWC3_DEPCMD);
-    }while ((dwc3_register & 0x400) != 0);
-    _ux_dcd_dwc3_controller_config_reset(dcd_dwc3);
-
-    /* Check controller config before issuing DEPCMD always */
-    _ux_dcd_dwc3_controller_config_check(dcd_dwc3);
-    _ux_dcd_dwc3_register_write(dcd_dwc3, UX_DCD_DWC3_DEP_BASE(1) + UX_DCD_DWC3_DEPCMDPAR0, UX_DCD_DWC3_DEPCMD_EP_XFERCFG_PAR0);
-    _ux_dcd_dwc3_register_write(dcd_dwc3, UX_DCD_DWC3_DEP_BASE(1) + UX_DCD_DWC3_DEPCMD, UX_DCD_DWC3_DEPCMD_EP_XFERCFG);
-    do{
-        /* Read the device endpoint Command register.  */
-        dwc3_register =  _ux_dcd_dwc3_register_read(dcd_dwc3, UX_DCD_DWC3_DEP_BASE(1) +
-								UX_DCD_DWC3_DEPCMD);
-    }while ((dwc3_register & 0x400) != 0);
-    _ux_dcd_dwc3_controller_config_reset(dcd_dwc3);
-
     dcd_dwc3 -> ConnectionDone = 0;
 
-    /* BULK endpoint transfers event hadler registration */
+    /* BULK endpoint transfers event handler registration */
     _ux_dcd_SetEpHandler(dcd_dwc3, 2, 0,
-			BulkOutHandler);
+            BulkOutHandler);
     _ux_dcd_SetEpHandler(dcd_dwc3, 2, 1,
                         BulkInHandler);
-    semaphore_create_status =  _ux_utility_semaphore_create
-                                (&dcd_dwc3->ux_dcd_dwc3_ep_slave_transfer_request_semaphore,
-                                "bulk endpoint semaphore", 1);
-
-    if (semaphore_create_status != (UINT)UX_SUCCESS)
-    {
-        printf("Semaphore creation fail\n");
-    }
-
 
     /* Starting controller . */
-    _ux_dcd_dwc3_register_write(dcd_dwc3, UX_DCD_DWC3_DCTL, UX_DCD_DWC3_DCTL_START); //Eearlier this was but changed to below
+    dwc3_register = _ux_dcd_dwc3_register_read(dcd_dwc3, UX_DCD_DWC3_DCTL);
+
+    dwc3_register |= UX_DCD_DWC3_DCTL_START;
+
+    _ux_dcd_dwc3_register_write(dcd_dwc3, UX_DCD_DWC3_DCTL, dwc3_register);
+
+    retries = 500;
     do{
-        /* Read the device endpoint Command register.  */
-        dwc3_register =  _ux_dcd_dwc3_register_read(dcd_dwc3, UX_DCD_DWC3_DCTL);
-    }while ((dwc3_register & 0x4000000) != 0);
+
+        dwc3_register =  _ux_dcd_dwc3_register_read(dcd_dwc3, UX_DCD_DWC3_DSTS);
+
+        if(!(dwc3_register & UX_DCD_DSTS_DEVCTRLHLT))
+              goto next;
+      }while (-- retries);
+      if(retries == 0)
+         return UX_ERROR;
+
+next:
 
     /* enable USB Reset, Connection Done, and USB/Link State Change events */
     _ux_dcd_dwc3_register_write(dcd_dwc3, UX_DCD_DWC3_DEVTEN, UX_DCD_DWC3_DEV_INT_EN);
 
-    NVIC_ClearPendingIRQ(USB0_IRQ);
-    NVIC_EnableIRQ(USB0_IRQ);
+    NVIC_ClearPendingIRQ(USB_IRQ_IRQn);
+    NVIC_EnableIRQ(USB_IRQ_IRQn);
 
     /* Set the state of the controller to OPERATIONAL now.  */
     dcd -> ux_slave_dcd_status =  UX_DCD_STATUS_OPERATIONAL;
@@ -312,7 +248,7 @@ UINT            status;
   \fn          void  USBx_IRQHandler (void)
   \brief       Run the Interrupt Handler for USBx
 */
-void USB0_IRQHandler (void)
+void USB_IRQHandler(void)
 {
     _ux_dcd_dwc3_interrupt_handler();
 }
@@ -381,8 +317,7 @@ VOID _ux_dcd_phy_reset(UX_DCD_DWC3 *dcd_dwc3)
 
 VOID _ux_dcd_set_speed(UX_DCD_DWC3 *dcd_dwc3)
 {
-    ULONG     RegVal;
-
+    ULONG  RegVal;
     RegVal = _ux_dcd_dwc3_register_read(dcd_dwc3, UX_DCD_DWC3_DCFG);
     RegVal &= ~(UX_DCD_DCFG_SPEED_MASK);
     RegVal |= UX_DCD_DCFG_HIGHSPEED;
@@ -396,7 +331,7 @@ UINT _ux_dcd_SetupScratchpad(UX_DCD_DWC3 *dcd_dwc3, ULONG ScratchBuff)
     Ret = _ux_dcd_SendGadgetGenericCmd(dcd_dwc3,
                         UX_DCD_DGCMD_SET_SCRATCHPAD_ADDR_LO,
                         (ULONG)(ScratchBuff & 0xFFFFFFFFU));
-    if (Ret == 0) {
+    if (Ret !=  0) {
 #ifdef	DEBUG
         printf("Failed to set scratchpad low addr: %d\n", Ret);
 #endif
@@ -406,38 +341,45 @@ UINT _ux_dcd_SetupScratchpad(UX_DCD_DWC3 *dcd_dwc3, ULONG ScratchBuff)
     Ret = _ux_dcd_SendGadgetGenericCmd(dcd_dwc3,
                 UX_DCD_DGCMD_SET_SCRATCHPAD_ADDR_HI,
                         (ULONG)((ScratchBuff >> 16U) >> 16U));
-    if (Ret == 0) {
+    if (Ret != 0) {
 #ifdef	DEBUG
         printf("Failed to set scratchpad high addr: %d\n", Ret);
 #endif
         return Ret;
     }
 
-    return 1;
+    return Ret;
 
 }
 
 UINT _ux_dcd_SendGadgetGenericCmd(UX_DCD_DWC3 *dcd_dwc3, ULONG cmd,
                         ULONG param)
 {
-    ULONG             RegVal, retry = 500U;
+    ULONG RegVal, retry = 500U;
+    LONG  status = 0;
+    LONG  ret = 0;
 
     _ux_dcd_dwc3_register_write(dcd_dwc3, UX_DCD_DWC3_DGCMDPAR, param);
     _ux_dcd_dwc3_register_write(dcd_dwc3, UX_DCD_DWC3_DGCMD,
                                 cmd | UX_DCD_DGCMD_CMDACT);
-
-    while (retry > 0U) {
+     do
+     {
         RegVal = _ux_dcd_dwc3_register_read(dcd_dwc3, UX_DCD_DWC3_DGCMD);
-            if ((RegVal & UX_DCD_DGCMD_CMDACT) == 0U) {
-                if (UX_DCD_DGCMD_STATUS(RegVal) != 0U) {
-                    return -1;
-                    }
-                return 1;
-            }
-            retry = retry - 1U;
+        if(!(RegVal & UX_DCD_DGCMD_CMDACT))
+        {
+            status = UX_DCD_DGCMD_STATUS(RegVal);
+            if(status)
+                ret =  UX_ERROR;
+             break;
         }
+     }while (-- retry);
+     if(!retry)
+     {
+         ret = UX_ERROR;
+         status = UX_ERROR;
+     }
 
-        return 0;
+     return ret;
 }
 
 VOID _ux_dcd_SetEpHandler(UX_DCD_DWC3 *dcd_dwc3, ULONG Epnum,

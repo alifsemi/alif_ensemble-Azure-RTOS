@@ -36,4 +36,4 @@
  * Provide the configured ticks per second to
  *  _tx_initialize_low_level.
  */
-uint32_t  _tx_timer_ticks_per_second = TX_TIMER_TICKS_PER_SECOND;
+UINT  _tx_timer_ticks_per_second = TX_TIMER_TICKS_PER_SECOND;

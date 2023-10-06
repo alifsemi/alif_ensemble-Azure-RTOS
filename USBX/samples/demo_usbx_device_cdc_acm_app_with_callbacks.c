@@ -27,6 +27,11 @@
 #include "ux_device_stack.h"
 #include "ux_device_class_cdc_acm.h"
 #include "system_utils.h"
+#include "RTE_Components.h"
+#if defined(RTE_Compiler_IO_STDOUT)
+#include "retarget_stdout.h"
+#endif  /* RTE_Compiler_IO_STDOUT */
+
 
 /* Define constants.  */
 #define ONE_KB                            1024
@@ -62,56 +67,6 @@ TX_THREAD  demo_thread;
 uint8_t dma_buf[UX_DEMO_NS_SIZE]__attribute__((section("usb_dma_buf")));
 UX_SLAVE_CLASS_CDC_ACM_PARAMETER cdc_acm0_parameter;
 UX_SLAVE_CLASS_CDC_ACM_CALLBACK_PARAMETER   call_back;
-
-/* For Release build disable printf and semihosting */
-#define DISABLE_SEMIHOSTING
-#ifdef DISABLE_SEMIHOSTING
-/* Also Disable Semihosting */
-#if __ARMCC_VERSION >= 6000000
-        __asm(".global __use_no_semihosting");
-#elif __ARMCC_VERSION >= 5000000
-        #pragma import(__use_no_semihosting)
-#else
-        #error Unsupported compiler
-#endif
-
-void _sys_exit(int return_code)
-{
-    while (1);
-}
-int _sys_open(void *p)
-{
-    return 0;
-}
-int _sys_close(void *p)
-{
-  return 0;
-
-}
-int _sys_read(void *p)
-{
-    return 0;
-}
-int _sys_write(void *p)
-{
-   return 0;
-}
-int _sys_istty(void *p)
-{
-   return 0;
-}
-int _sys_seek(void *p)
-{
-   return 0;
-}
-int _sys_flen(void *p)
-{
-    return 0;
-}
-void _ttywrch(int ch)
-{
-}
-#endif /* DISABLE_SEMIHOSTING */
 
 /* Change the endpoint packet size later */
 #define DEVICE_FRAMEWORK_LENGTH_FULL_SPEED 93
@@ -264,6 +219,15 @@ UCHAR language_id_framework[] = {
 
 int  main(void)
 {
+    #if defined(RTE_Compiler_IO_STDOUT_User)
+    int32_t ret;
+    ret = stdout_init();
+    if(ret != ARM_DRIVER_OK)
+    {
+        print("XYZABC")
+        return ret;
+    }
+    #endif
 
     /* Enter the ThreadX kernel.  */
     printf("Started USBx driver app\n");

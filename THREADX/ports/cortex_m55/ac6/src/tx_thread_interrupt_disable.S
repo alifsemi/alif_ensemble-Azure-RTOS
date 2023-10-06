@@ -20,13 +20,16 @@
 /**************************************************************************/
 /**************************************************************************/
 
+#ifdef TX_INCLUDE_USER_DEFINE_FILE
+#include "tx_user.h"
+#endif
 
 /**************************************************************************/
 /*                                                                        */
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _tx_thread_interrupt_disable                      Cortex-M55/AC6    */
-/*                                                           6.1          */
+/*                                                           6.2.1        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Scott Larson, Microsoft Corporation                                 */
@@ -38,11 +41,11 @@
 /*                                                                        */
 /*  INPUT                                                                 */
 /*                                                                        */
-/*    old_posture                           Old interrupt lockout posture */
+/*    None                                                                */
 /*                                                                        */
 /*  OUTPUT                                                                */
 /*                                                                        */
-/*    None                                                                */
+/*    old_posture                           Old interrupt lockout posture */
 /*                                                                        */
 /*  CALLS                                                                 */
 /*                                                                        */
@@ -57,9 +60,11 @@
 /*    DATE              NAME                      DESCRIPTION             */
 /*                                                                        */
 /*  09-30-2020      Scott Larson            Initial Version 6.1           */
+/*  03-08-2023      Scott Larson            Include tx_user.h,            */
+/*                                            resulting in version 6.2.1  */
 /*                                                                        */
 /**************************************************************************/
-// UINT   _tx_thread_interrupt_disable(UINT new_posture)
+// UINT   _tx_thread_interrupt_disable(VOID)
 // {
     .section .text
     .balign 4
@@ -70,8 +75,14 @@
 .type _tx_thread_interrupt_disable, function
 _tx_thread_interrupt_disable:
     /* Return current interrupt lockout posture.  */
+#ifdef TX_PORT_USE_BASEPRI
+    MRS     r0, BASEPRI
+    LDR     r1, =TX_PORT_BASEPRI
+    MSR     BASEPRI, r1
+#else
     MRS     r0, PRIMASK
     CPSID   i
+#endif
     BX      lr
 // }
     .end

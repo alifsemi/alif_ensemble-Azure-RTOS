@@ -1,4 +1,4 @@
-/* Copyright (C) 2022 Alif Semiconductor - All Rights Reserved.
+/* Copyright (C) 2023 Alif Semiconductor - All Rights Reserved.
  * Use, distribution and modification of this code is permitted under the
  * terms stated in the Alif Semiconductor Software License Agreement
  *
@@ -9,21 +9,50 @@
  */
 
 /**************************************************************************//**
- * @file     : adc_testApp.c
+ * @file     : ADC_testapp.c
  * @author   : Prabhakar kumar
  * @email    : prabhakar.kumar@alifsemi.com
  * @version  : V1.0.0
  * @date     : 22-Feb-2022
- * @brief    : TestApp to verify ADC Driver using Threadx as an operating system.
+ * @brief    : ThreadX demo application code for ADC driver
  *              - Input in analog signal corresponding output is digital value.
  *              - Converted digital value are stored in user provided memory
  *                address.
+ *                ADC has two conversion mode
+ *                1) Single shot conversion
+ *                  - single channel scan
+ *                2) Continuous conversion
+ *                  - single channel scan
+ *                  - Continuous scan
  *
  *              Hardware setup:
- *              - GPIO port P0_0  to P0_5  pins are reserved for ADC instance 0 input.
- *              - GPIO port P0_6  to P0_11 pins are reserved for ADC instance 1 input.
- *              - GPIO port P0_12 to P0_17 pins are reserved for ADC instance 2 input.
- *              - Jumper setting: Short J411 (VREFN) for the negative reference voltage.
+ *              - GPIO port are reserved for ADC12 instance 0 input:
+ *                P0_0(channel0)
+ *                P0_1(channel1)
+ *                P0_2(channel2)
+ *                P0_3(channel3)
+ *                P0_4(channel4)
+ *                P0_5(channel5)
+ *              - GPIO port are reserved for ADC12 instance 1 input:
+ *                P0_6(channel0)
+ *                P0_7(channel1)
+ *                P1_0(channel2)
+ *                P1_1(channel3)
+ *                P1_2(channel4)
+ *                P1_3(channel5)
+ *              - GPIO port are reserved for ADC12 instance 2 input:
+ *                P1_4(channel0)
+ *                P1_5(channel1)
+ *                P1_6(channel2)
+ *                P1_7(channel3)
+ *                P2_0(channel4)
+ *                P2_1(channel5)
+ *
+ *              - GPIO port are reserved for ADC24 instance input:
+ *                P0_0 (+ve input ) and P0_4 (-ve input) channel 0
+ *                P0_1 (+ve input ) and P0_5 (-ve input) channel 1
+ *                P0_2 (+ve input ) and P0_6 (-ve input) channel 2
+ *                P0_3 (+ve input ) and P0_7 (-ve input) channel 2
  *
  *              Single channel Scan (selective channel scan)
  *              - User can select the particular channel using
@@ -42,15 +71,15 @@
  *
  *              ADC configurations for Demo testApp:
  *                Single channel scan(Default scan)
- *                 - GPIO pin P0_12 & P0_13 are connected to 2 channel Regulated DC Power supply.
+ *                 - GPIO pin P1_4 are connected to Regulated DC Power supply.
  *                    DC Power supply:
- *                     - first  Channel, +ve connected to P0_12 (ADC2 channel 0) at 1.0V
- *                     - second Channel, +ve connected to P0_13 (ADC2 channel 1) at 0.4V
+ *                     - +ve connected to P1_4 (ADC2 channel 0) at 1.0V
+ *                     - -ve connect to GND.
  *
  *                Continuous Channel scan
- *                - Used ADC instance 2, pin from P0_12 to P0_17 all are connected to dc supply
- *                - channel 0 and 1 are masked using MASK_CHANNEL macro.
- *                address.
+ *                - Used ADC instance 2,all channels(0-5) are connected to dc supply
+ *                - channel 2 and 4 are masked using MASK_CHANNEL macro.
+ *                - GND both dc supply channel -ve
  * @bug      : None.
  * @Note     : None.
  ******************************************************************************/
@@ -62,39 +91,46 @@
 
 /* include for ADC Driver */
 #include "Driver_ADC.h"
+#include "RTE_Components.h"
+#if defined(RTE_Compiler_IO_STDOUT)
+#include "retarget_stdout.h"
+#endif  /* RTE_Compiler_IO_STDOUT */
 
-/* single     channel scan use ARM_ADC_CH_SINGLE_SCAN
- * continuous channel scan use ARM_ADC_CH_CONTINOUS_SCAN
- */
-#define ADC_SCAN    ARM_ADC_CH_SINGLE_SCAN
-//#define ADC_SCAN    ARM_ADC_CH_CONTINOUS_SCAN
 
-/* For Release build disable printf and semihosting */
-//#define DISABLE_PRINTF
+/* single shot conversion scan use ARM_ADC_SINGLE_SHOT_CH_CONV*/
+/* continuous conversion scan use ARM_ADC_CONTINOUS_CH_CONV */
 
-#ifdef DISABLE_PRINTF
-    #define printf(fmt, ...) (0)
-    /* Also Disable Semihosting */
-    #if __ARMCC_VERSION >= 6000000
-            __asm(".global __use_no_semihosting");
-    #elif __ARMCC_VERSION >= 5000000
-            #pragma import(__use_no_semihosting)
-    #else
-            #error Unsupported compiler
-    #endif
+#define ADC_CONVERSION    ARM_ADC_SINGLE_SHOT_CH_CONV
+//#define ADC_CONVERSION    ARM_ADC_CONTINOUS_CH_CONV
 
-    void _sys_exit(int return_code) {
-            while (1);
-    }
+/* For rotating through one channel use ARM_ADC_FIXED_CHANNEL_SCAN */
+/* For continuous rotating through all channel use ARM_ADC_MULTIPLE_CHANNEL_SCAN*/
+
+/* @note : When conversion is selected ARM_ADC_CH_SINGLE_SHOT_SCAN
+ *         ADC_SCAN should be in ARM_ADC_SINGLE_CH_SCAN
+ * */
+#define ADC_SCAN       ARM_ADC_SINGLE_CH_SCAN
+//#define ADC_SCAN       ARM_ADC_MULTIPLE_CH_SCAN
+
+/* Macros for ADC12 */
+#define ADC12             1
+
+/*  Undefine the ADC12 instance to use ADC24 */
+#define ADC_INSTANCE         ADC12
+
+#if (ADC_INSTANCE == ADC12)
+/* Instance for ADC12 */
+extern ARM_DRIVER_ADC Driver_ADC122;
+static ARM_DRIVER_ADC *ADCdrv = &Driver_ADC122;
+#else
+/* Instance for ADC24 */
+extern ARM_DRIVER_ADC Driver_ADC24;
+static ARM_DRIVER_ADC *ADCdrv = &Driver_ADC24;
 #endif
-
-/* ADC Driver instance */
-extern ARM_DRIVER_ADC Driver_ADC2;
-static ARM_DRIVER_ADC *ADCdrv = &Driver_ADC2;
 
 #define COMP_A_THLD_VALUE                   (0X00)                                                /* Comparator A threshold value */
 #define COMP_B_THLD_VALUE                   (0x00)                                                /* Comparator B threshold value */
-#define MASK_CHANNEL                        (ARM_ADC_MASK_CHANNEL_0 | ARM_ADC_MASK_CHANNEL_1)     /* Masking particular channels  */
+#define MASK_CHANNEL                        (ARM_ADC_MASK_CHANNEL_2 | ARM_ADC_MASK_CHANNEL_4)     /* Masking particular channels  */
 
 void adc_demo_Thread_entry(ULONG thread_input);
 
@@ -108,23 +144,30 @@ TX_BYTE_POOL            byte_pool_0;
 UCHAR                   memory_area[DEMO_BYTE_POOL_SIZE];
 TX_EVENT_FLAGS_GROUP    event_flags_adc;
 
+#define NUM_CHANNELS             (8)
+
 /* store comparator result */
 uint32_t comp_value[6] = {0};
 
-#define TOTAL_SAMPLES             (16 * 1024) /* 16K samples */
+/* Demo purpose Channel_value*/
+uint32_t adc_samples[NUM_CHANNELS];
 
-/* Demo purpose memory buffer */
-uint32_t memory_buff[TOTAL_SAMPLES];
+volatile uint32_t num_samples = 0;
 
 /*
- *    @func        : void adc_conversion_callback(uint32_t event)
+ *    @func        : void adc_conversion_callback(uint32_t event, uint8_t channel, uint32_t sample_output)
  *    @brief       : adc conversion isr callback
  *.   @return      : NONE
 */
-static void adc_conversion_callback(uint32_t event)
+static void adc_conversion_callback(uint32_t event, uint8_t channel, uint32_t sample_output)
 {
     if (event & ARM_ADC_EVENT_CONVERSION_COMPLETE)
     {
+        num_samples += 1;
+
+        /* Store the value for the respected channels */
+        adc_samples[channel] = sample_output;
+
         /* Sample ready Wake-up Thread. */
         tx_event_flags_set(&event_flags_adc, TX_ADC_INT_AVG_SAMPLE_RDY, TX_OR);
     }
@@ -190,70 +233,103 @@ void adc_demo_Thread_entry(ULONG thread_input)
         goto error_uninitialize;
     }
 
-#if (ADC_SCAN == ARM_ADC_CH_CONTINOUS_SCAN)
-    /* set sequencer controller */
-    ret = ADCdrv->Control(ARM_ADC_SEQUENCER_CTRL, ARM_ADC_CH_CONTINOUS_SCAN);
-    if(ret != ARM_DRIVER_OK){
-        printf("\r\n Error: ADC sequencer controller failed\n");
-        goto error_uninitialize;
-    }
+#if (ADC_CONVERSION == ARM_ADC_SINGLE_SHOT_CH_CONV)
 
-    /* Masking the channel */
-    ret = ADCdrv->Control(ARM_ADC_SEQUENCER_MSK_CH_CTRL, MASK_CHANNEL);
+    /* set conversion mode */
+    ret = ADCdrv->Control(ARM_ADC_CONVERSION_MODE_CTRL, ADC_CONVERSION);
     if(ret != ARM_DRIVER_OK){
-        printf("\r\n Error: ADC sequencer masking channel failed\n");
-        goto error_uninitialize;
-    }
-#else /*single scan mode */
-    /* set sequencer controller */
-    ret = ADCdrv->Control(ARM_ADC_SEQUENCER_CTRL, ARM_ADC_CH_SINGLE_SCAN);
-    if(ret != ARM_DRIVER_OK){
-        printf("\r\n Error: ADC sequencer controller failed\n");
-        goto error_uninitialize;
+        printf("\r\n Error: ADC Comparator failed\n");
+        goto error_poweroff;
     }
 
     /* set initial channel */
     ret = ADCdrv->Control(ARM_ADC_CHANNEL_INIT_VAL, ARM_ADC_CHANNEL_0);
     if(ret != ARM_DRIVER_OK){
         printf("\r\n Error: ADC channel failed\n");
-        goto error_uninitialize;
+        goto error_poweroff;
+    }
+#endif
+
+#if (ADC_CONVERSION == ARM_ADC_CONTINOUS_CH_CONV)
+
+    /* set conversion mode */
+    ret = ADCdrv->Control(ARM_ADC_CONVERSION_MODE_CTRL, ADC_CONVERSION);
+    if(ret != ARM_DRIVER_OK){
+        printf("\r\n Error: ADC setting conversion mode failed\n");
+        goto error_poweroff;
+    }
+
+    if (ADC_SCAN == ARM_ADC_SINGLE_CH_SCAN)
+    {
+        /* set channel */
+        ret = ADCdrv->Control(ARM_ADC_CHANNEL_INIT_VAL, ARM_ADC_CHANNEL_0);
+        if(ret != ARM_DRIVER_OK){
+            printf("\r\n Error: ADC setting channel failed\n");
+            goto error_poweroff;
+        }
+    }
+    else /* Multiple channel scan */
+    {
+        /* set sequencer controller */
+        ret = ADCdrv->Control(ARM_ADC_SEQUENCER_CTRL, ARM_ADC_MULTIPLE_CH_SCAN);
+        if(ret != ARM_DRIVER_OK){
+           printf("\r\n Error: ADC sequencer controller failed\n");
+           goto error_poweroff;
+        }
+
+        /* set channel */
+        ret = ADCdrv->Control(ARM_ADC_CHANNEL_INIT_VAL, ARM_ADC_CHANNEL_0);
+        if(ret != ARM_DRIVER_OK){
+            printf("\r\n Error: ADC setting channel failed\n");
+            goto error_poweroff;
+        }
+
+        /* Masking the channel */
+        ret = ADCdrv->Control(ARM_ADC_SEQUENCER_MSK_CH_CTRL, MASK_CHANNEL);
+        if(ret != ARM_DRIVER_OK){
+            printf("\r\n Error: ADC sequencer masking channel failed\n");
+            goto error_poweroff;
+        }
     }
 #endif
 
     /* set comparator a value */
     ret = ADCdrv->Control(ARM_ADC_COMPARATOR_A, COMP_A_THLD_VALUE);
     if(ret != ARM_DRIVER_OK){
-        printf("\r\n Error: ADC Comparator A failed\n");
-        goto error_uninitialize;
+        printf("\r\n Error: ADC set Comparator A threshold failed\n");
+        goto error_poweroff;
     }
 
     /* set comparator b value */
     ret = ADCdrv->Control(ARM_ADC_COMPARATOR_B, COMP_B_THLD_VALUE);
     if(ret != ARM_DRIVER_OK){
-        printf("\r\n Error: ADC Comparator B failed\n");
-        goto error_uninitialize;
+        printf("\r\n Error: ADC set comparator B  threshold failed\n");
+        goto error_poweroff;
     }
 
     /* select the threshold comparison */
     ret = ADCdrv->Control(ARM_ADC_THRESHOLD_COMPARISON, ARM_ADC_ABOVE_A_AND_ABOVE_B);
     if(ret != ARM_DRIVER_OK){
         printf("\r\n Error: ADC Threshold comparison failed\n");
-        goto error_uninitialize;
-    }
-
-    /* ENABLE or DISABLE the comparator */
-    ret = ADCdrv->Control(ARM_ADC_COMPARATOR_CONTROLLER , ENABLE);
-    if(ret != ARM_DRIVER_OK){
-        printf("\r\n Error: ADC Comparator failed\n");
-        goto error_uninitialize;
-    }
-
-    printf(">>> Allocated memory buffer Address is 0x%X <<<\n",(uint32_t)memory_buff);
-    /* Start ADC */
-    ret = ADCdrv->Start((uint32_t *)memory_buff, TOTAL_SAMPLES);
-    if(ret != ARM_DRIVER_OK){
-        printf("\r\n Error: ADC Power up failed\n");
         goto error_poweroff;
+    }
+
+    printf(">>> Allocated memory buffer Address is 0x%X <<<\n",(uint32_t)adc_samples);
+    /* Start ADC */
+    ret = ADCdrv->Start();
+    if(ret != ARM_DRIVER_OK){
+        printf("\r\n Error: ADC Start failed\n");
+        goto error_poweroff;
+    }
+
+    /* wait for timeout */
+    if (ADC_CONVERSION == ARM_ADC_CONTINOUS_CH_CONV)
+    {
+        while(!(num_samples == 1000));
+    }
+    else
+    {
+        while(!(num_samples == 1));
     }
 
     /* wait till conversion comes ( isr callback ) */
@@ -266,7 +342,7 @@ void adc_demo_Thread_entry(ULONG thread_input)
     /* Stop ADC */
     ret = ADCdrv->Stop();
     if(ret != ARM_DRIVER_OK){
-        printf("\r\n Error: ADC Power up failed\n");
+        printf("\r\n Error: ADC stop failed\n");
         goto error_poweroff;
     }
 
@@ -293,12 +369,23 @@ error_uninitialize:
             printf("\r\n Error: ADC Uninitialize failed.\r\n");
         }
 
-        printf("\r\n XXX ADC demo thread exiting XXX...\r\n");
+        printf("\r\n ADC demo thread exiting...\r\n");
 }
 
 /* Define main entry point.  */
 int main()
 {
+    #if defined(RTE_Compiler_IO_STDOUT_User)
+    int32_t ret;
+    ret = stdout_init();
+    if(ret != ARM_DRIVER_OK)
+    {
+        while(1)
+        {
+        }
+    }
+    #endif
+
     /* Enter the ThreadX kernel.  */
     tx_kernel_enter();
 }

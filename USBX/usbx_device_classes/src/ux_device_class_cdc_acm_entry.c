@@ -80,76 +80,70 @@ UINT  _ux_device_class_cdc_acm_entry(UX_SLAVE_CLASS_COMMAND *command)
 
 UINT        status;
 
-    //printf("CDC ACM class entry function\n");
+
     /* The command request will tell us we need to do here, either a enumeration
        query, an activation or a deactivation.  */
     switch (command -> ux_slave_class_command_request)
     {
 
-        case UX_SLAVE_CLASS_COMMAND_INITIALIZE:
+    case UX_SLAVE_CLASS_COMMAND_INITIALIZE:
 
-        	//printf("Enter into UX_SLAVE_CLASS_COMMAND_INITIALIZE\n");
-            /* Call the init function of the CDC ACM class.  */
-            status =  _ux_device_class_cdc_acm_initialize(command);
+        /* Call the init function of the CDC ACM class.  */
+        status =  _ux_device_class_cdc_acm_initialize(command);
         
-            /* Return the completion status.  */
-            return(status);
+        /* Return the completion status.  */
+        return(status);
 
-        case UX_SLAVE_CLASS_COMMAND_UNINITIALIZE:
+    case UX_SLAVE_CLASS_COMMAND_UNINITIALIZE:
 
-        	//printf("Enter into UX_SLAVE_CLASS_COMMAND_UNINITIALIZE\n");
-            /* Call the init function of the CDC ACM class.  */
-            status =  _ux_device_class_cdc_acm_uninitialize(command);
+        /* Call the init function of the CDC ACM class.  */
+        status =  _ux_device_class_cdc_acm_uninitialize(command);
         
-            /* Return the completion status.  */
-            return(status);
+        /* Return the completion status.  */
+        return(status);
 
-        case UX_SLAVE_CLASS_COMMAND_QUERY:
+    case UX_SLAVE_CLASS_COMMAND_QUERY:
 
-           //printf("Enter into UX_SLAVE_CLASS_COMMAND_QUERY\n");
-            /* Check the CLASS definition in the interface descriptor. */
-            if (command -> ux_slave_class_command_class == UX_SLAVE_CLASS_CDC_ACM_CLASS)
-                return(UX_SUCCESS);
-            else
-                return(UX_NO_CLASS_MATCH);
+        /* Check the CLASS definition in the interface descriptor. */
+        if (command -> ux_slave_class_command_class == UX_SLAVE_CLASS_CDC_ACM_CLASS)
+            return(UX_SUCCESS);
+        else
+            return(UX_NO_CLASS_MATCH);
 
-        case UX_SLAVE_CLASS_COMMAND_ACTIVATE:
+    case UX_SLAVE_CLASS_COMMAND_ACTIVATE:
 
-        	//printf("Enter into UX_SLAVE_CLASS_COMMAND_ACTIVATE\n");
-            /* The activate command is used when the host has sent a SET_CONFIGURATION command
-               and this interface has to be mounted. Both Bulk endpoints have to be mounted
-               and the cdc_acm thread needs to be activated.  */
-            status =  _ux_device_class_cdc_acm_activate(command);
+        /* The activate command is used when the host has sent a SET_CONFIGURATION command
+           and this interface has to be mounted. Both Bulk endpoints have to be mounted
+           and the cdc_acm thread needs to be activated.  */
+        status =  _ux_device_class_cdc_acm_activate(command);
 
-            /* Return the completion status.  */
-            return(status);
+        /* Return the completion status.  */
+        return(status);
 
-        case UX_SLAVE_CLASS_COMMAND_DEACTIVATE:
+    case UX_SLAVE_CLASS_COMMAND_DEACTIVATE:
 
-        	printf("Enter into UX_SLAVE_CLASS_COMMAND_DEACTIVATE\n");
-            /* The deactivate command is used when the device has been extracted.
-            The device endpoints have to be dismounted and the cdc_acm thread canceled.  */
-            status =  _ux_device_class_cdc_acm_deactivate(command);
+        /* The deactivate command is used when the device has been extracted.
+           The device endpoints have to be dismounted and the cdc_acm thread canceled.  */
+        status =  _ux_device_class_cdc_acm_deactivate(command);
         
-            /* Return the completion status.  */
-            return(status);
+        /* Return the completion status.  */
+        return(status);
 
-        case UX_SLAVE_CLASS_COMMAND_REQUEST:
+    case UX_SLAVE_CLASS_COMMAND_REQUEST:
 
-        	//printf("Enter into UX_SLAVE_CLASS_COMMAND_REQUEST\n");
-            /* The request command is used when the host sends a command on the control endpoint.  */
-            status = _ux_device_class_cdc_acm_control_request(command);
+        /* The request command is used when the host sends a command on the control endpoint.  */
+        status = _ux_device_class_cdc_acm_control_request(command);
 
-            /* Return the completion status.  */
-            return(status);
+        /* Return the completion status.  */
+        return(status);
 
-        default: 
+    default: 
 
-            /* If trace is enabled, insert this event into the trace buffer.  */
-            UX_TRACE_IN_LINE_INSERT(UX_TRACE_ERROR, UX_FUNCTION_NOT_SUPPORTED, 0, 0, 0, UX_TRACE_ERRORS, 0, 0)
+        /* If trace is enabled, insert this event into the trace buffer.  */
+        UX_TRACE_IN_LINE_INSERT(UX_TRACE_ERROR, UX_FUNCTION_NOT_SUPPORTED, 0, 0, 0, UX_TRACE_ERRORS, 0, 0)
 
-            /* Return an error.  */
-            return(UX_FUNCTION_NOT_SUPPORTED);
+        /* Return an error.  */
+        return(UX_FUNCTION_NOT_SUPPORTED);
     }   
 }
 

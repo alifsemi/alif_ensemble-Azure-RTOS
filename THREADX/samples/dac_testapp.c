@@ -39,67 +39,11 @@
 /* Project Includes */
 /* include for DAC Driver */
 #include "Driver_DAC.h"
+#include "RTE_Components.h"
+#if defined(RTE_Compiler_IO_STDOUT)
+#include "retarget_stdout.h"
+#endif  /* RTE_Compiler_IO_STDOUT */
 
-/* For Release build disable printf and semihosting */
-#define DISABLE_SEMIHOSTING
-
-#ifdef DISABLE_SEMIHOSTING
-/* Also Disable Semihosting */
-#if __ARMCC_VERSION >= 6000000
-        __asm(".global __use_no_semihosting");
-#elif __ARMCC_VERSION >= 5000000
-        #pragma import(__use_no_semihosting)
-#else
-        #error Unsupported compiler
-#endif
-
-void _sys_exit(int return_code) {
-        while (1);
-}
-
-
-int _sys_open(void *p){
-
-   return 0;
-}
-
-
-int _sys_close(void *p){
-
-   return 0;
-}
-
-
-int _sys_read(void *p){
-
-   return 0;
-}
-
-int _sys_write(void *p){
-
-   return 0;
-}
-
-int _sys_istty(void *p){
-
-   return 0;
-}
-
-int _sys_seek(void *p){
-
-   return 0;
-}
-
-int _sys_flen(void *p){
-
-    return 0;
-}
-
-void _ttywrch(int ch){
-
-}
-
-#endif /* DISABLE_SEMIHOSTING */
 
 /* DAC Driver instance */
 extern ARM_DRIVER_DAC Driver_DAC0;
@@ -233,6 +177,17 @@ error_uninitialize:
 /* Define main entry point.  */
 int main()
 {
+    #if defined(RTE_Compiler_IO_STDOUT_User)
+    int32_t ret;
+    ret = stdout_init();
+    if(ret != ARM_DRIVER_OK)
+    {
+        while(1)
+        {
+        }
+    }
+    #endif
+
     /* Enter the ThreadX kernel.  */
     tx_kernel_enter();
 }

@@ -34,7 +34,7 @@
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _ux_device_stack_interface_set                      PORTABLE C      */
-/*                                                           6.1          */
+/*                                                           6.1.9        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Chaoqiong Xiao, Microsoft Corporation                               */
@@ -76,6 +76,9 @@
 /*                                            optimized based on compile  */
 /*                                            definitions,                */
 /*                                            resulting in version 6.1    */
+/*  10-15-2021     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            calculated payload size,    */
+/*                                            resulting in version 6.1.9  */
 /*                                                                        */
 /**************************************************************************/
 UINT  _ux_device_stack_interface_set(UCHAR * device_framework, ULONG device_framework_length,
@@ -96,6 +99,7 @@ ULONG                   descriptor_length;
 UCHAR                   descriptor_type;
 ULONG                   endpoints_pool_number;
 UINT                    status;
+ULONG                   max_transfer_length, n_trans;
 
     UX_PARAMETER_NOT_USED(alternate_setting_value);
 
@@ -112,12 +116,8 @@ UINT                    status;
        existing interface.  */
     interface = device -> ux_slave_device_interfaces_pool;
 
-    //printf("interface [%x] from free pool pool_number [%x]\n",
-//		    interface, device -> ux_slave_device_interfaces_pool_number);
-
 #if !defined(UX_DEVICE_INITIALIZE_FRAMEWORK_SCAN_DISABLE) || UX_MAX_DEVICE_INTERFACES > 1
     interfaces_pool_number = device -> ux_slave_device_interfaces_pool_number;
-
     while (interfaces_pool_number != 0)
     {
         /* Check if this interface is free.  */
@@ -172,18 +172,14 @@ UINT                    status;
     }
 #else
 
-
     /* It must be very first one.  */
     device -> ux_slave_device_first_interface = interface;
 #endif
 
-//    printf("device_framework [%x]\n", *device_framework);
     /* Point beyond the interface descriptor.  */
     device_framework_length -=  (ULONG) *device_framework;
     device_framework +=  (ULONG) *device_framework;
 
-//    printf("interface [%x] can be passed framework_len [%x] device_framework [%x] [%x]\n",
-//		    interface, device_framework_length, device_framework, *device_framework);
     /* Parse the device framework and locate endpoint descriptor(s).  */
     while (device_framework_length != 0)
     {
@@ -193,11 +189,7 @@ UINT                    status;
 
         /* And its type.  */
         descriptor_type =  *(device_framework + 1);
-   
-//	printf("device_framework_length [%x] descriptor_length [%x] descriptor_type [%x]\n",
-//			device_framework_length,
-//			descriptor_length, descriptor_type);
-
+                
         /* Check if this is an endpoint descriptor.  */
         switch(descriptor_type)
         {
@@ -206,7 +198,6 @@ UINT                    status;
 
             /* Find a free endpoint in the pool and hook it to the 
                existing interface after it's created by DCD.  */
-        	//printf("END Point descriptor\n");
             endpoint = device -> ux_slave_device_endpoints_pool;
             endpoints_pool_number = device -> ux_slave_device_endpoints_pool_number;
             while (endpoints_pool_number != 0)
@@ -239,6 +230,30 @@ UINT                    status;
             /* Now we create a transfer request to accept transfer on this endpoint.  */
             transfer_request =  &endpoint -> ux_slave_endpoint_transfer_request;
                 
+            /* Validate endpoint descriptor wMaxPacketSize.  */
+            UX_ASSERT(endpoint -> ux_slave_endpoint_descriptor.wMaxPacketSize != 0);
+
+            /* Calculate endpoint transfer payload max size.  */
+            max_transfer_length =
+                    endpoint -> ux_slave_endpoint_descriptor.wMaxPacketSize &
+                                                        UX_MAX_PACKET_SIZE_MASK;
+            if ((_ux_system_slave -> ux_system_slave_speed == UX_HIGH_SPEED_DEVICE) &&
+                (endpoint -> ux_slave_endpoint_descriptor.bmAttributes & 0x1u))
+            {
+                n_trans = endpoint -> ux_slave_endpoint_descriptor.wMaxPacketSize &
+                                            UX_MAX_NUMBER_OF_TRANSACTIONS_MASK;
+                if (n_trans)
+                {
+                    n_trans >>= UX_MAX_NUMBER_OF_TRANSACTIONS_SHIFT;
+                    n_trans ++;
+                    max_transfer_length *= n_trans;
+                }
+            }
+
+            /* Validate max transfer size and save it.  */
+            UX_ASSERT(max_transfer_length <= UX_SLAVE_REQUEST_DATA_MAX_LENGTH);
+            transfer_request -> ux_slave_transfer_request_transfer_length = max_transfer_length;
+
             /* We store the endpoint in the transfer request as well.  */
             transfer_request -> ux_slave_transfer_request_endpoint =  endpoint;
                 
@@ -247,13 +262,10 @@ UINT                    status;
             
             /* Attach the interface to the endpoint.  */
             endpoint -> ux_slave_endpoint_interface =  interface;
-
-	//	printf("Interface pointer is [%x]\n",
-	//	    interface);
-
+                
             /* Attach the device to the endpoint.  */
             endpoint -> ux_slave_endpoint_device =  device;
-               
+                
             /* Create the endpoint at the DCD level.  */
             status =  dcd -> ux_slave_dcd_function(dcd, UX_DCD_CREATE_ENDPOINT, (VOID *) endpoint); 
             
@@ -280,9 +292,7 @@ UINT                    status;
                     endpoint_link =  endpoint_link -> ux_slave_endpoint_next_endpoint;
                 endpoint_link -> ux_slave_endpoint_next_endpoint =  endpoint;
             }
-	//	printf("interface_first_endpoint [%x]\n",
-	//			interface -> ux_slave_interface_first_endpoint);
-	    break;
+            break;
 
         case UX_CONFIGURATION_DESCRIPTOR_ITEM:
         case UX_INTERFACE_DESCRIPTOR_ITEM:
@@ -290,10 +300,7 @@ UINT                    status;
             /* If the descriptor is a configuration or interface,
                we have parsed and mounted all endpoints. 
                The interface attached to this configuration must be started at the class level.  */
-	        //printf("Interface pointer passed in start [%x]\n",interface);
-        	//printf("UX_INTERFACE_DESCRIPTOR_ITEM &UX_CONFIGURATION_DESCRIPTOR_ITEM\n");
-
-	    status =  _ux_device_stack_interface_start(interface);
+            status =  _ux_device_stack_interface_start(interface);
 
             /* Return the status to the caller.  */
             return(status);

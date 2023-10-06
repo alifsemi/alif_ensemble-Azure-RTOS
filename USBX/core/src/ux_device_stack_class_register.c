@@ -96,7 +96,7 @@ UINT                        class_name_length =  0;
 ULONG                       class_index;
 #endif
 
-    //printf("Class register\n");
+
     /* Get the length of the class name (exclude null-terminator).  */
     status =  _ux_utility_string_length_check(class_name, &class_name_length, UX_MAX_CLASS_NAME_LENGTH);
     if (status)

@@ -73,8 +73,8 @@ UX_DCD_DWC3     *dcd_dwc3;
 
         case UX_DCD_DESTROY_ENDPOINT:
 
-            status = 1;
-	        break;
+            status = 0;
+            break;
 
         case UX_DCD_RESET_ENDPOINT:
 

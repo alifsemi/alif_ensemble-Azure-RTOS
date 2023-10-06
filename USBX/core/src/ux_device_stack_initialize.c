@@ -128,7 +128,6 @@ UCHAR                           *memory;
     UX_TRACE_IN_LINE_INSERT(UX_TRACE_DEVICE_STACK_INITIALIZE, 0, 0, 0, 0, UX_TRACE_DEVICE_STACK_EVENTS, 0, 0)
 
     /* Get the pointer to the device. */
-  // printf("GLOBAL pointer address = %x\n",_ux_system_slave);
     device =  &_ux_system_slave -> ux_system_slave_device;
 
     /* Store the high speed device framework address and length in the project structure.  */
@@ -200,18 +199,11 @@ UCHAR                           *memory;
         device_framework        =  _ux_system_slave -> ux_system_slave_device_framework_full_speed;
         device_framework_length =  _ux_system_slave -> ux_system_slave_device_framework_length_full_speed;
 
-	/* device_framework in device stack changed to high_speed ..... back to orig above*/
-//	device_framework        =  _ux_system_slave -> ux_system_slave_device_framework_high_speed;
-//        device_framework_length =  _ux_system_slave -> ux_system_slave_device_framework_length_high_speed;
-
         /* Reset all values we are using during the scanning of the framework.  */
         local_interfaces_found             =  0;
         local_endpoints_found              =  0;
         endpoints_in_interface_found       =  0;
-#if 0
-        for(int i = 0; i< device_framework_length; i++)
-           printf("%d ", *(device_framework+i));
-#endif
+
         /* Parse the device framework and locate interfaces and endpoint descriptor(s).  */
         while (device_framework_length != 0)
         {
@@ -221,7 +213,6 @@ UCHAR                           *memory;
         
             /* And its type.  */
             descriptor_type =  *(device_framework + 1);
-
                     
             /* Check if this is an endpoint descriptor.  */
             switch(descriptor_type)
@@ -239,7 +230,6 @@ UCHAR                           *memory;
 
                     /* Read the number of endpoints for this alternate setting.  */
                     endpoints_in_interface_found = (ULONG) *(device_framework + 4);
-                   // printf("Endpoints in interface: %d\n",endpoints_in_interface_found);
                     
                     /* Increment the number of interfaces found in the current configuration.  */
                     local_interfaces_found++;
@@ -346,9 +336,6 @@ UCHAR                           *memory;
     /* Go on to allocate interfaces pool if no error.  */
     if (status == UX_SUCCESS)
     {
-
-	    /* printf("interfaces_found [%x] endpoints_found [%x]\n",
-			    interfaces_found, endpoints_found); */
 
         /* Memorize both pool sizes.  */
         device -> ux_slave_device_interfaces_pool_number = interfaces_found;

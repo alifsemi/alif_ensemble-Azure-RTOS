@@ -32,7 +32,6 @@
 
 #include "ux_api.h"
 #include "ux_system.h"
-#include "ux_user.h"
 
 /* Define the USBX system data structure.  */
 
