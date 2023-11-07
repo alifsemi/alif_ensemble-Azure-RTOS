@@ -32,11 +32,8 @@
 #include "retarget_stdout.h"
 #endif  /* RTE_Compiler_IO_STDOUT */
 
-#define DEMO_BYTE_POOL_SIZE             (4096U)
 #define UT_LED_DEMO_THREAD_STACK_SIZE   (512U)
 
-UCHAR                                   memory_area[DEMO_BYTE_POOL_SIZE];
-TX_BYTE_POOL                            memory_pool;
 TX_THREAD                               led_ctrl_thread;
 
 #define RED_LED    1U
@@ -316,28 +313,11 @@ int main ()
 /* Define what the initial system looks like.  */
 void tx_application_define (void *first_unused_memory)
 {
-    CHAR *pointer = TX_NULL;
-    INT ret;
-
-    /* Create a byte memory pool from which to allocate the thread stacks.  */
-    ret = tx_byte_pool_create (&memory_pool, "memory pool", memory_area, DEMO_BYTE_POOL_SIZE);
-
-    if (ret != TX_SUCCESS) {
-        printf("failed to create to byte Pool\r\n");
-    }
-
-    /* Put system definition stuff in here, e.g. thread creates and other assorted
-       create information.  */
-
-    /* Allocate the stack for thread 0.  */
-    ret = tx_byte_allocate (&memory_pool, (VOID **) &pointer, UT_LED_DEMO_THREAD_STACK_SIZE, TX_NO_WAIT);
-
-    if (ret != TX_SUCCESS) {
-        printf("failed to allocate stack for led brightness control demo thread\r\n");
-    }
+    UINT ret;
 
     /* Create the main thread.  */
-    ret = tx_thread_create (&led_ctrl_thread, "LED BREATHE DEMO", led_breathe_thread, 0, pointer, UT_LED_DEMO_THREAD_STACK_SIZE, 1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
+    ret = tx_thread_create (&led_ctrl_thread, "LED BREATHE DEMO", led_breathe_thread,
+            0, first_unused_memory, UT_LED_DEMO_THREAD_STACK_SIZE, 1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
 
     if (ret != TX_SUCCESS) {
         printf("failed to create led brightness control demo thread\r\n");

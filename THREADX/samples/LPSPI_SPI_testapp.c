@@ -33,11 +33,8 @@
 #error "This Demo application works only on M55_HE"
 #endif
 
-#define DEMO_BYTE_POOL_SIZE             (1024)
-#define TRANSFER_THREAD_STACK_SIZE      (512)
+#define TRANSFER_THREAD_STACK_SIZE      (1024)
 
-UCHAR                                   memory_area[DEMO_BYTE_POOL_SIZE];
-TX_BYTE_POOL                            memory_pool;
 TX_THREAD                               lpspi_spi0_transfer_thread;
 TX_EVENT_FLAGS_GROUP                    spi_event_flag;
 ULONG                                   events;
@@ -349,36 +346,20 @@ int main ()
 /* Define what the initial system looks like.  */
 void tx_application_define (void *first_unused_memory)
 {
-    CHAR *pointer = TX_NULL;
     UINT ret;
-
-    /* Create a byte memory pool from which to allocate the thread stacks.  */
-    ret = tx_byte_pool_create (&memory_pool, "memory pool", memory_area, DEMO_BYTE_POOL_SIZE);
-
-    if (ret != TX_SUCCESS) {
-        printf("failed to create to byte Pool\r\n");
-    }
 
     /* Put system definition stuff in here, e.g. thread creates and other assorted
        create information.  */
     /* Create a event flag for spi group.  */
     ret = tx_event_flags_create (&spi_event_flag, "SPI_EVENT_FLAG");
-
     if (ret != TX_SUCCESS) {
-        printf("failed to create spi event flag\r\n");
+        printf("failed to create lpspi event flag\r\n");
     }
 
-    /* Allocate the stack for thread 0.  */
-    ret = tx_byte_allocate (&memory_pool, (VOID **) &pointer, TRANSFER_THREAD_STACK_SIZE, TX_NO_WAIT);
-
+    /* Create the main thread. */
+    ret = tx_thread_create (&lpspi_spi0_transfer_thread, "TRANSFER DEMO THREAD", lpspi_spi0_transfer, 0,
+            first_unused_memory, TRANSFER_THREAD_STACK_SIZE, 1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
     if (ret != TX_SUCCESS) {
-        printf("failed to allocate stack for led blink demo thread\r\n");
-    }
-
-    /* Create the main thread.  */
-    ret = tx_thread_create (&lpspi_spi0_transfer_thread, "TRANSFER DEMO THREAD", lpspi_spi0_transfer, 0, pointer, TRANSFER_THREAD_STACK_SIZE, 1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
-
-    if (ret != TX_SUCCESS) {
-        printf("failed to create led blink demo thread\r\n");
+        printf("failed to create lpspi demo thread\r\n");
     }
 }

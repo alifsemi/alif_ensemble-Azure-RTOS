@@ -20,7 +20,6 @@
  *           - Configuring the UTIMER Channel 3 for counter start triggering mode.
  *           - Configuring the UTIMER Channel 4 for driver A, double buffering capture mode.
  *           - Configuring the UTIMER Channel 5 for driver A, double buffering compare mode.
- *           - Configuring the UTIMER Channel 6 for PWM signal generation.
  * @bug      None.
  * @Note     None
  ******************************************************************************/
@@ -44,13 +43,11 @@
 #define GPIO3_PIN4                     4U
 
 /* Define the ThreadX object control blocks  */
-#define DEMO_BYTE_POOL_SIZE                      (4096U)
 #define UTIMER_BASIC_MODE_THREAD_STACK_SIZE      (512U)
 #define UTIMER_BUFFERING_MODE_THREAD_STACK_SIZE  (512U)
 #define UTIMER_TRIGGER_MODE_THREAD_STACK_SIZE    (512U)
 #define UTIMER_CAPTURE_MODE_THREAD_STACK_SIZE    (512U)
 #define UTIMER_COMPARE_MODE_THREAD_STACK_SIZE    (512U)
-#define UTIMER_PWM_MODE_THREAD_STACK_SIZE        (512U)
 
 /* UTIMER callback events */
 #define UTIMER_OVERFLOW_CB_EVENT                 (1U << 0U)
@@ -65,16 +62,13 @@
 #define UTIMER_TRIGGER_MODE_WAIT_TIME            (1U * TX_TIMER_TICKS_PER_SECOND)              /* 1 second wait time */
 #define UTIMER_CAPTURE_MODE_WAIT_TIME            (1U * TX_TIMER_TICKS_PER_SECOND)              /* 1 second wait time */
 #define UTIMER_COMPARE_MODE_WAIT_TIME            (5U * TX_TIMER_TICKS_PER_SECOND)              /* 5 seconds wait time */
-#define UTIMER_PWM_MODE_WAIT_TIME                ((500U * TX_TIMER_TICKS_PER_SECOND)/1000)     /* 500ms seconds wait time */
 
-UCHAR                                            memory_area[DEMO_BYTE_POOL_SIZE];
-TX_BYTE_POOL                                     memory_pool;
 TX_THREAD                                        basic_mode_thread;
 TX_THREAD                                        buffering_mode_thread;
 TX_THREAD                                        trigger_mode_thread;
+TX_THREAD                                        trigger_mode_thread;
 TX_THREAD                                        capture_mode_thread;
 TX_THREAD                                        compare_mode_thread;
-TX_THREAD                                        pwm_mode_thread;
 TX_EVENT_FLAGS_GROUP                             basic_mode_event_flag;
 TX_EVENT_FLAGS_GROUP                             buffering_mode_event_flag;
 TX_EVENT_FLAGS_GROUP                             trigger_mode_event_flag;
@@ -1007,150 +1001,6 @@ error_compare_mode_uninstall:
     printf("*** demo application: compare mode completed *** \r\n\n");
 }
 
-/**
- * @function    void utimer_pwm_cb_func(event)
- * @brief       utimer pwm mode callback function
- * @note        none
- * @param       event
- * @retval      none
- */
-static void utimer_pwm_cb_func(uint8_t event)
-{
-    if (event == ARM_UTIMER_EVENT_COMPARE_A) {
-        tx_event_flags_set(&pwm_mode_event_flag, UTIMER_COMPARE_A_CB_EVENT, TX_OR);
-    }
-    if (event == ARM_UTIMER_EVENT_OVER_FLOW) {
-        tx_event_flags_set(&pwm_mode_event_flag, UTIMER_OVERFLOW_CB_EVENT, TX_OR);
-    }
-}
-
-/**
- * @function    void utimer_compare_mode_app(ULONG thread_input)
- * @brief       utimer pwm mode application
- * @note        none
- * @param       none
- * @retval      none
- */
-static void utimer_pwm_mode_app(ULONG thread_input)
-{
-    int32_t ret;
-    uint8_t channel = 6;
-    uint32_t count_array[3], status;
-
-    /*
-     * utimer channel 6 is configured to generate PWM o/p signal of 75% duty cycle(driver A is enabled).
-     * observe output signal from P1_4.
-     */
-    printf("*** utimer demo application for pwm started ***\n");
-    /*
-     * System CLOCK frequency (F)= 400Mhz
-     *
-     * Time for 1 count T = 1/F = 1/(400*10^6) = 0.0025 * 10^-6
-     *
-     * To Increment or Decrement Timer by 1 count, takes 0.0025 micro sec
-     *
-     * So count for 400ms = (400*(10^-3)/(0.0025*(10^-6)) = 160000000
-     * DEC = 160000000
-     * HEX = 0x9896800
-     *
-     * So count for 100ms = (100*(10^-3)/(0.0025*(10^-6)) = 40000000
-     * DEC = 40000000
-     * HEX = 0x2625A00
-     */
-    count_array[0] =  0x0;               /*< initial counter value >*/
-    count_array[1] =  0x9896800;         /*< over flow count value >*/
-    count_array[2] =  0x2625A00;         /*< compare a/b value>*/
-
-    /*
-     * Note: User can change the duty cycle of output PWM signal by changing counter value.
-     * This demo testapp gives 75% duty cycle as you can see above the relation btw count_array[1] & count_array[2].
-     */
-
-    /* pwm mode pin config */
-    ret = pinconf_set (PORT_1, PIN_4, PINMUX_ALTERNATE_FUNCTION_4, 0);
-    if(ret != ARM_DRIVER_OK) {
-        printf("\r\n Error in PINMUX.\r\n");
-    }
-
-    ret = ptrUTIMER->Initialize (channel, utimer_pwm_cb_func);
-    if (ret != ARM_DRIVER_OK) {
-        printf("utimer channel %d failed initialize \n", channel);
-        return;
-    }
-
-    ret = ptrUTIMER->PowerControl (channel, ARM_POWER_FULL);
-    if (ret != ARM_DRIVER_OK) {
-        printf("utimer channel %d failed power up \n", channel);
-        goto error_pwm_mode_uninstall;
-    }
-
-    ret = ptrUTIMER->ConfigCounter (channel, ARM_UTIMER_MODE_COMPARING, ARM_UTIMER_COUNTER_UP);
-    if (ret != ARM_DRIVER_OK) {
-        printf("utimer channel %d mode configuration failed \n", channel);
-        goto error_pwm_mode_poweroff;
-    }
-
-    ret = ptrUTIMER->SetCount (channel, ARM_UTIMER_CNTR, count_array[0]);
-    if (ret != ARM_DRIVER_OK) {
-        printf("utimer channel %d set count failed \n", channel);
-        goto error_pwm_mode_poweroff;
-    }
-
-    ret = ptrUTIMER->SetCount (channel, ARM_UTIMER_CNTR_PTR, count_array[1]);
-    if (ret != ARM_DRIVER_OK) {
-        printf("utimer channel %d set count failed \n", channel);
-        goto error_pwm_mode_poweroff;
-    }
-
-    ret = ptrUTIMER->SetCount (channel, ARM_UTIMER_COMPARE_A, count_array[2]);
-    if (ret != ARM_DRIVER_OK) {
-        printf("utimer channel %d set count failed \n", channel);
-        goto error_pwm_mode_poweroff;
-    }
-
-    ret = ptrUTIMER->Start(channel);
-    if(ret != ARM_DRIVER_OK) {
-        printf("utimer channel %d failed to start \n", channel);
-        goto error_pwm_mode_poweroff;
-    } else {
-        printf("utimer channel %d :timer started\n", channel);
-    }
-
-    printf("PWM output signal generation started\n");
-    for (int i=0; i<20; i++)
-    {
-        status = tx_event_flags_get(&pwm_mode_event_flag, UTIMER_COMPARE_A_CB_EVENT | UTIMER_OVERFLOW_CB_EVENT, TX_OR_CLEAR, &events, UTIMER_PWM_MODE_WAIT_TIME);
-        if(status != TX_SUCCESS) {
-            printf("ERROR : event not received, timeout happened \n");
-            goto error_pwm_mode_poweroff;
-        }
-    }
-
-    ret = ptrUTIMER->Stop(channel, ARM_UTIMER_COUNTER_CLEAR);
-    if(ret != ARM_DRIVER_OK) {
-        printf("utimer channel %d failed to stop \n", channel);
-    } else {
-        printf("utimer channel %d: timer stopped\n", channel);
-    }
-
-error_pwm_mode_poweroff:
-
-    ret = ptrUTIMER->PowerControl (channel, ARM_POWER_OFF);
-    if (ret != ARM_DRIVER_OK) {
-        printf("utimer channel %d failed power off \n", channel);
-    }
-
-error_pwm_mode_uninstall:
-
-    ret = ptrUTIMER->Uninitialize (channel);
-    if(ret != ARM_DRIVER_OK) {
-        printf("utimer channel %d failed to un-initialize \n", channel);
-    }
-
-    printf("*** demo application: pwm mode completed *** \r\n\n");
-}
-
-
 /* Define main entry point.  */
 int main()
 {
@@ -1172,14 +1022,8 @@ int main()
 /* Define what the initial system looks like.  */
 void tx_application_define(void *first_unused_memory)
 {
-    CHAR    *pointer = TX_NULL;
     UINT status;
-
-    /* Create a byte memory pool from which to allocate the thread stacks.  */
-    status = tx_byte_pool_create(&memory_pool, "memory pool", memory_area, DEMO_BYTE_POOL_SIZE);
-    if (status != TX_SUCCESS) {
-        printf("failed to create to byte pool\r\n");
-    }
+    void *pointer;
 
     /* Create a event flag for utimer group.  */
     status = tx_event_flags_create(&basic_mode_event_flag, "UTIMER_BASIC_MODE_EVENT_FLAG");
@@ -1211,82 +1055,46 @@ void tx_application_define(void *first_unused_memory)
         printf("failed to create utimer compare mode event flag\r\n");
     }
 
-    /* Create a event flag for utimer group.  */
-    status = tx_event_flags_create(&pwm_mode_event_flag, "UTIMER_PWM_MODE_EVENT_FLAG");
-    if (status != TX_SUCCESS) {
-        printf("failed to create utimer pwm mode event flag\r\n");
-    }
-
-    /* Allocate the stack for utimer basic mode thread */
-    status = tx_byte_allocate(&memory_pool, (VOID **) &pointer, UTIMER_BASIC_MODE_THREAD_STACK_SIZE, TX_NO_WAIT);
-    if (status != TX_SUCCESS) {
-        printf("failed to allocate memory for utimer Basic mode thread\r\n");
-    }
-
     /* Create the utimer basic mode thread.  */
-    status = tx_thread_create(&basic_mode_thread, "UTIMER BASIC MODE THREAD", utimer_basic_mode_app, 0, pointer, UTIMER_BASIC_MODE_THREAD_STACK_SIZE, 1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
+    status = tx_thread_create(&basic_mode_thread, "UTIMER BASIC MODE THREAD", utimer_basic_mode_app, 0,
+            first_unused_memory, UTIMER_BASIC_MODE_THREAD_STACK_SIZE, 1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
     if (status != TX_SUCCESS) {
         printf("failed to create utimer basic mode thread\r\n");
     }
 
-    /* Allocate the stack for utimer buffering mode thread */
-    status = tx_byte_allocate(&memory_pool, (VOID **) &pointer, UTIMER_BUFFERING_MODE_THREAD_STACK_SIZE, TX_NO_WAIT);
-    if (status != TX_SUCCESS) {
-        printf("failed to allocate memory for utimer buffering mode thread\r\n");
-    }
+    pointer = ((char*)first_unused_memory + UTIMER_BASIC_MODE_THREAD_STACK_SIZE);
 
     /* Create the buffering mode thread.  */
-    status = tx_thread_create(&buffering_mode_thread, "UTIMER BUFFERING MODE THREAD", utimer_buffering_mode_app, 0, pointer, UTIMER_BUFFERING_MODE_THREAD_STACK_SIZE, 1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
+    status = tx_thread_create(&buffering_mode_thread, "UTIMER BUFFERING MODE THREAD", utimer_buffering_mode_app, 0,
+            pointer, UTIMER_BUFFERING_MODE_THREAD_STACK_SIZE, 1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
     if (status != TX_SUCCESS) {
         printf("failed to create utimer buffering mode thread\r\n");
     }
 
-    /* Allocate the stack for utimer trigger mode thread */
-    status = tx_byte_allocate(&memory_pool, (VOID **) &pointer, UTIMER_TRIGGER_MODE_THREAD_STACK_SIZE, TX_NO_WAIT);
-    if (status != TX_SUCCESS) {
-        printf("failed to allocate memory for utimer trigger mode thread\r\n");
-    }
+    pointer = ((char*)pointer + UTIMER_BUFFERING_MODE_THREAD_STACK_SIZE);
 
     /* Create the utimer trigger mode thread.  */
-    status = tx_thread_create(&trigger_mode_thread, "UTIMER TRIGGER MODE THREAD", utimer_trigger_mode_app, 0, pointer, UTIMER_TRIGGER_MODE_THREAD_STACK_SIZE, 1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
+    status = tx_thread_create(&trigger_mode_thread, "UTIMER TRIGGER MODE THREAD", utimer_trigger_mode_app, 0,
+            pointer, UTIMER_TRIGGER_MODE_THREAD_STACK_SIZE, 1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
     if (status != TX_SUCCESS) {
         printf("failed to create utimer trigger mode thread\r\n");
     }
 
-    /* Allocate the stack for utimer capture mode thread */
-    status = tx_byte_allocate(&memory_pool, (VOID **) &pointer, UTIMER_CAPTURE_MODE_THREAD_STACK_SIZE, TX_NO_WAIT);
-    if (status != TX_SUCCESS) {
-        printf("failed to allocate memory for utimer capture mode thread\r\n");
-    }
+    pointer = ((char*)pointer + UTIMER_TRIGGER_MODE_THREAD_STACK_SIZE);
 
     /* Create the utimer capture mode thread.  */
-    status = tx_thread_create(&capture_mode_thread, "UTIMER CAPTURE MODE THREAD", utimer_capture_mode_app, 0, pointer, UTIMER_CAPTURE_MODE_THREAD_STACK_SIZE, 1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
+    status = tx_thread_create(&capture_mode_thread, "UTIMER CAPTURE MODE THREAD", utimer_capture_mode_app, 0,
+            pointer, UTIMER_CAPTURE_MODE_THREAD_STACK_SIZE, 1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
     if (status != TX_SUCCESS) {
         printf("failed to create utimer capture mode thread\r\n");
     }
 
-    /* Allocate the stack for utimer compare mode thread */
-    status = tx_byte_allocate(&memory_pool, (VOID **) &pointer, UTIMER_COMPARE_MODE_THREAD_STACK_SIZE, TX_NO_WAIT);
-    if (status != TX_SUCCESS) {
-        printf("failed to allocate memory for utimer compare mode thread\r\n");
-    }
+    pointer = ((char*)pointer + UTIMER_CAPTURE_MODE_THREAD_STACK_SIZE);
 
     /* Create the utimer compare mode thread.  */
-    status = tx_thread_create(&compare_mode_thread, "UTIMER COMPARE MODE THREAD", utimer_compare_mode_app, 0, pointer, UTIMER_COMPARE_MODE_THREAD_STACK_SIZE, 1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
+    status = tx_thread_create(&compare_mode_thread, "UTIMER COMPARE MODE THREAD", utimer_compare_mode_app, 0,
+            pointer, UTIMER_COMPARE_MODE_THREAD_STACK_SIZE, 1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
     if (status != TX_SUCCESS) {
         printf("failed to create utimer compare mode thread\r\n");
     }
-
-    /* Allocate the stack for utimer basic mode thread */
-    status = tx_byte_allocate(&memory_pool, (VOID **) &pointer, UTIMER_PWM_MODE_THREAD_STACK_SIZE, TX_NO_WAIT);
-    if (status != TX_SUCCESS) {
-        printf("failed to allocate memory for utimer PWM mode thread\r\n");
-    }
-
-    /* Create the utimer basic mode thread.  */
-    status = tx_thread_create(&pwm_mode_thread, "UTIMER PWM MODE THREAD", utimer_pwm_mode_app, 0, pointer, UTIMER_PWM_MODE_THREAD_STACK_SIZE, 1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
-    if (status != TX_SUCCESS) {
-        printf("failed to create utimer PWM mode thread\r\n");
-    }
 }
-

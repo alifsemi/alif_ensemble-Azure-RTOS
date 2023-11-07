@@ -49,20 +49,11 @@ UINT  _ux_dcd_dwc3_initialize()
     ULONG           Ret_Scratch;
     UINT            status;
     LONG            retries;
-    
-    /* Enable 20MHZ clock for USB  */
-    enable_cgu_clk20m();
-        
+
     /* Enable peripheral clk for USB  */
     enable_usb_periph_clk();
-    
-    /* Power NOT masked for USB phy  */
-    enable_usb_phy_power();
 
-    /* Disable the Isolation for USB Phy */
-    disable_usb_phy_isolation();    
-
-    /* USB phy reset */    
+    /* USB phy reset */
     usb_ctrl2_phy_power_on_reset_clear();
 
     /* Get the pointer to the DCD.  */

@@ -45,11 +45,8 @@ extern ARM_DRIVER_GPIO ARM_Driver_GPIO_(GPIO1);
 ARM_DRIVER_GPIO *ptrGPIO = &ARM_Driver_GPIO_(GPIO1);
 
 /* Define the ThreadX object control blocks  */
-#define DEMO_BYTE_POOL_SIZE                      (4096U)
 #define QEC_THREAD_STACK_SIZE                    (512U)
 
-UCHAR                                            memory_area[DEMO_BYTE_POOL_SIZE];
-TX_BYTE_POOL                                     memory_pool;
 TX_THREAD                                        qec_thread;
 
 /**
@@ -364,23 +361,11 @@ int main()
 /* Define what the initial system looks like.  */
 void tx_application_define(void *first_unused_memory)
 {
-    CHAR    *pointer = TX_NULL;
     UINT status;
 
-    /* Create a byte memory pool from which to allocate the thread stacks.  */
-    status = tx_byte_pool_create (&memory_pool, "memory pool", memory_area, DEMO_BYTE_POOL_SIZE);
-    if (status != TX_SUCCESS) {
-        printf("failed to create to byte pool\r\n");
-    }
-
-    /* Allocate the stack for utimer basic mode thread */
-    status = tx_byte_allocate (&memory_pool, (VOID **) &pointer, QEC_THREAD_STACK_SIZE, TX_NO_WAIT);
-    if (status != TX_SUCCESS) {
-        printf("failed to allocate memory for qec thread\r\n");
-    }
-
     /* Create the utimer basic mode thread.  */
-    status = tx_thread_create (&qec_thread, "QEC DEMO THREAD", qec0_app, 0, pointer, QEC_THREAD_STACK_SIZE, 1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
+    status = tx_thread_create (&qec_thread, "QEC DEMO THREAD", qec0_app, 0,
+            first_unused_memory, QEC_THREAD_STACK_SIZE, 1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
     if (status != TX_SUCCESS) {
         printf("failed to create qec thread\r\n");
     }

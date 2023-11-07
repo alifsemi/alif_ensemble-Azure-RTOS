@@ -24,17 +24,18 @@
                then input value will be incremented by 1000.
 
              Hardware Setup :
-              -when the application uses DAC0 channel,then connect DAC0 to P0_18
-               GPIO pin,according to DAC input the output will be observed in P0_18
+              -when the application uses DAC0 channel,then connect DAC0 to P2_2
+               GPIO pin,according to DAC input the output will be observed in P2_2
                GPIO pin through the logic analyzer.
 
               -And when the application uses DAC1 channel,then connect DAC1 to
-               P0_19 GPIO pin,according to DAC input the output will be observed
-               in P0_19 GPIO pin through the logic analyzer.
+               P2_3 GPIO pin,according to DAC input the output will be observed
+               in P2_3 GPIO pin through the logic analyzer.
  ******************************************************************************/
 /* System Includes */
 #include <stdio.h>
 #include "tx_api.h"
+#include "pinconf.h"
 
 /* Project Includes */
 /* include for DAC Driver */
@@ -51,6 +52,31 @@ static ARM_DRIVER_DAC *DACdrv = &Driver_DAC0;
 
 /* DAC maximum resolution is 12-bit */
 #define DAC_MAX_INPUT_VALUE   (0xFFF)
+
+#define ERROR    -1
+#define SUCCESS   0
+
+/**
+ * @fn          void dac_pinmux_config(void)
+ * @brief       Initialize the pinmux for DAC output
+ * @return      status
+*/
+int32_t dac_pinmux_config(void)
+{
+    int32_t status;
+
+    /* Configure DAC0 output */
+    status = pinconf_set(PORT_2, PIN_2, PINMUX_ALTERNATE_FUNCTION_7, PADCTRL_OUTPUT_DRIVE_STRENGTH_2MA);
+    if(status)
+        return ERROR;
+
+    /* Configure DAC1 output */
+    status = pinconf_set(PORT_2, PIN_3, PINMUX_ALTERNATE_FUNCTION_7, PADCTRL_OUTPUT_DRIVE_STRENGTH_2MA);
+    if(status)
+        return ERROR;
+
+    return SUCCESS;
+}
 
 void dac_demo_Thread_entry(ULONG thread_input);
 
@@ -82,6 +108,13 @@ void dac_demo_Thread_entry(ULONG thread_input)
     ARM_DRIVER_VERSION version;
 
     printf("\r\n >>> DAC demo threadX starting up!!! <<< \r\n");
+
+    /* Configure the DAC output pins */
+    if(dac_pinmux_config())
+    {
+        printf("DAC pinmux failed\n");
+        return;
+    }
 
     version = DACdrv->GetVersion();
     printf("\r\n DAC version api:%X driver:%X...\r\n",version.api, version.drv);

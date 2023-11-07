@@ -19,20 +19,23 @@
  * @Note     None
  ******************************************************************************/
 /* System Includes */
+#include "RTE_Device.h"
 #include "stdio.h"
+#include "se_services_port.h"
 
 /* ThreadX and FileX Includes */
 #include "tx_api.h"
 #include "fx_api.h"
 #include "fx_sd_driver.h"
+#include "Driver_Common.h"
 
 /* include for Pin Mux config */
 #include "pinconf.h"
 #include "RTE_Components.h"
 #if defined(RTE_Compiler_IO_STDOUT)
 #include "retarget_stdout.h"
+#include "Driver_Common.h"
 #endif  /* RTE_Compiler_IO_STDOUT */
-
 
 #define TEST_FILE "TestFile34.txt"
 /* Define Test Requirement <Test File Name> */
@@ -53,6 +56,8 @@ TX_THREAD mySD_Thread;
 TX_BYTE_POOL StackPool;
 unsigned char *p_sdStack = NULL;
 uint32_t count1, count2, total_cnt=0;
+uint32_t  service_error_code;
+uint32_t  error_code = SERVICES_REQ_SUCCESS;
 
 /* Buffer for FileX FX_MEDIA sector cache. This must be large enough for at least one sector , which are typically 512 bytes in size. */
 UCHAR media_memory[SD_BLK_SIZE*NUM_BLK_TEST] __attribute__((section("sd_dma_buf"))) __attribute__((aligned(32)));
@@ -75,12 +80,12 @@ void mySD_Thread_entry(ULONG args)
     pinconf_set(PORT_7, PIN_0, PINMUX_ALTERNATE_FUNCTION_6, PADCTRL_READ_ENABLE); //cmd
     pinconf_set(PORT_7, PIN_1, PINMUX_ALTERNATE_FUNCTION_6, PADCTRL_READ_ENABLE); //clk
     pinconf_set(PORT_5, PIN_0, PINMUX_ALTERNATE_FUNCTION_7, PADCTRL_READ_ENABLE); //d0
-#ifdef SDMMC_4BIT_MODE
+#if RTE_SDC_BUS_WIDTH == SDMMC_4_BIT_MODE
     pinconf_set(PORT_5, PIN_1, PINMUX_ALTERNATE_FUNCTION_7, PADCTRL_READ_ENABLE); //d1
     pinconf_set(PORT_5, PIN_2, PINMUX_ALTERNATE_FUNCTION_7, PADCTRL_READ_ENABLE); //d2
     pinconf_set(PORT_5, PIN_3, PINMUX_ALTERNATE_FUNCTION_6, PADCTRL_READ_ENABLE); //d3
 #endif
-#ifdef SDMMC_8BIT_MODE
+#if RTE_SDC_BUS_WIDTH == SDMMC_8_BIT_MODE
     pinconf_set(PORT_5, PIN_4, PINMUX_ALTERNATE_FUNCTION_6, PADCTRL_READ_ENABLE); //d4
     pinconf_set(PORT_5, PIN_5, PINMUX_ALTERNATE_FUNCTION_5, PADCTRL_READ_ENABLE); //d5
     pinconf_set(PORT_5, PIN_6, PINMUX_ALTERNATE_FUNCTION_5, PADCTRL_READ_ENABLE); //d6
@@ -275,6 +280,18 @@ void mySD_Thread_entry(ULONG args)
     }
     printf("File R/W Test Completed!!!\n");
 
+    error_code = SERVICES_clocks_enable_clock(se_services_s_handle, CLKEN_CLK_100M, false, &service_error_code);
+    if(error_code){
+        printf("SE: SDMMC 100MHz clock disable = %d\n", error_code);
+        return;
+    }
+
+    error_code = SERVICES_clocks_enable_clock(se_services_s_handle, CLKEN_USB, false, &service_error_code);
+    if(error_code){
+        printf("SE: SDMMC 20MHz clock disable = %d\n", error_code);
+        return;
+    }
+
 }
 
 void tx_application_define(void *first_unused_memory){
@@ -303,6 +320,22 @@ int main()
         }
     }
     #endif
+
+    /* Initialize the SE services */
+    se_services_port_init();
+
+    /* Enable SDMMC Clocks */
+    error_code = SERVICES_clocks_enable_clock(se_services_s_handle, CLKEN_CLK_100M, true, &service_error_code);
+    if(error_code){
+        printf("SE: SDMMC 100MHz clock enable = %d\n", error_code);
+        return 0;
+    }
+
+    error_code = SERVICES_clocks_enable_clock(se_services_s_handle, CLKEN_USB, true, &service_error_code);
+    if(error_code){
+        printf("SE: SDMMC 20MHz clock enable = %d\n", error_code);
+        return 0;
+    }
 
     tx_kernel_enter();
 

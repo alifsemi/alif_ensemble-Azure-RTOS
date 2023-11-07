@@ -25,6 +25,7 @@
 #include "tx_api.h"
 
 /* Cpi Driver */
+#include "RTE_Components.h"
 #include "Driver_CPI.h"
 #if defined(RTE_Compiler_IO_STDOUT)
 #include "retarget_stdout.h"
