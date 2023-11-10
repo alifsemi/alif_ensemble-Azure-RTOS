@@ -36,46 +36,20 @@
 
 /* It is recommended to use the bit rate and bit segments
  * as specified in the Hardware reference manual for proper communication.
+ *
+ * Nominal bit rate 500kbps, Fast bit rate 2Mbps, 20MHz CANFD clock are set
+ * for this example
 */
-/*   CANFD_CLK_BITRATE_SETTINGS = 1 -> Nominal bit rate 500kbps, Fast bit rate 2Mbps, 20MHz CANFD clock
- *   CANFD_CLK_BITRATE_SETTINGS = 2 -> Nominal bit rate 250kbps, Fast bit rate 1Mbps, 20MHz CANFD clock
- *   CANFD_CLK_BITRATE_SETTINGS = 3 -> Nominal bit rate 1Mbps, Fast bit rate 4Mbps, 20MHz CANFD clock
-*/
-#define CANFD_CLK_BITRATE_SETTINGS          1U
-#if (CANFD_CLK_BITRATE_SETTINGS == 1U)
-    #define CANFD_NOMINAL_BITRATE           500000U
-    #define CANFD_BIT_TIME_PROP_SEG         2U
-    #define CANFD_BIT_TIME_SEG1             30U
-    #define CANFD_BIT_TIME_SEG2             8U
-    #define CANFD_BIT_TIME_SJW              8U
-    #define CANFD_FAST_BITRATE              2000000U /* 2Mbps */
-    #define CANFD_FAST_BIT_TIME_PROP_SEG    1U
-    #define CANFD_FAST_BIT_TIME_SEG1        7U
-    #define CANFD_FAST_BIT_TIME_SEG2        2U
-    #define CANFD_FAST_BIT_TIME_SJW         2U
-#elif (CANFD_CLK_BITRATE_SETTINGS == 2U)
-    #define CANFD_BITRATE                   250000U
-    #define CANFD_BIT_TIME_PROP_SEG         4U
-    #define CANFD_BIT_TIME_SEG1             60U
-    #define CANFD_BIT_TIME_SEG2             16U
-    #define CANFD_BIT_TIME_SJW              16U
-    #define CANFD_FAST_BITRATE              1000000U
-    #define CANFD_FAST_BIT_TIME_PROP_SEG    2U
-    #define CANFD_FAST_BIT_TIME_SEG1        14U
-    #define CANFD_FAST_BIT_TIME_SEG2        4U
-    #define CANFD_FAST_BIT_TIME_SJW         4U
-#elif (CANFD_CLK_BITRATE_SETTINGS == 3U)
-    #define CANFD_BITRATE                   1000000U
-    #define CANFD_BIT_TIME_PROP_SEG         2U
-    #define CANFD_BIT_TIME_SEG1             14U
-    #define CANFD_BIT_TIME_SEG2             4U
-    #define CANFD_BIT_TIME_SJW              4U
-    #define CANFD_FAST_BITRATE              4000000U
-    #define CANFD_FAST_BIT_TIME_PROP_SEG    1U
-    #define CANFD_FAST_BIT_TIME_SEG1        3U
-    #define CANFD_FAST_BIT_TIME_SEG2        1U
-    #define CANFD_FAST_BIT_TIME_SJW         1U
-#endif
+#define CANFD_NOMINAL_BITRATE               500000U
+#define CANFD_BIT_TIME_PROP_SEG             2U
+#define CANFD_BIT_TIME_SEG1                 30U
+#define CANFD_BIT_TIME_SEG2                 8U
+#define CANFD_BIT_TIME_SJW                  8U
+#define CANFD_FAST_BITRATE                  2000000U
+#define CANFD_FAST_BIT_TIME_PROP_SEG        1U
+#define CANFD_FAST_BIT_TIME_SEG1            7U
+#define CANFD_FAST_BIT_TIME_SEG2            2U
+#define CANFD_FAST_BIT_TIME_SJW             2U
 
 #define CANFD_NOMINAL_BITTIME_SEGMENTS      ((CANFD_BIT_TIME_PROP_SEG << 0U)      | \
                                             (CANFD_BIT_TIME_SEG1 << 8U)           | \
@@ -246,7 +220,7 @@ void canfd_lom_demo_task(ULONG thread_input)
                                               &service_error_code);
     if(error_code)
     {
-        printf("SE Error: HFOSC clk enable = %d\n", error_code);
+        printf("SE Error: HFOSC clk enable = %d\n", (int)error_code);
         return;
     }
 
@@ -258,7 +232,7 @@ void canfd_lom_demo_task(ULONG thread_input)
                                               &service_error_code);
     if(error_code)
     {
-        printf("SE Error: 160 MHz clk enable = %d\n", error_code);
+        printf("SE Error: 160 MHz clk enable = %d\n", (int)error_code);
         return;
     }
 
@@ -414,7 +388,7 @@ uninitialise_canfd:
                                               &service_error_code);
     if(error_code)
     {
-        printf("SE Error: HFOSC clk disable = %d\n", error_code);
+        printf("SE Error: HFOSC clk disable = %d\n", (int)error_code);
         return;
     }
 
@@ -425,7 +399,7 @@ uninitialise_canfd:
                                               &service_error_code);
     if(error_code)
     {
-        printf("SE Error: 160 MHz clk disable = %d\n", error_code);
+        printf("SE Error: 160 MHz clk disable = %d\n", (int)error_code);
         return;
     }
 

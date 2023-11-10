@@ -380,6 +380,7 @@ void camera_demo_thread_entry(ULONG thread_input)
     ULONG wait_timer_ticks = 0;
     UINT  service_error_code;
     UINT  error_code;
+    run_profile_t runp = {0};
 
     ARM_DRIVER_VERSION version;
 
@@ -423,6 +424,30 @@ void camera_demo_thread_entry(ULONG thread_input)
     {
         printf("SE: MIPI 38.4Mhz(HFOSC) clock enable = %d\n", error_code);
         goto error_disable_100mhz_clk;
+    }
+
+    /* Get the current run configuration from SE */
+    error_code = SERVICES_get_run_cfg(se_services_s_handle,
+                                      &runp,
+                                      &service_error_code);
+    if(error_code)
+    {
+        printf("\r\nSE: get_run_cfg error = %d\n", error_code);
+        goto error_disable_hfosc_clk;
+    }
+
+    runp.memory_blocks = MRAM_MASK | SRAM0_MASK;
+
+    runp.phy_pwr_gating = MIPI_PLL_DPHY_MASK | MIPI_TX_DPHY_MASK | MIPI_RX_DPHY_MASK | LDO_PHY_MASK;
+
+    /* Set the new run configuration */
+    error_code = SERVICES_set_run_cfg(se_services_s_handle,
+                                      &runp,
+                                      &service_error_code);
+    if(error_code)
+    {
+        printf("\r\nSE: set_run_cfg error = %d\n", error_code);
+        goto error_disable_hfosc_clk;
     }
 
     version = CAMERAdrv->GetVersion();
