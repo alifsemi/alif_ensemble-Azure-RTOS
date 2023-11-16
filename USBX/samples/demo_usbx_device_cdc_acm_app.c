@@ -25,8 +25,10 @@
 #include "ux_device_stack.h"
 #include "ux_device_class_cdc_acm.h"
 #include "system_utils.h"
+#include "se_services_port.h"
 #include "RTE_Components.h"
 #if defined(RTE_Compiler_IO_STDOUT)
+#include "Driver_Common.h"
 #include "retarget_stdout.h"
 #endif  /* RTE_Compiler_IO_STDOUT */
 
@@ -167,9 +169,9 @@ UCHAR device_framework_high_speed[] = {
      Byte 2       : Byte containing the index of the descriptor
      Byte 3       : Byte containing the length of the descriptor string
     */
-   
+
 #define STRING_FRAMEWORK_LENGTH 42
-UCHAR string_framework[] = { 
+UCHAR string_framework[] = {
 
   (UCHAR) (0x0409), /* 0 Supported Language Code */
   (UCHAR) (0x0409 >> 8), /* 1 Supported Language Code */
@@ -196,7 +198,7 @@ UCHAR string_framework[] = {
        be appended to the language_id_framework array and the length
      adjusted accordingly. */
 #define LANGUAGE_ID_FRAMEWORK_LENGTH 2
-UCHAR language_id_framework[] = { 
+UCHAR language_id_framework[] = {
 
     /* English. */
         0x09, 0x04
@@ -204,6 +206,41 @@ UCHAR language_id_framework[] = {
 
 int  main(void)
 {
+    UINT    error_code = 0;
+    UINT    service_error_code = 0;
+    run_profile_t   runp = {0};
+    /* Initialize the SE services */
+    se_services_port_init();
+    /* Example code to enable the CLKEN_USB clock */
+    error_code = SERVICES_clocks_enable_clock(se_services_s_handle,
+                                       /*clock_enable_t*/ CLKEN_USB,
+                                               /*bool enable   */ true,
+                                                          &service_error_code);
+    if(error_code)
+    {
+        printf("SE: clk enable = %d\n", error_code);
+        return 0;
+    }
+
+    /* Get the current run configuration from SE */
+    error_code = SERVICES_get_run_cfg(se_services_s_handle, &runp,
+                                              &service_error_code);
+    if(error_code)
+    {
+         printf("SE: get_run_cfg error = %d\n", error_code);
+         return 0;
+    }
+    runp.phy_pwr_gating |=  USB_PHY_MASK;
+    runp.memory_blocks = SRAM2_MASK | SRAM3_MASK | MRAM_MASK;
+
+    /* Set the current run configuration to SE */
+    error_code = SERVICES_set_run_cfg(se_services_s_handle, &runp,
+                                              &service_error_code);
+    if(error_code)
+    {
+         printf("SE: set_run_cfg error = %d\n", error_code);
+         return 0;
+    }
     #if defined(RTE_Compiler_IO_STDOUT_User)
     int32_t ret;
     ret = stdout_init();
@@ -229,19 +266,19 @@ void  tx_application_define(void *first_unused_memory)
 
     /* Initialize USBX Memory */
    status = ux_system_initialize(dma_buf, UX_DEMO_NS_SIZE, UX_NULL, 0x00);
-    
+
     if(status != UX_SUCCESS)
     {
        error_handler();
     }
 
-    /* The code below is required for installing the device portion of USBX. 
+    /* The code below is required for installing the device portion of USBX.
        In this demo, DFU is possible and we have a call back for state change. */
     status =  ux_device_stack_initialize(device_framework_high_speed, DEVICE_FRAMEWORK_LENGTH_HIGH_SPEED,
                                        device_framework_full_speed, DEVICE_FRAMEWORK_LENGTH_FULL_SPEED,
                                        string_framework, STRING_FRAMEWORK_LENGTH,
                                        language_id_framework, LANGUAGE_ID_FRAMEWORK_LENGTH,UX_NULL);
- 
+
     if(status != UX_SUCCESS)
     {
        error_handler();
@@ -324,9 +361,38 @@ VOID  ux_cdc_device0_instance_acm_parameter(VOID *activated)
 VOID  error_handler(void)
 {
 
+    UINT    error_code = 0;
+    UINT    service_error_code = 0;
+    run_profile_t   runp = {0};
     /* Increment error counter.  */
     error_counter++;
     printf("ERR : Initialization of USB failed with error counter :%ld\n",error_counter);
+    /* Example code to enable the CLKEN_USB clock */
+    error_code = SERVICES_clocks_enable_clock(se_services_s_handle,
+                                       /*clock_enable_t*/ CLKEN_USB,
+                                               /*bool disable   */ false,
+                                                         &service_error_code);
+    if(error_code)
+    {
+        printf("SE: clk disable = %d\n", error_code);
+    }
+
+    /* Get the current run configuration from SE */
+    error_code = SERVICES_get_run_cfg(se_services_s_handle, &runp,
+                                              &service_error_code);
+    if(error_code)
+    {
+         printf("SE: get_run_cfg error = %d\n", error_code);
+    }
+    runp.phy_pwr_gating &= ~USB_PHY_MASK;
+
+    /* Set the current run configuration to SE */
+    error_code = SERVICES_set_run_cfg(se_services_s_handle, &runp,
+                                              &service_error_code);
+    if(error_code)
+    {
+         printf("SE: set_run_cfg error = %d\n", error_code);
+    }
     while(1)
     {
         /* Error - just spin here!  Look at call tree in debugger

@@ -58,7 +58,7 @@
 /* Enable this to feed the predefined hello sample in the
  * Send function. Receive will be disabled.
  */
-#define DAC_PREDEFINED_SAMPLES
+//#define DAC_PREDEFINED_SAMPLES
 #define I2S_DAC 1             /* DAC I2S Controller 1 */
 #endif
 #define I2S_ADC 3             /* ADC I2S Controller 3 */
@@ -77,20 +77,22 @@
 #define BLOCK_POOL_SIZE            ((SAMPLES_POOL_CNT * NUM_SAMPLES_IN_SINGLE_POOL * 4)\
                                    + (SAMPLES_POOL_CNT * BLOCK_POOL_METADATA_SIZE))
 
-UCHAR                   memory[DEMO_BYTE_POOL_SIZE];
-UCHAR                   samples_area[BLOCK_POOL_SIZE];
-TX_BYTE_POOL            byte_pool_0;
-TX_BLOCK_POOL           sample_block_pool;
+static UCHAR                   memory[DEMO_BYTE_POOL_SIZE];
+static UCHAR                   samples_area[BLOCK_POOL_SIZE];
+static TX_BYTE_POOL            byte_pool_0;
+static TX_BLOCK_POOL           sample_block_pool;
 
-TX_THREAD               DAC_thread;/* Thread id of thread: DAC WM8524 Transmitter */
-TX_EVENT_FLAGS_GROUP    event_flags_dac;
+static TX_THREAD               DAC_thread;/* Thread id of DAC Transmitter */
+static TX_EVENT_FLAGS_GROUP    event_flags_dac;
 
-TX_THREAD               ADC_thread;/* Thread id of thread: ADC Receiver */
-TX_EVENT_FLAGS_GROUP    event_flags_adc;
+#ifndef DAC_PREDEFINED_SAMPLES
+static TX_THREAD               ADC_thread;/* Thread id of ADC Receiver */
+static TX_EVENT_FLAGS_GROUP    event_flags_adc;
+#endif
 
-ULONG                   events;
+static ULONG                   events;
 
-TX_QUEUE                samples_msgq;
+static TX_QUEUE                samples_msgq;
 
 /* message information for queueing */
 typedef struct _samples_msgq
@@ -99,10 +101,10 @@ typedef struct _samples_msgq
     uint32_t num_items;
 }samples_msgq_t;
 
-samples_msgq_t       samples_msg_queue[SAMPLES_POOL_CNT];
+static samples_msgq_t       samples_msg_queue[SAMPLES_POOL_CNT];
 
-uint32_t wlen = 24;
-uint32_t sampling_rate = 48000;        /* 48Khz audio sampling rate */
+static uint32_t wlen = 24;
+static uint32_t sampling_rate = 48000;        /* 48Khz audio sampling rate */
 
 
 
@@ -111,12 +113,12 @@ uint32_t sampling_rate = 48000;        /* 48Khz audio sampling rate */
   \brief       Callback routine from the i2s driver
   \param[in]   event Event for which the callback has been called
 */
-void dac_callback(uint32_t event)
+static void dac_callback(uint32_t event)
 {
     if(event & ARM_SAI_EVENT_SEND_COMPLETE)
     {
-	/* Send Success: Wake-up Thread. */
-	tx_event_flags_set(&event_flags_dac, DAC_SEND_COMPLETE_EVENT, TX_OR);
+        /* Send Success: Wake-up Thread. */
+        tx_event_flags_set(&event_flags_dac, DAC_SEND_COMPLETE_EVENT, TX_OR);
     }
 }
 
@@ -125,7 +127,7 @@ void dac_callback(uint32_t event)
   \brief       Initialize the pinmux for DAC
   \return      status
 */
-int32_t dac_pinmux_config(void)
+static int32_t dac_pinmux_config(void)
 {
     int32_t status;
 #if (I2S_DAC == LP)
@@ -169,12 +171,13 @@ int32_t dac_pinmux_config(void)
   \brief       DAC thread for master transmission
   \param[in]   argument Thread input
 */
-void DAC_Thread(ULONG thread_input)
+static void DAC_Thread(ULONG thread_input)
 {
     ARM_DRIVER_VERSION   version;
     ARM_DRIVER_SAI       *i2s_drv;
     ARM_SAI_CAPABILITIES cap;
     int32_t              status;
+    UINT                 tx_status;
     samples_msgq_t       samples_msg;
 
     extern ARM_DRIVER_SAI ARM_Driver_SAI_(I2S_DAC);
@@ -242,8 +245,9 @@ void DAC_Thread(ULONG thread_input)
     do
     {
 #ifdef DAC_PREDEFINED_SAMPLES
-        samples_msg.buf = hello_samples_24bit_48khz;
-        samples_msg.num_items = sizeof(hello_samples_24bit_48khz)/sizeof(hello_samples_24bit_48khz[0]);
+        samples_msg.buf = (void *)hello_samples_24bit_48khz;
+        samples_msg.num_items = sizeof(hello_samples_24bit_48khz)
+                                       / sizeof(hello_samples_24bit_48khz[0]);
 
         /* Transmit the samples */
         status = i2s_drv->Send(samples_msg.buf, samples_msg.num_items);
@@ -254,8 +258,11 @@ void DAC_Thread(ULONG thread_input)
         }
 
         /* Wait for the completion event */
-        status = tx_event_flags_get(&event_flags_dac, DAC_SEND_COMPLETE_EVENT, TX_OR_CLEAR, &events, DAC_SEND_TIMEOUT);
-        if(status)
+        tx_status = tx_event_flags_get(&event_flags_dac,
+                                       DAC_SEND_COMPLETE_EVENT,
+                                       TX_OR_CLEAR, &events,
+                                       DAC_SEND_TIMEOUT);
+        if(tx_status)
         {
             printf("Timeout occurred while sending the data to DAC\n");
             goto error_send;
@@ -263,8 +270,8 @@ void DAC_Thread(ULONG thread_input)
 
 #else
         /* Read the samples from the queue */
-        status = tx_queue_receive(&samples_msgq, &samples_msg, TX_WAIT_FOREVER);
-        if(status == TX_SUCCESS)
+        tx_status = tx_queue_receive(&samples_msgq, &samples_msg, TX_WAIT_FOREVER);
+        if(tx_status == TX_SUCCESS)
         {
             /* Transmit the samples */
             status = i2s_drv->Send(samples_msg.buf, samples_msg.num_items);
@@ -276,16 +283,20 @@ void DAC_Thread(ULONG thread_input)
             }
 
             /* Wait for the completion event */
-            status = tx_event_flags_get(&event_flags_dac, DAC_SEND_COMPLETE_EVENT, TX_OR_CLEAR, &events, DAC_SEND_TIMEOUT);
-            if(status)
+            tx_status = tx_event_flags_get(&event_flags_dac,
+                                           DAC_SEND_COMPLETE_EVENT,
+                                           TX_OR_CLEAR,
+                                           &events,
+                                           DAC_SEND_TIMEOUT);
+            if(tx_status)
             {
                 printf("Timeout occurred while sending the data to DAC\n");
                 tx_block_release(samples_msg.buf);
                 goto error_send;
             }
 
-            status = tx_block_release(samples_msg.buf);
-            if(status)
+            tx_status = tx_block_release(samples_msg.buf);
+            if(tx_status)
             {
                 printf("Error in release of memory\n");
                 goto error_send;
@@ -312,23 +323,24 @@ error_initialize:
     tx_thread_sleep(TX_WAIT_FOREVER);
 }
 
+#ifndef DAC_PREDEFINED_SAMPLES
 /**
   \fn          void adc_callback(uint32_t event)
   \brief       Callback routine from the i2s driver
   \param[in]   event Event for which the callback has been called
 */
-void adc_callback(uint32_t event)
+static void adc_callback(uint32_t event)
 {
     if(event & ARM_SAI_EVENT_RECEIVE_COMPLETE)
     {
-	/* Send Success: Wake-up Thread. */
-	tx_event_flags_set(&event_flags_adc, ADC_RECEIVE_COMPLETE_EVENT, TX_OR);
+        /* Send Success: Wake-up Thread. */
+        tx_event_flags_set(&event_flags_adc, ADC_RECEIVE_COMPLETE_EVENT, TX_OR);
     }
 
     if(event & ARM_SAI_EVENT_RX_OVERFLOW)
     {
-	/* Send Success: Wake-up Thread. */
-	tx_event_flags_set(&event_flags_adc, ADC_RECEIVE_OVERFLOW_EVENT, TX_OR);
+        /* Send Success: Wake-up Thread. */
+        tx_event_flags_set(&event_flags_adc, ADC_RECEIVE_OVERFLOW_EVENT, TX_OR);
     }
 }
 
@@ -337,7 +349,7 @@ void adc_callback(uint32_t event)
   \brief       Initialize the pinmux for ADC
   \return      status
 */
-int32_t adc_pinmux_config(void)
+static int32_t adc_pinmux_config(void)
 {
     int32_t status;
 
@@ -364,12 +376,13 @@ int32_t adc_pinmux_config(void)
   \brief       ADC Thread to handle receive
   \param[in]   argument Pointer to the argument
 */
-void ADC_Thread(ULONG thread_input)
+static void ADC_Thread(ULONG thread_input)
 {
     ARM_DRIVER_VERSION   version;
     ARM_DRIVER_SAI       *i2s_drv;
     ARM_SAI_CAPABILITIES cap;
     int32_t              status;
+    UINT                 tx_status;
     samples_msgq_t       samples_msg;
 
     extern ARM_DRIVER_SAI ARM_Driver_SAI_(I2S_ADC);
@@ -436,8 +449,10 @@ void ADC_Thread(ULONG thread_input)
     for(;;)
     {
         /* Get one block from the samples pool. If not, return error */
-        status = tx_block_allocate(&sample_block_pool, (VOID **)&samples_msg.buf,TX_WAIT_FOREVER);
-        if (status)
+        tx_status = tx_block_allocate(&sample_block_pool,
+                                      (VOID **)&samples_msg.buf,
+                                      TX_WAIT_FOREVER);
+        if(tx_status)
         {
             printf("Sample Block allocation failed\n");
             goto error_adc_alloc;
@@ -456,17 +471,35 @@ void ADC_Thread(ULONG thread_input)
         }
 
         /* Wait for the completion event */
-        status = tx_event_flags_get(&event_flags_adc, ADC_RECEIVE_OVERFLOW_EVENT| ADC_RECEIVE_COMPLETE_EVENT, TX_OR_CLEAR, &events , ADC_RECEIVE_TIMEOUT);
-        if(status)
+        tx_status = tx_event_flags_get(&event_flags_adc,
+                                       ADC_RECEIVE_COMPLETE_EVENT,
+                                       TX_OR_CLEAR,
+                                       &events,
+                                       ADC_RECEIVE_TIMEOUT);
+        if(tx_status)
         {
             printf("\r\nTimeout occurred while receiving the data from ADC\r\n");
             tx_block_release(samples_msg.buf);
             goto error_adc_receive;
         }
+        else if(ADC_RECEIVE_OVERFLOW_EVENT & events)
+        {
+            /* Wait for the completion event */
+            tx_status = tx_event_flags_get(&event_flags_adc,
+                                           ADC_RECEIVE_OVERFLOW_EVENT,
+                                           TX_OR_CLEAR,
+                                           &events,
+                                           TX_NO_WAIT);
+            if(tx_status)
+            {
+                printf("\r\nError in Clearing the ADC overflow state \r\n");
+            }
+            printf("\r\nADC: Overflow\r\n");
+        }
 
         /* Push the sample info to the queue for the dac to process it */
-        status = tx_queue_send(&samples_msgq, &samples_msg, TX_WAIT_FOREVER);
-        if(status)
+        tx_status = tx_queue_send(&samples_msgq, &samples_msg, TX_WAIT_FOREVER);
+        if(tx_status)
         {
             /* Error occurred, then free the memory and don't process it */
             tx_block_release(samples_msg.buf);
@@ -490,9 +523,10 @@ error_adc_power:
 error_adc_initialize:
     tx_thread_sleep(TX_WAIT_FOREVER);
 }
+#endif
 
 /* Define main entry point.  */
-int main()
+int main(void)
 {
     #if defined(RTE_Compiler_IO_STDOUT_User)
     int32_t ret;
@@ -514,89 +548,119 @@ int main()
 void tx_application_define(void *first_unused_memory)
 {
     CHAR    *pointer = TX_NULL;
-    INT      status  = 0;
+    UINT     tx_status  = 0;
 
     (void)first_unused_memory;
 
-    /* Create message queue of SAMPLES_POOL_CNT count each having size of samples_msgq_t */
-    status = tx_queue_create(&samples_msgq,
-                             "I2S_SAMPLES_MSGQ",
-                             TX_2_ULONG,
-                             &samples_msg_queue,
-                             sizeof(samples_msg_queue));
-    if( status )
+    /*
+     * Create message queue of SAMPLES_POOL_CNT count each
+     * having size of samples_msgq_t
+     */
+    tx_status = tx_queue_create(&samples_msgq,
+                                "I2S_SAMPLES_MSGQ",
+                                TX_2_ULONG,
+                                &samples_msg_queue,
+                                sizeof(samples_msg_queue));
+    if(tx_status)
     {
         printf("Could not create tx_queue \n");
         return;
     }
 
     /* Create a block memory pool from which to allocate the thread stacks.  */
-    status = tx_block_pool_create(&sample_block_pool,
-                                  "sample_block_pool",
-                                  (NUM_SAMPLES_IN_SINGLE_POOL * 4),
-                                  samples_area,
-                                  BLOCK_POOL_SIZE);
-    if( status )
+    tx_status = tx_block_pool_create(&sample_block_pool,
+                                     "sample_block_pool",
+                                     (NUM_SAMPLES_IN_SINGLE_POOL * 4),
+                                     samples_area,
+                                     BLOCK_POOL_SIZE);
+    if(tx_status)
     {
         printf("Could not create block pool\n");
         return;
     }
 
     /* Create a byte memory pool from which to allocate the thread stacks.  */
-    status = tx_byte_pool_create(&byte_pool_0, "byte pool 0", memory, DEMO_BYTE_POOL_SIZE);
-    if (status )
+    tx_status = tx_byte_pool_create(&byte_pool_0, "byte pool 0",
+                                    memory, DEMO_BYTE_POOL_SIZE);
+    if(tx_status)
     {
         printf("Could not create byte pool\n");
         return;
     }
 
-    /* Put system definition stuff in here, e.g. thread creates and other assorted create information.  */
+    /*
+     * Put system definition stuff in here,
+     * e.g. thread creates and other assorted create information
+     */
 #ifndef DAC_PREDEFINED_SAMPLES
     /* Create the event flags group used by ADC thread */
-    status = tx_event_flags_create(&event_flags_adc, "event flags ADC");
-    if (status )
+    tx_status = tx_event_flags_create(&event_flags_adc, "event flags ADC");
+    if(tx_status)
     {
         printf("Could not create event flags\n");
         return;
     }
 
     /* Allocate the stack for thread.  */
-    status = tx_byte_allocate(&byte_pool_0, (VOID **) &pointer, DEMO_STACK_SIZE, TX_NO_WAIT);
-    if (status )
+    tx_status = tx_byte_allocate(&byte_pool_0, (VOID **) &pointer,
+                                 DEMO_STACK_SIZE, TX_NO_WAIT);
+    if(tx_status)
     {
         printf("Could not create byte allocate\n");
         return;
     }
 
     /* Create the ADC thread.  */
-    status = tx_thread_create(&ADC_thread, "ADC_thread", ADC_Thread, 0,pointer, DEMO_STACK_SIZE,1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
-    if (status )
+    tx_status = tx_thread_create(&ADC_thread,
+                                 "ADC_thread",
+                                 ADC_Thread,
+                                 0,
+                                 pointer,
+                                 DEMO_STACK_SIZE,
+                                 1,
+                                 1,
+                                 TX_NO_TIME_SLICE,
+                                 TX_AUTO_START);
+    if(tx_status)
     {
         printf("Could not create thread \n");
         return;
     }
 #endif
-    /* Put system definition stuff in here, e.g. thread creates and other assorted create information.  */
+    /*
+     * Put system definition stuff in here,
+     * e.g. thread creates and other assorted create information
+     */
 
     /* Create the event flags group used by DAC thread */
-    status = tx_event_flags_create(&event_flags_dac, "event flags DAC");
-    if (status )
+    tx_status = tx_event_flags_create(&event_flags_dac, "event flags DAC");
+    if(tx_status)
     {
         printf("Could not create event flags\n");
         return;
     }
 
     /* Allocate the stack for thread.  */
-    status = tx_byte_allocate(&byte_pool_0, (VOID **) &pointer, DEMO_STACK_SIZE, TX_NO_WAIT);
-    if (status )
+    tx_status = tx_byte_allocate(&byte_pool_0, (VOID **) &pointer,
+                                 DEMO_STACK_SIZE, TX_NO_WAIT);
+    if(tx_status)
     {
         printf("Could not create byte allocate\n");
         return;
     }
 
     /* Create the DAC thread */
-    status = tx_thread_create(&DAC_thread, "DAC_thread", DAC_Thread, 0,pointer, DEMO_STACK_SIZE,6, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
-    if (status )
+    tx_status = tx_thread_create(&DAC_thread,
+                                 "DAC_thread",
+                                 DAC_Thread,
+                                 0,
+                                 pointer,
+                                 DEMO_STACK_SIZE,
+                                 6,
+                                 1,
+                                 TX_NO_TIME_SLICE,
+                                 TX_AUTO_START);
+    if(tx_status)
     {
         printf("Could not create thread \n");
         return;

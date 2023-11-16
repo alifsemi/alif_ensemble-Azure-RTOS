@@ -13,54 +13,8 @@
   -->
 
   <releases>
-    <release version="0.3.2" date="2023-09-20">
-      - Update sample test apps
-    </release>
-      <release version="0.3.1" date="2023-09-13">
-      - Update B0 THREADX Sample 	
-      - Update B0 FILEX Driver and sample
-      - Update B0 USBX Driver and sample
-      - Update B0 NETX Driver and sample
-    </release>
-    <release version="0.3.0" date="2023-01-10">
-      - update sample codes
-      - Add SD card support
-    </release>
-    <release version="0.2.1" date="2022-09-13">
-      - Fix QA findings
-    </release>
-     <release version="0.2.0" date="2022-08-23">
-      - Update NETX Ethernet Driver
-      - Add USBX DCD support
-      - Update test application for Camera, I2S, CRC and SPI based ThermoMeter
-      - Add test applications for Comparator, MRAM Flash, HWSEM and Video
-      - Add USBX DCD support
-    </release>
-    <release version="0.1.2" date="2022-05-31">
-      - Add NETX Ethernet Driver
-      - Add Cloud Support packages and examples
-      - Add THREADX based sample device test applications
-    </release>
-   <release version="0.1.1" date="2022-02-17">
-      - Add Modem iperf demo app
-      - update nx utility
-    </release>
-    <release version="0.1.0" date="2021-12-03">
-      Grouped NETX Demo App
-    </release>
-     <release version="0.0.3" date="2021-09-29">
-      Added support for AzureRTOS NETX
-      updated URL
-      Move sample application as templates
-    </release>
-     <release version="0.0.2" date="2021-09-07">
-      Added support for AzureRTOS FILEX
-      Fixed some tags indentation
-      Moved AzureRTOS THREADX Code into separate folder
-      Fixed some Schemas validity error
-    </release>
-   <release version="0.0.1" date="2021-04-15">
-      Initial Release
+    <release version="1.0.0" date="2023-11-16">
+      - Initial Release
     </release>
   </releases>
 
@@ -431,11 +385,11 @@
 	<file category="source"       name="THREADX/samples/HWSEM_Threadx.c"    attr="template" select="AzureRTOS HWSEM testApp"/>
 	<file category="source"       name="THREADX/samples/MIPI_Interface_Video_testApp.c"    attr="template" select="AzureRTOS Viewfinder testApp"/>
 	<file category="source"       name="THREADX/samples/image_processing.c"    attr="template" select="AzureRTOS Viewfinder testApp"/>
-	<file category="source"       name="THREADX/samples/bayer.c"			  attr="template" select="AzureRTOS Viewfinder testApp"/>
+<!--	<file category="source"       name="THREADX/samples/bayer.c"			  attr="template" select="AzureRTOS Viewfinder testApp"/>
 	<file category="source"       name="THREADX/samples/bayer2rgb.c"		  attr="template" select="AzureRTOS Viewfinder testApp"/>
-	<file category="header"		  name="THREADX/samples/Include/bayer.h"          attr="template" select="AzureRTOS Viewfinder testApp"/>
+	<file category="header"		  name="THREADX/samples/Include/bayer.h"          attr="template" select="AzureRTOS Viewfinder testApp"/>-->
 	<file category="source"       name="THREADX/samples/Flash_ISSI_Threadx_app.c"		  attr="template" select="AzureRTOS (OSPI)ISSI Flash testApp"/>
-	<file category="source"       name="THREADX/samples/QEC_app.c"		  attr="template" select="AzureRTOS QEC testApp"/>
+<!--	<file category="source"       name="THREADX/samples/QEC_app.c"		  attr="template" select="AzureRTOS QEC testApp"/>-->
 	<file category="source"       name="THREADX/samples/PDM_testApp.c"		  attr="template" select="AzureRTOS PDM testApp"/>
 	<file category="source"       name="THREADX/samples/LPPDM_testApp.c"		  attr="template" select="AzureRTOS LPPDM testApp"/>
 	<file category="source"       name="THREADX/samples/dma_testmemcpy.c"		  attr="template" select="AzureRTOS DMA Testmemcpy testApp"/>
@@ -445,6 +399,10 @@
 	<file category="source"       name="THREADX/samples/i3c_master_loopback_testapp.c"		  attr="template" select="AzureRTOS I3C Master Loopback testApp"/>
 	<file category="source"       name="THREADX/samples/i3c_slave_loopback_testapp.c"		  attr="template" select="AzureRTOS I3C Slave Loopback testApp"/>
         <file category="source"       name="THREADX/samples/i2c_testapp.c"		  attr="template" select="AzureRTOS I2C testApp"/>
+        <file category="source" name="THREADX/samples/CANFD_Bus_Monitor.c" attr="template" select="AzureRTOS CANFD Bus Monitor testApp"/>
+        <file category="source" name="THREADX/samples/CANFD_Ext_Loopback.c" attr="template" select="AzureRTOS CANFD External Loopback testApp"/>
+        <file category="source" name="THREADX/samples/CANFD_Int_Loopback.c" attr="template" select="AzureRTOS CANFD internal Loopback testApp"/>
+        <file category="source" name="THREADX/samples/CANFD_NormalMode.c" attr="template" select="AzureRTOS CANFD data transfer testApp"/>
 	</files>
     </component>
     
@@ -1342,7 +1300,7 @@
       </files>
     </component>
 
-    <component Cgroup="Netx Duo" Csub="IoT" Cversion="1.0.0" condition="AzureRTOS NETX">
+<!--    <component Cgroup="Netx Duo" Csub="IoT" Cversion="1.0.0" condition="AzureRTOS NETX">
       <description>Alif Semiconductor IoT Support</description>
       <Pre_Include_Global_h>
         // enabling global pre include
@@ -1761,10 +1719,11 @@
 	<file category="source" name="NETX/nx_secure/src/nx_secure_x509_store_certificate_find.c"/>
 	<file category="source" name="NETX/nx_secure/src/nx_secure_x509_store_certificate_remove.c"/>
 	<file category="source" name="NETX/nx_secure/src/nx_secure_x509_subject_alt_names_find.c"/>
-	<file category="source" name="NETX/nx_secure/src/nx_secure_x509_wildcard_compare.c"/>
+	<file category="source" name="NETX/nx_secure/src/nx_secure_x509_wildcard_compare.c"/>-->
 
 	<!-- IOT app Templates -->
-	<file category="doc" name="NETX/sample/azure-iot-demo-apps/azure-iot-hub-setup" attr="template" select="IOT App"/>
+	<!-- Commenting templates as IOT examples shall not be part of the pack templates -->
+	<!--<file category="doc" name="NETX/sample/azure-iot-demo-apps/azure-iot-hub-setup" attr="template" select="IOT App"/>
 	<file category="source" name="NETX/sample/azure-iot-demo-apps/main.c" attr="template" select="IOT App"/>
 	<file category="source" name="NETX/sample/azure-iot-demo-apps/nx_azure_iot_cert.c" attr="template" select="IOT App"/>
 	<file category="header" name="NETX/sample/azure-iot-demo-apps/nx_azure_iot_cert.h" attr="template" select="IOT App"/>
@@ -1774,7 +1733,7 @@
 	<file category="header" name="NETX/sample/azure-iot-demo-apps/sample_config.h" attr="template" select="IOT App"/>
 	<file category="source" name="NETX/sample/azure-iot-demo-apps/sample_device_identity.c" attr="template" select="IOT App"/>
       </files>
-    </component>
+    </component>-->
 
     <!-- ====================== USBX Component Description ====================== -->
 
@@ -2060,7 +2019,6 @@
 
 	<!-- Templates -->
 	<file category="source"       name="USBX/samples/demo_usbx_device_cdc_acm_app.c"    attr="template" select="AzureRTOS USBX Device Class CDC ACM demo App"/>
-	<file category="source"       name="USBX/samples/demo_usbx_device_cdc_acm_app_with_callbacks.c"    attr="template" select="AzureRTOS USBX Device Class CDC ACM with callbacks demo App"/>
     </files>
     </component>
 

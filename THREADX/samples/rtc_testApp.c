@@ -42,12 +42,9 @@ void rtc_demo_Thread_entry(ULONG thread_input);
 
 /* Define the ThreadX object control blocks...  */
 #define DEMO_STACK_SIZE                 1024
-#define DEMO_BYTE_POOL_SIZE             9120
 #define TX_RTC_ALARM_EVENT              0x01
 
 TX_THREAD               rtc_thread;
-TX_BYTE_POOL            byte_pool_0;
-UCHAR                   memory_area[DEMO_BYTE_POOL_SIZE];
 TX_EVENT_FLAGS_GROUP    event_flags_rtc;
 
 
@@ -182,16 +179,7 @@ int main()
 
 void tx_application_define(void *first_unused_memory)
 {
-    CHAR    *pointer = TX_NULL;
-    INT status;
-
-    /* Create a byte memory pool from which to allocate the thread stacks.  */
-    status = tx_byte_pool_create(&byte_pool_0, "byte pool 0", memory_area, DEMO_BYTE_POOL_SIZE);
-    if (status != TX_SUCCESS)
-    {
-        printf("Could not create byte pool\n");
-        return;
-    }
+    UINT status;
 
     /* Put system definition stuff in here, e.g. thread creates and other assorted
         create information.  */
@@ -204,17 +192,9 @@ void tx_application_define(void *first_unused_memory)
         return;
     }
 
-    /* Allocate the stack for thread 0.  */
-    status = tx_byte_allocate(&byte_pool_0, (VOID **) &pointer, DEMO_STACK_SIZE, TX_NO_WAIT);
-    if (status != TX_SUCCESS)
-    {
-        printf("Could not create byte allocate\n");
-        return;
-    }
-
     /* Create the main thread.  */
     status = tx_thread_create(&rtc_thread, "rtc_thread", rtc_demo_Thread_entry, 0,
-            pointer, DEMO_STACK_SIZE,
+            first_unused_memory, DEMO_STACK_SIZE,
             1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
     if (status != TX_SUCCESS)
     {

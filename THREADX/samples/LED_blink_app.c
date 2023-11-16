@@ -29,8 +29,7 @@
 #endif  /* RTE_Compiler_IO_STDOUT */
 
 
-#define DEMO_BYTE_POOL_SIZE             (1024)
-#define LED_BLINK_THREAD_STACK_SIZE     (512)
+#define LED_BLINK_THREAD_STACK_SIZE     (1024)
 
 /* LED0 gpio pins */
 #define GPIO12_PORT                     12  /*< Use LED0_R,LED0_B GPIO port >*/
@@ -45,8 +44,6 @@
 #define PIN4                            4   /*< LED1_G gpio pin >*/
 #define PIN6                            6   /*< LED1_B gpio pin >*/
 
-UCHAR                                   memory_area[DEMO_BYTE_POOL_SIZE];
-TX_BYTE_POOL                            memory_pool;
 TX_THREAD                               led_thread;
 
 /* GPIO port used for LED0_R & LED0_B */
@@ -125,40 +122,39 @@ void led_blink_app (ULONG thread_input)
     ret2 = gpioDrv6->PowerControl(LED1_R, ARM_POWER_FULL);
     if ((ret1 != ARM_DRIVER_OK) || (ret2 != ARM_DRIVER_OK)) {
         printf("ERROR: Failed to powered full\n");
-        return;
+        goto error_uninitialize;
     }
     ret1 = gpioDrv7->PowerControl(LED0_G, ARM_POWER_FULL);
     ret2 = gpioDrv6->PowerControl(LED1_G, ARM_POWER_FULL);
     if ((ret1 != ARM_DRIVER_OK) || (ret2 != ARM_DRIVER_OK)) {
         printf("ERROR: Failed to powered full\n");
-        return;
+        goto error_uninitialize;
     }
     ret1 = gpioDrv12->PowerControl(LED0_B, ARM_POWER_FULL);
     ret2 = gpioDrv6->PowerControl(LED1_B, ARM_POWER_FULL);
     if ((ret1 != ARM_DRIVER_OK) || (ret2 != ARM_DRIVER_OK)) {
         printf("ERROR: Failed to powered full\n");
-        return;
+        goto error_uninitialize;
     }
 
     ret1 = gpioDrv12->SetDirection(LED0_R, GPIO_PIN_DIRECTION_OUTPUT);
     ret2 = gpioDrv6->SetDirection(LED1_R, GPIO_PIN_DIRECTION_OUTPUT);
     if ((ret1 != ARM_DRIVER_OK) || (ret2 != ARM_DRIVER_OK)) {
         printf("ERROR: Failed to configure\n");
-        return;
+        goto error_power_off;
     }
     ret1 = gpioDrv7->SetDirection(LED0_G, GPIO_PIN_DIRECTION_OUTPUT);
     ret2 = gpioDrv6->SetDirection(LED1_G, GPIO_PIN_DIRECTION_OUTPUT);
     if ((ret1 != ARM_DRIVER_OK) || (ret2 != ARM_DRIVER_OK)) {
         printf("ERROR: Failed to configure\n");
-        return;
+        goto error_power_off;
     }
     ret1 = gpioDrv12->SetDirection(LED0_B, GPIO_PIN_DIRECTION_OUTPUT);
     ret2 = gpioDrv6->SetDirection(LED1_B, GPIO_PIN_DIRECTION_OUTPUT);
     if ((ret1 != ARM_DRIVER_OK) || (ret2 != ARM_DRIVER_OK)) {
         printf("ERROR: Failed to configure\n");
-        return;
+        goto error_power_off;
     }
-
 
     while (1)
     {
@@ -298,28 +294,11 @@ int main ()
 /* Define what the initial system looks like.  */
 void tx_application_define (void *first_unused_memory)
 {
-    CHAR *pointer = TX_NULL;
-    INT ret;
-
-    /* Create a byte memory pool from which to allocate the thread stacks.  */
-    ret = tx_byte_pool_create (&memory_pool, "memory pool", memory_area, DEMO_BYTE_POOL_SIZE);
-
-    if (ret != TX_SUCCESS) {
-        printf("failed to create to byte Pool\r\n");
-    }
-
-    /* Put system definition stuff in here, e.g. thread creates and other assorted
-       create information.  */
-
-    /* Allocate the stack for thread 0.  */
-    ret = tx_byte_allocate (&memory_pool, (VOID **) &pointer, LED_BLINK_THREAD_STACK_SIZE, TX_NO_WAIT);
-
-    if (ret != TX_SUCCESS) {
-        printf("failed to allocate stack for led blink demo thread\r\n");
-    }
+    UINT ret;
 
     /* Create the main thread.  */
-    ret = tx_thread_create (&led_thread, "LED BLINK DEMO", led_blink_app, 0, pointer, LED_BLINK_THREAD_STACK_SIZE, 1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
+    ret = tx_thread_create (&led_thread, "LED BLINK DEMO", led_blink_app, 0,
+            first_unused_memory, LED_BLINK_THREAD_STACK_SIZE, 1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
 
     if (ret != TX_SUCCESS) {
         printf("failed to create led blink demo thread\r\n");

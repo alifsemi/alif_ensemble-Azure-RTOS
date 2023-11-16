@@ -20,6 +20,7 @@
  ******************************************************************************/
 
 /* Include necessary system files.  */
+#include "RTE_Device.h"
 #include "fx_sd_driver.h"
 #include "fx_sd_driver_private.h"
 
@@ -212,7 +213,7 @@ VOID  _fx_sd_driver(FX_MEDIA *media_ptr)
                     /* Perform basic initialization here... since the boot record is going
                        to be read subsequently and again for volume name requests.  */
 
-                    status = p_SD_Driver->disk_initialize(SDMMC_DEV_ID);
+                    status = p_SD_Driver->disk_initialize(SDMMC_DEV_ID, RTE_SDC_BUS_WIDTH, RTE_SDC_DMA_SELECT);
 
                     /* Check status of SD initialize.  */
                     if (status == FX_SUCCESS)

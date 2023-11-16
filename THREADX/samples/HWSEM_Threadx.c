@@ -22,50 +22,35 @@
  * @Note     None.
  ******************************************************************************/
 
-/* Includes --------------------------------------------------------------------------- */
-
-/* System Includes */
 #include <stdio.h>
 #include <string.h>
 #include "tx_api.h"
 
-/* Project Includes */
-
-/* include for HwSem Driver */
 #include "RTE_Components.h"
 #include CMSIS_device_header
 
-/* include for UART Driver */
-#include "Driver_USART.h"
-/* pin configuration driver */
-#include <pinconf.h>
-/* HWSEM Driver */
 #include "Driver_HWSEM.h"
+#include "Driver_USART.h"
+
+#include <pinconf.h>
+
 #if defined(RTE_Compiler_IO_STDOUT)
 #include "retarget_stdout.h"
 #endif  /* RTE_Compiler_IO_STDOUT */
 
-
 #ifdef M55_HP
-const char * startup_msg = "\n<<<<M55_HP : HWSEM testApp starting up>>>>\r\n";
 const char * msg = "\nPrinting from M55_HP";
 const char * acq_msg = "\nM55_HP acquiring the semaphore, printing 10 messages\r\n";
 const char * rel_msg = "\nM55_HP releasing the semaphore\r\n\n";
 #else
-const char * startup_msg = "\n<<<<M55_HE : HWSEM testApp starting up>>>>\r\n";
 const char * msg = "\nPrinting from M55_HE";
 const char * acq_msg = "\nM55_HE acquiring the semaphore, printing 10 messages\r\n";
 const char * rel_msg = "\nM55_HE releasing the semaphore\r\n\n";
 #endif
 
-
-/*Define for Threadx*/
 #define DEMO_STACK_SIZE                        1024
-#define DEMO_BYTE_POOL_SIZE                    9120
 
-TX_THREAD               HWSEM_thread;
-TX_BYTE_POOL            byte_pool_0;
-UCHAR                   memory_area[DEMO_BYTE_POOL_SIZE];
+TX_THREAD               hwsem_thread;
 TX_EVENT_FLAGS_GROUP    event_flags_uart;
 TX_EVENT_FLAGS_GROUP    event_flags_hwsem;
 
@@ -75,329 +60,301 @@ TX_EVENT_FLAGS_GROUP    event_flags_hwsem;
 
 /* HWSEM Driver instance */
 #define HWSEM                     0
-/* Mention the Uart instance */
+/* UART driver instance */
 #define UART                      4
 
 /* UART Driver */
 extern ARM_DRIVER_USART ARM_Driver_USART_(UART);
-
-/* UART Driver instance */
 static ARM_DRIVER_USART *USARTdrv = &ARM_Driver_USART_(UART);
 
 /* HWSEM Driver */
 extern ARM_DRIVER_HWSEM ARM_Driver_HWSEM_(HWSEM);
-
-/* UART Driver instance */
 static ARM_DRIVER_HWSEM *HWSEMdrv = &ARM_Driver_HWSEM_(HWSEM);
 
-
-void Hwsem_Thread_0_entry(ULONG thread_input);
-
-
 /**
- * @function    void myUART_callback(uint32_t event)
+ * @function    static VOID myUART_callback(UINT event)
  * @brief       UART isr callabck
  * @note        none
  * @param       event: USART Event
  * @retval      none
  */
-void myUART_callback(uint32_t event)
+static VOID myUART_callback(UINT event)
 {
     if (event & ARM_USART_EVENT_SEND_COMPLETE)
     {
-        /* Send Success */
         tx_event_flags_set(&event_flags_uart, UART_CB_TX_EVENT, TX_OR);
-    }
-
-    if (event & ARM_USART_EVENT_RECEIVE_COMPLETE)
-    {
-
-    }
-
-    if (event & ARM_USART_EVENT_RX_TIMEOUT)
-    {
-
     }
 }
 
 /**
- * @function   void HWSEM_callback(uint32_t event)
+ * @function   static void HWSEM_callback(INT event, UCHAR sem_id)
  * @brief      HWSEM isr callabck
  * @note       none
- * @param      event: HWSEM Event
+ * @param      event: HWSEM Event, sem_id : HWSEM id
  * @retval     none
  */
-void myHWSEM_callback(int32_t event, uint8_t sem_id)
+static VOID myHWSEM_callback(INT event, UCHAR sem_id)
 {
+    (VOID) sem_id;
+
     if (event & HWSEM_AVAILABLE_CB_EVENT)
     {
-        /* Success: Wakeup Thread */
         tx_event_flags_set(&event_flags_hwsem, HWSEM_CB_EVENT, TX_OR);
     }
 }
 
 /**
- * @function    int32_t hardware_init(void)
- * @brief       Uart initialization
+ * @function    static INT pinmux_init(void)
+ * @brief       pinmux initialization
  * @note        none
  * @param       void
  * @retval      execution status
  */
-int32_t hardware_init(void)
+static INT pinmux_init(void)
 {
-    int32_t ret = ARM_DRIVER_OK;
-    ARM_DRIVER_VERSION version;
+    INT ret;
 
     /* UART4_RX_B */
     ret = pinconf_set(PORT_12, PIN_1, PINMUX_ALTERNATE_FUNCTION_2, PADCTRL_READ_ENABLE);
 
     if (ret)
     {
-        return ARM_DRIVER_ERROR;
+        return ret;
     }
 
     /* UART4_TX_B */
     ret = pinconf_set(PORT_12, PIN_2, PINMUX_ALTERNATE_FUNCTION_2, 0);
 
-    if (ret)
+    return ret;
+}
+
+/**
+ * @function    static void hwsem_demo_entry(ULONG thread_input)
+ * @brief       TestApp to verify HWSEM interface
+ *              Get the lock, send message through UART
+ *              and then unlock
+ * @note        none
+ * @param       thread_input
+ * @retval      none
+ */
+static void hwsem_demo_entry(ULONG thread_input)
+{
+    INT len, init = 1, ret;
+    UINT status;
+    CHAR uart_msg[30];
+    ULONG events_uart = 0, events_hwsem = 0, timer_ticks = 100;
+    ARM_DRIVER_VERSION version;
+
+    (VOID) thread_input;
+
+    version = HWSEMdrv->GetVersion();
+
+    printf("\r\n HWSEM version api:%X driver:%X...\r\n",version.api, version.drv);
+
+    /* Initialize HWSEM driver */
+    ret = HWSEMdrv->Initialize(myHWSEM_callback);
+
+    if (ret != ARM_DRIVER_OK)
     {
-        return ARM_DRIVER_ERROR;
+        printf("\r\n HWSEM initialization failed\r\n");
+        goto error_exit;
     }
 
-    /* Initialize UART driver */
-    ret = USARTdrv->Initialize(myUART_callback);
-
-    if (ret)
+    while (1)
     {
-        printf("\r\n Error in UART Initialize.\r\n");
-        return ARM_DRIVER_ERROR;
-    }
+        /* Acquire the lock */
+        ret = HWSEMdrv->TryLock();
 
-    /* Power up UART peripheral */
-    ret = USARTdrv->PowerControl(ARM_POWER_FULL);
+        if (ret == ARM_DRIVER_ERROR)
+        {
+            printf("\r\n HWSEM lock failed\r\n");
+            goto error_uninitialize;
+        }
 
-    if (ret)
-    {
-        printf("\r\n Error in UART Power Up.\r\n");
-        goto error_uninitialize;
-    }
+        /* If HWSEM already locked, then wait for the interrupt */
+        while (ret == ARM_DRIVER_ERROR_BUSY)
+        {
+            status = tx_event_flags_get(&event_flags_hwsem, HWSEM_CB_EVENT, TX_OR_CLEAR, &events_hwsem, TX_WAIT_FOREVER);
 
-    /* Configure UART */
-    ret =  USARTdrv->Control(ARM_USART_MODE_ASYNCHRONOUS |
+            if (status == TX_SUCCESS)
+            {
+                /* Acquire the lock */
+                ret = HWSEMdrv->TryLock();
+            }
+        }
+
+        if (ret != ARM_DRIVER_OK)
+        {
+            printf("\r\n HWSEM lock failed\n");
+            goto error_uninitialize;
+        }
+
+        /* Initialize the pinmux in the first iteration */
+        if (init)
+        {
+            ret = pinmux_init();
+            if (ret != 0)
+            {
+                printf("\r\n Error in pinmux initialization \r\n");
+                goto error_unlock;
+            }
+
+            init = 0;
+        }
+
+        /* Initialize UART driver */
+        ret = USARTdrv->Initialize(myUART_callback);
+
+        if (ret != ARM_DRIVER_OK)
+        {
+            printf("\r\n Error in UART Initialize.\r\n");
+            goto error_unlock;
+        }
+
+        /* Power up UART peripheral */
+        ret = USARTdrv->PowerControl(ARM_POWER_FULL);
+
+        if (ret != ARM_DRIVER_OK)
+        {
+            printf("\r\n Error in UART Power Up.\r\n");
+            goto error_unlock;
+        }
+
+        /* Configure UART */
+        ret =  USARTdrv->Control(ARM_USART_MODE_ASYNCHRONOUS |
                                       ARM_USART_DATA_BITS_8 |
                                       ARM_USART_PARITY_NONE |
                                       ARM_USART_STOP_BITS_1 |
                                       ARM_USART_FLOW_CONTROL_NONE,
                                       115200);
 
-    if (ret)
-    {
-        printf("\r\n Error in UART Control.\r\n");
-        goto error_poweroff;
-    }
-
-    /* Enable Transmitter lines */
-    ret =  USARTdrv->Control(ARM_USART_CONTROL_TX, 1);
-    if (ret)
-    {
-        printf("\r\n Error in UART Control.\r\n");
-        goto error_poweroff;
-    }
-    return ret;
-
-error_poweroff:
-    /* Received error Power off UART peripheral */
-    ret = USARTdrv->PowerControl(ARM_POWER_OFF);
-    if (ret != ARM_DRIVER_OK)
-    {
-        printf("\r\n Error in UART Power OFF.\r\n");
-    }
-
-error_uninitialize:
-    /* Received error Un-initialize UART driver */
-    ret = USARTdrv->Uninitialize();
-    if (ret != ARM_DRIVER_OK)
-    {
-        printf("\r\n Error in UART Uninitialize.\r\n");
-    }
-    return ret;
-}
-
-/**
- * @function    void Hwsem_Thread_0_entry(ULONG thread_input)
- * @brief       TestApp to verify HWSEM interface
- *              Get the lock, send message through UART
- *              and then unlock
- * @note        none
- * @param       none
- * @retval      none
- */
-void Hwsem_Thread_0_entry(ULONG thread_input)
-{
-    INT ret_hwsem, ret_uart, len, init = 1, ret;
-    CHAR * uart_msg;
-    ULONG events_uart = 0, events_hwsem, timer_ticks = 100;
-    ARM_DRIVER_VERSION version;
-
-    ret = tx_byte_allocate(&byte_pool_0, (void*)&uart_msg, 30, 500);
-
-    if (ret == TX_NO_MEMORY)
-    {
-        printf("\r\nNo memory left in Block POOL\n");
-        return;
-    }
-
-    version = HWSEMdrv->GetVersion();
-    printf("\r\n HWSEM version api:%X driver:%X...\r\n",version.api, version.drv);
-
-    /* Initialize HWSEM driver */
-    ret_hwsem = HWSEMdrv->Initialize(myHWSEM_callback);
-    if (ret_hwsem != ARM_DRIVER_OK)
-    {
-        printf("\r\n HWSEM initialization failed\r\n");
-        goto error_initialize;
-    }
-
-    while(1)
-    {
-        /* Acquire the lock */
-        ret_hwsem = HWSEMdrv->TryLock();
-
-        if (ret_hwsem == ARM_DRIVER_ERROR)
+        if (ret != ARM_DRIVER_OK)
         {
-            printf("\r\n HWSEM lock failed\r\n");
-            goto error_lock;
+            printf("\r\n Error in UART Control.\r\n");
+            goto error_unlock;
         }
 
-        /* If HWSEM already locked, then wait for the interrupt */
-        while (ret_hwsem == ARM_DRIVER_ERROR_BUSY)
-        {
-            ret_hwsem = tx_event_flags_get(&event_flags_hwsem, HWSEM_CB_EVENT, TX_OR_CLEAR, &events_hwsem, TX_WAIT_FOREVER);
+        /* Enable UART tx */
+        ret =  USARTdrv->Control(ARM_USART_CONTROL_TX, 1);
 
-            if (ret_hwsem == TX_SUCCESS)
-            {
-                /* Acquire the lock */
-                ret_hwsem = HWSEMdrv->TryLock();
-            }
-            else
-            {
-                ret_hwsem = ARM_DRIVER_ERROR_BUSY;
-            }
+        if (ret != ARM_DRIVER_OK)
+        {
+            printf("\r\n Error in UART Control.\r\n");
+            goto error_unlock;
         }
 
-        if (ret_hwsem != ARM_DRIVER_OK)
-        {
-            printf("\r\n HWSEM lock failed\n");
-            goto error_lock;
-        }
+        ret = USARTdrv->Send(acq_msg, strlen(acq_msg));
 
-        /* Initialize the UART Driver */
-        if (init)
-        {
-            hardware_init();
-            if (ret_uart != 0)
-            {
-                printf("\r\n Error in UART hardware_init.\r\n");
-                goto error_hw_init;
-            }
-            init = 0;
-            ret_uart = USARTdrv->Send(startup_msg, strlen(startup_msg));
-            if (ret_uart != ARM_DRIVER_OK)
-            {
-                printf("\r\nError in UART Send.\r\n");
-            }
-
-            /* wait for event flag after UART call */
-            ret_uart = tx_event_flags_get(&event_flags_uart, UART_CB_TX_EVENT, TX_OR_CLEAR, &events_uart, TX_WAIT_FOREVER);
-            if (ret_uart != TX_SUCCESS)
-            {
-                printf(" \r\n Error in tx_event_flags_get.\r\n");
-            }
-        }
-
-
-        ret_uart = USARTdrv->Send(acq_msg, strlen(acq_msg));
-        if (ret_uart != ARM_DRIVER_OK)
+        if (ret != ARM_DRIVER_OK)
         {
             printf("\r\nError in UART Send.\r\n");
+            goto error_unlock;
         }
 
         /* wait for event flag after UART call */
-        ret_uart = tx_event_flags_get(&event_flags_uart, UART_CB_TX_EVENT, TX_OR_CLEAR, &events_uart, TX_WAIT_FOREVER);
-        if (ret_uart != TX_SUCCESS)
+        status = tx_event_flags_get(&event_flags_uart, UART_CB_TX_EVENT, TX_OR_CLEAR, &events_uart, TX_WAIT_FOREVER);
+
+        if (status != TX_SUCCESS)
         {
             printf(" \r\n Error in tx_event_flags_get.\r\n");
+            goto error_unlock;
         }
 
-        /* Print 10 messages from each core */
+        /* Print 10 messages */
         for (int iter = 1; iter <= 10; iter++)
         {
             len = sprintf(uart_msg, "%s %d\r\n", msg, iter);
 
-            ret_uart = USARTdrv->Send(uart_msg, len);
-            if (ret_uart != ARM_DRIVER_OK)
+            ret = USARTdrv->Send(uart_msg, len);
+
+            if (ret != ARM_DRIVER_OK)
             {
                 printf("\r\nError in UART Send.\r\n");
+                goto error_unlock;
             }
 
             /* wait for event flag after UART call */
-            ret_uart = tx_event_flags_get(&event_flags_uart, UART_CB_TX_EVENT, TX_OR_CLEAR, &events_uart, TX_WAIT_FOREVER);
-            if (ret_uart != TX_SUCCESS)
+            status = tx_event_flags_get(&event_flags_uart, UART_CB_TX_EVENT, TX_OR_CLEAR, &events_uart, TX_WAIT_FOREVER);
+
+            if (status != TX_SUCCESS)
             {
                 printf(" \r\n Error in tx_event_flags_get.\r\n");
+                goto error_unlock;
             }
             tx_thread_sleep(timer_ticks);
         }
 
-        ret_uart = USARTdrv->Send(rel_msg, strlen(rel_msg));
-        if (ret_uart != ARM_DRIVER_OK)
+        ret = USARTdrv->Send(rel_msg, strlen(rel_msg));
+
+        if (ret != ARM_DRIVER_OK)
         {
             printf("\r\nError in UART Send.\r\n");
+            goto error_unlock;
         }
 
         /* wait for event flag after UART call */
-        ret_uart = tx_event_flags_get(&event_flags_uart, UART_CB_TX_EVENT, TX_OR_CLEAR, &events_uart, TX_WAIT_FOREVER);
-        tx_thread_sleep(timer_ticks);
+        status = tx_event_flags_get(&event_flags_uart, UART_CB_TX_EVENT, TX_OR_CLEAR, &events_uart, TX_WAIT_FOREVER);
 
-        if (ret_uart != TX_SUCCESS)
+        if (status != TX_SUCCESS)
         {
             printf(" \r\n Error in tx_event_flags_get.\r\n");
+            goto error_unlock;
+        }
+
+        ret = USARTdrv->PowerControl(ARM_POWER_OFF);
+
+        if (ret != ARM_DRIVER_OK)
+        {
+            printf("\r\n Error in UART Power OFF.\r\n");
+            goto error_unlock;
+        }
+
+        ret = USARTdrv->Uninitialize();
+
+        if (ret != ARM_DRIVER_OK)
+        {
+            printf("\r\n Error in UART Uninitialize.\r\n");
+            goto error_unlock;
         }
 
         /* Unlock the HW Semaphore */
-        HWSEMdrv->Unlock();
+        ret = HWSEMdrv->Unlock();
 
-        if (ret_hwsem == ARM_DRIVER_ERROR)
+        if (ret == ARM_DRIVER_ERROR)
         {
             printf("\r\n HWSEM unlock failed\r\n");
-            goto error_lock;
+            goto error_uninitialize;
         }
 
         tx_thread_sleep(timer_ticks);
     }
-    ret = tx_block_release(uart_msg);
 
-    /* Uninitialize the HWSEM Driver */
+    tx_block_release(uart_msg);
+
     HWSEMdrv->Uninitialize();
 
-error_hw_init:
+    return;
+
+error_unlock:
     /* Unlock the HW Semaphore */
     HWSEMdrv->Unlock();
-error_lock:
+
+error_uninitialize:
     /* Uninitialize the HWSEM Driver */
     HWSEMdrv->Uninitialize();
-    tx_thread_sleep(timer_ticks);
+
     tx_block_release(uart_msg);
-error_initialize:
+
+error_exit:
     return;
 }
 
-//* Define main entry point.  */
 int main()
 {
     #if defined(RTE_Compiler_IO_STDOUT_User)
-    int32_t ret;
+    INT ret;
     ret = stdout_init();
+
     if(ret != ARM_DRIVER_OK)
     {
         while(1)
@@ -406,26 +363,19 @@ int main()
     }
     #endif
 
-    /* Enter the ThreadX kernel.  */
+    /* Enter the ThreadX kernel. */
     tx_kernel_enter();
 }
 
-
-/* Define what the initial system looks like.  */
+/* Define what the initial system looks like. */
 void tx_application_define(void *first_unused_memory)
 {
     CHAR    *pointer = TX_NULL;
-    INT      status  = 0;
+    UINT     status;
 
-    /* Create a byte memory pool from which to allocate the thread stacks.  */
-    status = tx_byte_pool_create(&byte_pool_0, "byte pool 0", memory_area, DEMO_BYTE_POOL_SIZE);
-    if (status != TX_SUCCESS)
-    {
-        printf("Could not create byte pool\n");
-        return;
-    }
     /* Create the event flags group used by UART thread */
     status = tx_event_flags_create(&event_flags_uart, "event flags UART");
+
     if (status != TX_SUCCESS)
     {
         printf("Could not create event flags\n");
@@ -434,27 +384,19 @@ void tx_application_define(void *first_unused_memory)
 
     /* Create the event flags group used by HWSEM thread */
     status = tx_event_flags_create(&event_flags_hwsem, "event flags HWSEM");
+
     if (status != TX_SUCCESS)
     {
         printf("Could not create event flags\n");
         return;
     }
 
-    /* Allocate the stack for thread.  */
-    status = tx_byte_allocate(&byte_pool_0, (VOID **) &pointer, DEMO_STACK_SIZE, TX_NO_WAIT);
-    if (status != TX_SUCCESS)
-    {
-        printf("Could not allocate memory for thread stack.\n");
-        return;
-    }
-
-    /* Create the main thread.  */
-    status = tx_thread_create(&HWSEM_thread, "HWSEM_thread", Hwsem_Thread_0_entry, 0, pointer, DEMO_STACK_SIZE,
+    /* Create the main thread. */
+    status = tx_thread_create(&hwsem_thread, "HWSEM_thread", hwsem_demo_entry, 0, first_unused_memory, DEMO_STACK_SIZE,
                                                                       1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
     if (status != TX_SUCCESS)
     {
         printf("Could not create HWSEM demo thread \n");
         return;
     }
-
 }

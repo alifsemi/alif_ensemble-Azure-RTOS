@@ -29,14 +29,11 @@
 #endif  /* RTE_Compiler_IO_STDOUT */
 
 
-#define DEMO_BYTE_POOL_SIZE        (1024)
 #define LPTIMER_THREAD_STACK_SIZE  (512)
 #define LPTIMER_CALLBACK_EVENT     0x1
 #define LPTIMER_CHANNEL_0          0      /* lptimer have 0-3 channels, using channel zero for demo app */
 #define LPTIMER_EVENT_WAIT_TIME    (6 * TX_TIMER_TICKS_PER_SECOND)  /* interrupt wait time: 6 seconds */
 
-UCHAR                              memory_area[DEMO_BYTE_POOL_SIZE];
-TX_BYTE_POOL                       memory_pool;
 TX_THREAD                          lptimer_thread;
 TX_EVENT_FLAGS_GROUP               lptimer_event_flag;
 ULONG                              events;
@@ -158,34 +155,19 @@ int main ()
 /* Define what the initial system looks like.  */
 void tx_application_define (void *first_unused_memory)
 {
-    CHAR *pointer = TX_NULL;
     UINT status;
-
-    /* Create a byte memory pool from which to allocate the thread stacks.  */
-    status = tx_byte_pool_create (&memory_pool, "memory pool", memory_area, DEMO_BYTE_POOL_SIZE);
-
-    if (status != TX_SUCCESS) {
-        printf("failed to create to byte Pool\r\n");
-    }
 
     /* Put system definition stuff in here, e.g. thread creates and other assorted
        create information.  */
     /* Create a event flag for lptimer group.  */
     status = tx_event_flags_create (&lptimer_event_flag, "LPTIMER_EVENT_FLAG");
-
     if (status != TX_SUCCESS) {
         printf("failed to create lptimer event flag\r\n");
     }
 
-    /* Allocate the stack for thread 0.  */
-    status = tx_byte_allocate (&memory_pool, (VOID **) &pointer, LPTIMER_THREAD_STACK_SIZE, TX_NO_WAIT);
-
-    if (status != TX_SUCCESS) {
-        printf("failed to allocate stack for lptimer thread\r\n");
-    }
-
     /* Create the main thread.  */
-    status = tx_thread_create (&lptimer_thread, "LPTIMER DEMO", lptimer_app, 0, pointer, LPTIMER_THREAD_STACK_SIZE, 1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
+    status = tx_thread_create (&lptimer_thread, "LPTIMER DEMO", lptimer_app, 0,
+            first_unused_memory, LPTIMER_THREAD_STACK_SIZE, 1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
 
     if (status != TX_SUCCESS) {
         printf("failed to create lptimer demo thread\r\n");
