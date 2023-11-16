@@ -13,54 +13,8 @@
   -->
 
   <releases>
-    <release version="0.3.6" date="2023-11-10">
-      - Update sample test apps
-    </release>
-      <release version="0.3.1" date="2023-09-13">
-      - Update B0 THREADX Sample 	
-      - Update B0 FILEX Driver and sample
-      - Update B0 USBX Driver and sample
-      - Update B0 NETX Driver and sample
-    </release>
-    <release version="0.3.0" date="2023-01-10">
-      - update sample codes
-      - Add SD card support
-    </release>
-    <release version="0.2.1" date="2022-09-13">
-      - Fix QA findings
-    </release>
-     <release version="0.2.0" date="2022-08-23">
-      - Update NETX Ethernet Driver
-      - Add USBX DCD support
-      - Update test application for Camera, I2S, CRC and SPI based ThermoMeter
-      - Add test applications for Comparator, MRAM Flash, HWSEM and Video
-      - Add USBX DCD support
-    </release>
-    <release version="0.1.2" date="2022-05-31">
-      - Add NETX Ethernet Driver
-      - Add Cloud Support packages and examples
-      - Add THREADX based sample device test applications
-    </release>
-   <release version="0.1.1" date="2022-02-17">
-      - Add Modem iperf demo app
-      - update nx utility
-    </release>
-    <release version="0.1.0" date="2021-12-03">
-      Grouped NETX Demo App
-    </release>
-     <release version="0.0.3" date="2021-09-29">
-      Added support for AzureRTOS NETX
-      updated URL
-      Move sample application as templates
-    </release>
-     <release version="0.0.2" date="2021-09-07">
-      Added support for AzureRTOS FILEX
-      Fixed some tags indentation
-      Moved AzureRTOS THREADX Code into separate folder
-      Fixed some Schemas validity error
-    </release>
-   <release version="0.0.1" date="2021-04-15">
-      Initial Release
+    <release version="1.0.0" date="2023-11-16">
+      - Initial Release
     </release>
   </releases>
 
