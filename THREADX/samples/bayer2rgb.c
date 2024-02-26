@@ -233,9 +233,5 @@ int32_t bayer_to_RGB(uint8_t  *src,   uint8_t  *dest,   \
 #endif /* end of ENABLE_16_BIT_VERSION */
     }
 
-    printf("\n Bayer to RGB Converted Tiff Color Image Memory Address is :");
-    printf("\n \t starting_addr: 0x%X \r\n \t ending_addr  : 0x%X\n", \
-                          (uint32_t) dest, (uint32_t) (dest+out_size-1));
-
     return 0;
 }

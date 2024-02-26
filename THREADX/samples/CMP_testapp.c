@@ -21,12 +21,16 @@
  *              - Input B is set by RTE_CMP0_SEL_NEGATIVE
  *              - Input B is set to RTE_CMP_NEGATIVE_DAC6(which provide 0.9v)
  *              Hardware setup (1 wires needed):
- *              - Use a wire to connect P0_0 to P12_3(J14 it will be labeled)
- *              - This test expects the LED Blinky application is running and
- *                the P12_3 should be toggling every 1 second
- *              - When the comparator input changes from HIGH to LOW or from LOW
- *                to HIGH, interrupt will be generated
- *              - Check CMP0 output in the pin P14_7 using saleae logic analyzer
+ *              - Connect P0_0(+ve pin) to P12_3(GPIO output) and DAC6 is set as negative
+ *                pin,check CMP0 output in the pin P14_7 using saleae logic analyzer.
+ *              - If +ve input is greater than -ve input, interrupt will be generated,
+ *                and the output will be high.
+ *              - If -ve input is greater than +ve input, interrupt will be generated,
+ *                and the output will be low.
+ *              For window control feature:
+ *              - As glb_events/utimer events are active for few clocks, set prescalar
+ *                value to 0. These interrupt will occur continuously because Utimer
+ *                is running continuously.
  ******************************************************************************/
 
 /* System Includes */
@@ -35,6 +39,7 @@
 #include "tx_api.h"
 #include "system_utils.h"
 #include "pinconf.h"
+#include "Driver_UTIMER.h"
 
 /* include for Comparator Driver */
 #include "Driver_CMP.h"
@@ -47,8 +52,12 @@
 #define GPIO12_PORT                     12       /* Use LED0_R,LED0_B GPIO port */
 #define LED0_R                          PIN_3    /* LED0_R gpio pin             */
 
-#define NUM_TAPS                        5 /* Number of filter taps     */
-#define SAMPLING_RATE                   8 /* clock rate for filtering */
+/* To read the HSCMP0 output status set CMP_OUTPIN as 7, for HSCMP1 set CMP_OUTPIN as 6,
+ * for set CMP_OUTPIN as HSCMP2 5, and for HSCMP3 set CMP_OUTPIN as 4 */
+#define CMP14_PORT                      14
+#define CMP_OUTPIN                      7
+
+#define NUM_TAPS                        5      /* Number of filter taps     */
 
 #define LPCMP                0
 #define HSCMP                1
@@ -57,11 +66,27 @@
 /* To configure for LPCMP, use CMP_INSTANCE LPCMP */
 #define CMP_INSTANCE         HSCMP
 
+/* To enable comparator window control, change the macro value from 0 to 1
+ * The glb_events/utimer events define the window where to look at the cmp_input.
+ * As GLB_events/Utimer_events are active for few clocks, there is no reason to set
+ * prescaler value, so set Prescaler value to 0 when using window control.
+ * As Utimer is running continuously, the HSCMP interrupts will occur continuously. */
+#define CMP_WINDOW_CONTROL   0
+
+#if CMP_WINDOW_CONTROL
+#define SAMPLING_RATE        0  /* Set the prescaler values as 0 for windowing function */
+#else
+#define SAMPLING_RATE        8  /* Set the prescaler values from 0 to 31 */
+#endif
+
 #define ERROR    -1
 #define SUCCESS   0
 
 extern  ARM_DRIVER_GPIO ARM_Driver_GPIO_(GPIO12_PORT);
 ARM_DRIVER_GPIO *ledDrv = &ARM_Driver_GPIO_(GPIO12_PORT);
+
+extern  ARM_DRIVER_GPIO ARM_Driver_GPIO_(CMP14_PORT);
+ARM_DRIVER_GPIO *CMPout = &ARM_Driver_GPIO_(CMP14_PORT);
 
 #if(CMP_INSTANCE == LPCMP)
 #if !defined(M55_HE)
@@ -75,16 +100,156 @@ static ARM_DRIVER_CMP *CMPdrv = &Driver_CMP0;
 #endif
 
 volatile uint32_t call_back_counter = 0;
+uint32_t value =0;
 
 /* Define the ThreadX object control blocks...  */
 #define DEMO_STACK_SIZE                 1024
-#define DEMO_BYTE_POOL_SIZE             9120
 #define TX_CMP_FILTER_EVENT             0x01
 
 TX_THREAD               CMP_thread;
-TX_BYTE_POOL            byte_pool_0;
-UCHAR                   memory_area[DEMO_BYTE_POOL_SIZE];
-TX_EVENT_FLAGS_GROUP    event_flags_CMP;
+TX_EVENT_FLAGS_GROUP    event_flags;
+
+/* Use window control(External trigger using UTIMER or QEC) to trigger the comparator comparison */
+#if(CMP_INSTANCE == HSCMP)
+#if CMP_WINDOW_CONTROL
+
+/* UTIMER0 Driver instance */
+extern ARM_DRIVER_UTIMER DRIVER_UTIMER0;
+ARM_DRIVER_UTIMER *ptrUTIMER = &DRIVER_UTIMER0;
+
+#define UTIMER_COMPARE_A_CB_EVENT                (1U << 2U)
+#define UTIMER_COMPARE_MODE_WAIT_TIME            (5U * TX_TIMER_TICKS_PER_SECOND)              /* 5 seconds wait time */
+#define TX_UTIMER_START                           0X02
+
+ULONG                                            events;
+TX_THREAD                                        compare_mode_thread;
+
+/**
+ * @function    void utimer_compare_mode_cb_func(event)
+ * @brief       utimer compare mode callback function
+ * @note        none
+ * @param       event
+ * @retval      none
+ */
+static void utimer_compare_mode_cb_func(UCHAR  event)
+{
+    if (event == ARM_UTIMER_EVENT_COMPARE_A) {
+        tx_event_flags_set(&event_flags, UTIMER_COMPARE_A_CB_EVENT, TX_OR);
+    }
+}
+
+/**
+ * @function    void utimer_compare_mode_app(void)
+ * @brief       utimer compare mode application
+ * @note        none
+ * @param       none
+ * @retval      none
+ */
+static void utimer_compare_mode_app(ULONG thread_input)
+{
+    INT ret;
+    UCHAR channel = 0;
+    UINT count_array[3];
+
+    pinconf_set(0, 0, PINMUX_ALTERNATE_FUNCTION_4, 0);
+
+    /*
+     * utimer channel 0 is configured for utimer compare mode (driver A).
+     * observe driver A output signal from P1_2.
+     */
+    /*
+     * System CLOCK frequency (F)= 400Mhz
+     *
+     * Time for 1 count T = 1/F = 1/(400*10^6) = 0.0025 * 10^-6
+     *
+     * To Increment or Decrement Timer by 1 count, takes 0.0025 micro sec
+     *
+     * So count for 1 sec = 1/(0.0025*(10^-6)) = 400000000
+     * DEC = 400000000
+     * HEX = 0x17D78400
+     *
+     * So count for 500ms = (500*(10^-3)/(0.0025*(10^-6)) = 200000000
+     * DEC = 200000000
+     * HEX = 0xBEBC200
+     */
+    count_array[0] =  0x000000000;       /*< initial counter value >*/
+    count_array[1] =  0x17D78400;        /*< over flow count value > */
+    count_array[2] =  0xBEBC200;         /*< compare a/b value> */
+
+    tx_event_flags_get(&event_flags, TX_UTIMER_START, TX_OR_CLEAR, &events, TX_WAIT_FOREVER);
+
+    ret = ptrUTIMER->Initialize (channel, utimer_compare_mode_cb_func);
+    if (ret != ARM_DRIVER_OK) {
+        printf("utimer channel %d failed initialize \n", channel);
+        return;
+    }
+
+    ret = ptrUTIMER->PowerControl (channel, ARM_POWER_FULL);
+    if (ret != ARM_DRIVER_OK) {
+        printf("utimer channel %d failed power up \n", channel);
+        goto error_compare_mode_uninstall;
+    }
+
+    ret = ptrUTIMER->ConfigCounter (channel, ARM_UTIMER_MODE_COMPARING, ARM_UTIMER_COUNTER_UP);
+    if (ret != ARM_DRIVER_OK) {
+        printf("utimer channel %d mode configuration failed \n", channel);
+        goto error_compare_mode_poweroff;
+    }
+
+    ret = ptrUTIMER->SetCount (channel, ARM_UTIMER_CNTR, count_array[0]);
+    if (ret != ARM_DRIVER_OK) {
+        printf("utimer channel %d set count failed \n", channel);
+        goto error_compare_mode_poweroff;
+    }
+
+    ret = ptrUTIMER->SetCount (channel, ARM_UTIMER_CNTR_PTR, count_array[1]);
+    if (ret != ARM_DRIVER_OK) {
+        printf("utimer channel %d set count failed \n", channel);
+        goto error_compare_mode_poweroff;
+    }
+
+    ret = ptrUTIMER->SetCount (channel, ARM_UTIMER_COMPARE_A, count_array[2]);
+    if (ret != ARM_DRIVER_OK) {
+        printf("utimer channel %d set count failed \n", channel);
+        goto error_compare_mode_poweroff;
+    }
+
+    ret = ptrUTIMER->Start(channel);
+    if (ret != ARM_DRIVER_OK) {
+        printf("utimer channel %d failed to start \n", channel);
+        goto error_compare_mode_poweroff;
+    }
+
+    ret = tx_event_flags_get(&event_flags, UTIMER_COMPARE_A_CB_EVENT, TX_OR_CLEAR, &events, TX_WAIT_FOREVER);
+    if(ret != TX_SUCCESS) {
+        printf("ERROR : event not received \n");
+        goto error_compare_mode_poweroff;
+    }
+
+    return;
+
+    ret = ptrUTIMER->Stop (channel, ARM_UTIMER_COUNTER_CLEAR);
+    if (ret != ARM_DRIVER_OK) {
+        printf("utimer channel %d failed to stop \n", channel);
+    }
+
+error_compare_mode_poweroff:
+
+    ret = ptrUTIMER->PowerControl (channel, ARM_POWER_OFF);
+    if (ret != ARM_DRIVER_OK) {
+        printf("utimer channel %d failed power off \n", channel);
+    }
+
+error_compare_mode_uninstall:
+
+    ret = ptrUTIMER->Uninitialize (channel);
+    if(ret != ARM_DRIVER_OK) {
+        printf("utimer channel %d failed to un-initialize \n", channel);
+    }
+}
+
+#endif
+#endif
 
 /**
  * @fn          void cmp_pinmux_config(void)
@@ -127,7 +292,7 @@ int32_t cmp_pinmux_config(void)
  * @param[in]  None
  * return      status
  */
-int32_t led_init(void)
+static int32_t led_init(void)
 {
     int32_t ret1 = 0;
 
@@ -141,6 +306,12 @@ int32_t led_init(void)
         return ERROR;
     }
 
+    ret1 = CMPout->Initialize(CMP_OUTPIN, NULL);
+    if(ret1 != ARM_DRIVER_OK) {
+        printf("ERROR: Failed to initialize\n");
+        return ERROR;
+    }
+
     /* Enable the power for LED0_R */
     ret1 = ledDrv->PowerControl(LED0_R, ARM_POWER_FULL);
     if(ret1 != ARM_DRIVER_OK) {
@@ -148,7 +319,20 @@ int32_t led_init(void)
         goto error_uninitialize_LED;
     }
 
+    /* Enable the power for LED0_R */
+    ret1 = CMPout->PowerControl(CMP_OUTPIN, ARM_POWER_FULL);
+    if(ret1 != ARM_DRIVER_OK) {
+        printf("ERROR: Failed to powered full\n");
+        goto error_uninitialize_LED;
+    }
+
    ret1 = ledDrv->SetDirection(LED0_R, GPIO_PIN_DIRECTION_OUTPUT);
+   if(ret1 != ARM_DRIVER_OK) {
+        printf("ERROR: Failed to configure\n");
+        goto error_power_off_LED;
+    }
+
+   ret1 = CMPout->SetDirection(CMP_OUTPIN, GPIO_PIN_DIRECTION_OUTPUT);
    if(ret1 != ARM_DRIVER_OK) {
         printf("ERROR: Failed to configure\n");
         goto error_power_off_LED;
@@ -173,6 +357,37 @@ error_uninitialize_LED:
     /* Uninitialize the LED0_R */
     ret1 = ledDrv->Uninitialize(LED0_R);
     if(ret1 != ARM_DRIVER_OK)  {
+        printf("Failed to Un-initialize \n");
+    }
+    return ERROR;
+}
+
+/**
+ * @fn        cmp_get_status(void)
+ * @brief     - Get the Status of CMP output pin.
+ * @param[in]  None
+ * return      status
+ */
+static int32_t cmp_get_status(void)
+{
+    int32_t ret = 0;
+    ret = CMPout->GetValue(CMP_OUTPIN, &value);
+    if(ret != ARM_DRIVER_OK) {
+    printf("ERROR: Failed to toggle LEDs\n");
+    goto error_power_off_LED;
+    }
+    return value;
+
+    error_power_off_LED:
+    /* Power-off the CMP_OUTPIN */
+    ret = CMPout->PowerControl(CMP_OUTPIN, ARM_POWER_OFF);
+    if(ret != ARM_DRIVER_OK)  {
+        printf("ERROR: Failed to power off \n");
+    }
+
+    /* Uninitialize the CMP_OUTPIN */
+    ret = CMPout->Uninitialize(CMP_OUTPIN);
+    if(ret != ARM_DRIVER_OK)  {
         printf("Failed to Un-initialize \n");
     }
     return ERROR;
@@ -226,7 +441,7 @@ static void CMP_filter_callback(uint32_t event)
     if(event & ARM_CMP_FILTER_EVENT_OCCURRED)
     {
         /* Received Comparator filter event */
-        tx_event_flags_set(&event_flags_CMP, TX_CMP_FILTER_EVENT, TX_OR);
+        tx_event_flags_set(&event_flags, TX_CMP_FILTER_EVENT, TX_OR);
     }
     call_back_counter++;
 }
@@ -237,7 +452,7 @@ void CMP_demo_Thread_entry(ULONG thread_input)
     INT  ret = 0;
     UINT loop_count = 10;
     ARM_DRIVER_VERSION version;
-    ARM_COMPARATOR_CAPABILITIES capabilities;
+    CHAR status = 0;
 
     printf("\r\n >>> Comparator demo threadX starting up!!! <<< \r\n");
 
@@ -272,6 +487,16 @@ void CMP_demo_Thread_entry(ULONG thread_input)
     }
 
 #if(CMP_INSTANCE == HSCMP)
+
+#if CMP_WINDOW_CONTROL
+    /* Start CMP using window control */
+    ret = CMPdrv->Control(ARM_CMP_WINDOW_CONTROL_ENABLE, ARM_CMP_WINDOW_CONTROL_SRC_0);
+    if (ret != ARM_DRIVER_OK) {
+        printf("\r\n Error: CMP External trigger enable failed\n");
+        goto error_poweroff;
+    }
+#endif
+
     /* Filter function for analog comparator*/
     ret = CMPdrv->Control(ARM_CMP_FILTER_CONTROL, NUM_TAPS);
     if(ret != ARM_DRIVER_OK){
@@ -294,7 +519,13 @@ void CMP_demo_Thread_entry(ULONG thread_input)
         goto error_poweroff;
     }
 
-    while(loop_count--)
+#if(CMP_INSTANCE == HSCMP)
+#if CMP_WINDOW_CONTROL
+    tx_event_flags_set(&event_flags, TX_UTIMER_START, TX_OR);
+#endif
+#endif
+
+    while(loop_count --)
     {
         /* Toggle the LED0_R */
         if(led_toggle())
@@ -304,7 +535,7 @@ void CMP_demo_Thread_entry(ULONG thread_input)
         }
 
         /* wait till the input changes ( isr callback ) */
-        ret = tx_event_flags_get(&event_flags_CMP, TX_CMP_FILTER_EVENT, TX_OR_CLEAR, &event, TX_WAIT_FOREVER);
+        ret = tx_event_flags_get(&event_flags, TX_CMP_FILTER_EVENT, TX_OR_CLEAR, &event, TX_WAIT_FOREVER);
         if(ret != TX_SUCCESS) {
             printf("Error: Comparator tx_event_flags_get\n");
             goto error_poweroff;
@@ -313,8 +544,37 @@ void CMP_demo_Thread_entry(ULONG thread_input)
         /* Introducing a delay to stabilize input voltage for comparator measurement*/
         tx_thread_sleep(1 * TX_TIMER_TICKS_PER_SECOND);
 
-        printf("\n >>> Filter event occurred <<< \n");
+        /* Check the status of the CMP output pin */
+        status = cmp_get_status();
+
+        /* If user give +ve input voltage more than -ve input voltage, status will be set to 1*/
+        if(status == 1)
+        {
+            printf("\n CMP positive input voltage is greater than negative input voltage\n");
+        }
+        /* If user give -ve input voltage more than +ve input voltage, status will be set to 0*/
+        else if(status == 0)
+        {
+            printf("\n CMP negative input voltage is greater than the positive input voltage\n");
+        }
+        else
+        {
+            printf("ERROR: Status detection is failed\n");
+            goto error_poweroff;
+        }
+
     }
+
+#if(CMP_INSTANCE == HSCMP)
+#if CMP_WINDOW_CONTROL
+    /* Disable CMP window control */
+    ret = CMPdrv->Control(ARM_CMP_WINDOW_CONTROL_DISABLE, ARM_CMP_WINDOW_CONTROL_SRC_0);
+    if (ret != ARM_DRIVER_OK) {
+        printf("\r\n Error: CMP External trigger enable failed\n");
+        goto error_poweroff;
+    }
+#endif
+#endif
 
     /* To Stop the comparator module */
     ret = CMPdrv->Stop();
@@ -361,45 +621,38 @@ int main()
 /* Define what the initial system looks like.  */
 void tx_application_define(void *first_unused_memory)
 {
-    CHAR    *pointer = TX_NULL;
     INT status;
 
-    /* Create a byte memory pool from which to allocate the thread stacks.  */
-    status = tx_byte_pool_create(&byte_pool_0, "byte pool 0", memory_area, DEMO_BYTE_POOL_SIZE);
-    if(status != TX_SUCCESS)
-    {
-        printf("Could not create byte pool\n");
-        return;
-    }
-
-    /* Put system definition stuff in here, e.g. thread creates and other assorted
-    create information.  */
-
     /* Create the event flags group used by Comparator thread */
-    status = tx_event_flags_create(&event_flags_CMP, "event flags CMP");
+    status = tx_event_flags_create(&event_flags, "event flags CMP");
     if(status != TX_SUCCESS)
     {
         printf("Could not create event flags\n");
         return;
     }
 
-    /* Allocate the stack for thread 0.  */
-    status = tx_byte_allocate(&byte_pool_0, (VOID **) &pointer, DEMO_STACK_SIZE, TX_NO_WAIT);
-    if(status != TX_SUCCESS)
-    {
-        printf("Could not create byte allocate\n");
-        return;
-    }
-
     /* Create the main thread.  */
-    status = tx_thread_create(&CMP_thread, "CMP_thread", CMP_demo_Thread_entry, 0,
-             pointer, DEMO_STACK_SIZE,
-             1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
+    status = tx_thread_create(&CMP_thread, "CMP_thread", CMP_demo_Thread_entry,
+                              0,first_unused_memory, DEMO_STACK_SIZE,
+                              1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
     if(status != TX_SUCCESS)
     {
         printf("Could not create thread\n");
         return;
     }
+
+#if(CMP_INSTANCE == HSCMP)
+#if CMP_WINDOW_CONTROL
+    /* Create the utimer compare mode thread.  */
+    status = tx_thread_create(&compare_mode_thread, "UTIMER COMPARE MODE THREAD", utimer_compare_mode_app,
+                              0,first_unused_memory + DEMO_STACK_SIZE, DEMO_STACK_SIZE,
+                              1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
+    if (status != TX_SUCCESS) {
+        printf("failed to create utimer compare mode thread\r\n");
+    }
+
+#endif
+#endif
 }
 
     /************************ (C) COPYRIGHT ALIF SEMICONDUCTOR *****END OF FILE****/

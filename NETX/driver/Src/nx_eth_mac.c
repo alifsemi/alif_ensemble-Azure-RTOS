@@ -80,6 +80,7 @@ static MAC_DEV mac0 = {
         .speed = ETH_SPEED_CONFIG,
         .duplex = ETH_DUPLEX_CONFIG,
     },
+    .irq_priority = RTE_ETH_MAC_IRQ_PRIORITY,
 };
 
 /** \brief Driver instance */
@@ -1484,7 +1485,7 @@ MAC_DEV *dev = nx_mac_driver -> nx_driver_dev;
     /* Clear pending interrupt requests */
     NVIC_ClearPendingIRQ(dev -> irq);
     /* Set priority and enable interrupts */
-    NVIC_SetPriority(dev -> irq, 1);
+    NVIC_SetPriority(dev -> irq, dev -> irq_priority);
     NVIC_EnableIRQ(dev -> irq);
 
     /* Create event flags to signal the PHY poll events */
