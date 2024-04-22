@@ -72,6 +72,7 @@ typedef struct {
     uint32_t tx_descs_in_use;       /**< Number of tx descriptors in use by the hardware */
     eth_config config;              /**< Configuration information (Speed/Duplex/Autonegotiation). */
     uint32_t rx_buf_size;           /**< DMA rx buf size to be used */
+    uint8_t irq_priority;           /**< priority of the Ethernet MAC IRQ. */
 } MAC_DEV;
 
 /**

@@ -91,30 +91,32 @@ typedef enum _CANFD_FRAME
 /* Define the ThreadX object control blocks...  */
 #define THREAD_STACK_SIZE                   1024U
 
-TX_THREAD               canfd_thread;
-TX_EVENT_FLAGS_GROUP    event_flags_canfd;
+static TX_THREAD               canfd_thread;
+static TX_EVENT_FLAGS_GROUP    event_flags_canfd;
 
 /* CANFD instance object */
 extern ARM_DRIVER_CAN  Driver_CANFD;
-static ARM_DRIVER_CAN* CANFD_instance    = &Driver_CANFD;
+static ARM_DRIVER_CAN* CANFD_instance           = &Driver_CANFD;
 
 /* File Global variables */
-volatile bool error_occurred             = false;
-volatile bool rx_buf_overrun             = false;
-bool          stop_execution             = false;
-volatile bool rx_msg_error               = false;
-uint8_t       tx_obj_id                  = 255U;
-uint8_t       rx_obj_id                  = 255U;
-ARM_CAN_MSG_INFO tx_msg_header;
-ARM_CAN_MSG_INFO rx_msg_header;
-uint8_t          tx_msg_size             = 0U;
-volatile uint8_t rx_msg_size             = 0U;
-uint8_t tx_data[CANFD_MAX_MSG_SIZE + 1U] = "!!!!!!***** CANFD TESTAPP Message Communication Test *****!!!!!!";
-uint8_t rx_data[CANFD_MAX_MSG_SIZE + 1U];
+static volatile bool error_occurred             = false;
+static volatile bool rx_buf_overrun             = false;
+static bool          stop_execution             = false;
+static volatile bool rx_msg_error               = false;
+static uint8_t       tx_obj_id                  = 255U;
+static uint8_t       rx_obj_id                  = 255U;
+static ARM_CAN_MSG_INFO tx_msg_header;
+static ARM_CAN_MSG_INFO rx_msg_header;
+static uint8_t          tx_msg_size             = 0U;
+static volatile uint8_t rx_msg_size             = 0U;
+static uint8_t tx_data[CANFD_MAX_MSG_SIZE + 1U] =
+               "!!!!!!***** CANFD TESTAPP Message Communication Test *****!!!!!!";
+static uint8_t rx_data[CANFD_MAX_MSG_SIZE + 1U];
 
 /* A map between Data length code to the payload size */
-const uint8_t canfd_len_dlc_map[0x10U] =
-              {0U, 1U, 2U, 3U, 4U, 5U, 6U, 7U, 8U, 12U, 16U, 20U, 24U, 32U, 48U, 64U};
+static const uint8_t canfd_len_dlc_map[0x10U] =
+                     {0U, 1U, 2U, 3U, 4U, 5U, 6U, 7U, 8U,
+                      12U, 16U, 20U, 24U, 32U, 48U, 64U};
 
 /* Support functions */
 static bool canfd_process_rx_message(void);
@@ -154,13 +156,13 @@ static int32_t pinmux_config(void)
 }
 
 /**
- * @fn      void cb_unit_event(uint32_t event)
+ * @fn      static void cb_unit_event(uint32_t event)
  * @brief   CANFD Callback function for events
  * @note    none
  * @param   event: CANFD event
  * @retval  none
  */
-void cb_unit_event(uint32_t event)
+static void cb_unit_event(uint32_t event)
 {
     if(event == ARM_CAN_EVENT_UNIT_WARNING)
     {
@@ -170,23 +172,25 @@ void cb_unit_event(uint32_t event)
 }
 
 /**
- * @fn      void cb_object_event(uint32_t obj_idx, uint32_t event)
+ * @fn      static void cb_object_event(uint32_t obj_idx, uint32_t event)
  * @brief   CANFD Callback function for particular object events
  * @note    none
  * @param   obj_idx : Object ID
  * @param   event   : CANFD event
  * @retval  none
  */
-void cb_object_event(uint32_t obj_idx, uint32_t event)
+static void cb_object_event(uint32_t obj_idx, uint32_t event)
 {
-    if((event & ARM_CAN_EVENT_RECEIVE) || (event & ARM_CAN_EVENT_RECEIVE_OVERRUN))
+    if((event & ARM_CAN_EVENT_RECEIVE) ||
+       (event & ARM_CAN_EVENT_RECEIVE_OVERRUN))
     {
         /* Invokes Message Read function if the Receive Object matches */
         if(obj_idx == rx_obj_id)
         {
             /*  Reading arrived CAN Message */
             if(CANFD_instance->MessageRead(obj_idx, &rx_msg_header,
-                                rx_data, rx_msg_size) != ARM_DRIVER_OK)
+                                           rx_data,
+                                           rx_msg_size) != ARM_DRIVER_OK)
             {
                 rx_msg_error = true;
             }
@@ -203,13 +207,13 @@ void cb_object_event(uint32_t obj_idx, uint32_t event)
 }
 
 /**
- * @fn      void canfd_lbi_demo_task(ULONG thread_input)
+ * @fn      static void canfd_lbi_demo_task(ULONG thread_input)
  * @brief   CANFD Internal Loopback Demo
  * @note    none
  * @param   thread_input : Input for thread
  * @retval  none
  */
-void canfd_lbi_demo_task(ULONG thread_input)
+static void canfd_lbi_demo_task(ULONG thread_input)
 {
     CANFD_FRAME msg_type            = CANFD_FRAME_STD_ID_CLASSIC_DATA;
     int32_t ret_val                 = ARM_DRIVER_OK;
@@ -221,6 +225,8 @@ void canfd_lbi_demo_task(ULONG thread_input)
     ULONG task_notified_value       = 0U;
     uint32_t error_code             = 0U;
     uint32_t service_error_code     = 0U;
+
+    ARG_UNUSED(thread_input);
 
     /* Initialize the SE services */
     se_services_port_init();
@@ -403,7 +409,8 @@ void canfd_lbi_demo_task(ULONG thread_input)
                 /* wait for receive/error callback. */
                 event_ret = tx_event_flags_get(&event_flags_canfd,
                                                CANFD_ALL_NOTIFICATIONS,
-                                               TX_OR_CLEAR, &task_notified_value,
+                                               TX_OR_CLEAR,
+                                               &task_notified_value,
                                                TX_WAIT_FOREVER);
                 if(event_ret != TX_SUCCESS)
                 {
@@ -506,8 +513,8 @@ void tx_application_define(void *first_unused_memory)
 {
     UINT status;
 
-    /* Put system definition stuff in here, e.g. thread creates and other assorted
-        create information.  */
+    /* Put system definition stuff in here, e.g. thread creates and
+       other assorted create information. */
 
     /* Create the event flags group used by CANFD thread */
     status = tx_event_flags_create(&event_flags_canfd, "CANFD Events");
@@ -519,8 +526,8 @@ void tx_application_define(void *first_unused_memory)
 
     /* Create the main thread.  */
     status = tx_thread_create(&canfd_thread, "CANFD_LBIM", canfd_lbi_demo_task,
-                              0U, first_unused_memory, THREAD_STACK_SIZE, 1U, 1U,
-                              TX_NO_TIME_SLICE, TX_AUTO_START);
+                              0U, first_unused_memory, THREAD_STACK_SIZE,
+                              1U, 1U, TX_NO_TIME_SLICE, TX_AUTO_START);
     if(status != TX_SUCCESS)
     {
         printf("Unable to Create LBI Task\n");
@@ -529,13 +536,13 @@ void tx_application_define(void *first_unused_memory)
 }
 
 /**
- * @fn      void canfd_check_error(void)
+ * @fn      static void canfd_check_error(void)
  * @brief   Checks for the errors in CANFD
  * @note    none
  * @param   none
  * @retval  none
  */
-void canfd_check_error(void)
+static void canfd_check_error(void)
 {
     ARM_CAN_STATUS cur_sts;
     if(error_occurred)
@@ -550,13 +557,13 @@ void canfd_check_error(void)
 }
 
 /**
- * @fn      bool canfd_process_rx_message(void)
+ * @fn      static bool canfd_process_rx_message(void)
  * @brief   Processes the received messages
  * @note    none
  * @param   none
  * @retval  none
  */
-bool canfd_process_rx_message(void)
+static bool canfd_process_rx_message(void)
 {
     uint8_t iter = 0U;
 
@@ -596,7 +603,8 @@ bool canfd_process_rx_message(void)
                     }
 
                     printf("Id:%lu, Len:%d:\r\n    Data:",
-                           (rx_msg_header.id & (~ARM_CAN_ID_IDE_Msk)), rx_msg_size);
+                           (rx_msg_header.id & (~ARM_CAN_ID_IDE_Msk)),
+                            rx_msg_size);
                     for(iter = 0; iter < rx_msg_size; iter++)
                     {
                         printf("%c", rx_data[iter]);
@@ -628,19 +636,17 @@ bool canfd_process_rx_message(void)
 }
 
 /**
- * @fn      bool canfd_transmit_message(CANFD_FRAME msg_type)
+ * @fn      static bool canfd_transmit_message(CANFD_FRAME msg_type)
  * @brief   Prepares and sends message
  * @note    none
  * @param   msg_type : Type of msg to send
  * @retval  none
  */
-bool canfd_transmit_message(const CANFD_FRAME msg_type)
+static bool canfd_transmit_message(const CANFD_FRAME msg_type)
 {
-    uint32_t status = ARM_DRIVER_OK;
-    uint8_t iter;
+    int32_t status = ARM_DRIVER_OK;
+    uint8_t iter   = 0U;
 
-    /* If the previous message is successfully sent,
-     * then prepare and transmit next message */
     switch(msg_type)
     {
         case CANFD_FRAME_STD_ID_CLASSIC_DATA:

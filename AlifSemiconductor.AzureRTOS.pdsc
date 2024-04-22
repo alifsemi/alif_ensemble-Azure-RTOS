@@ -13,6 +13,10 @@
   -->
 
   <releases>
+    <release version="1.1.0" date="2024-02-22">
+      - update sample apps
+    </release>
+
     <release version="1.0.0" date="2023-11-16">
       - Initial Release
     </release>
@@ -373,6 +377,8 @@
 	<file category="source"       name="THREADX/samples/bayer2rgb.c"		  attr="template" select="AzureRTOS Camera test App"/>
 	<file category="header"		  name="THREADX/samples/Include/bayer.h"          attr="template" select="AzureRTOS Camera test App"/>
 	<file category="source"       name="THREADX/samples/adc_testapp.c"		  attr="template" select="AzureRTOS ADC test App"/>
+	<file category="source"       name="THREADX/samples/ADC_Click_Board_testapp.c"		  attr="template" select="AzureRTOS ADC Click Board test App"/>
+	<file category="source"       name="THREADX/samples/ADC_Potentiometer_testapp.c"		  attr="template" select="AzureRTOS ADC Potentiometer test App"/>
 	<file category="source"       name="THREADX/samples/dac_testapp.c"		  attr="template" select="AzureRTOS DAC test App"/>
 	<file category="source"       name="THREADX/samples/ARX3A0_Camera_Sensor_testApp.c"        attr="template" select="AzureRTOS MIPI CSI2 Image capture App"/>
 	<file category="source"       name="THREADX/samples/bayer.c"			  attr="template" select="AzureRTOS MIPI CSI2 Image capture App"/>
@@ -382,18 +388,21 @@
 	<file category="source"       name="THREADX/samples/mix_bus_i2c_i3c_testApp.c"    attr="template" select="AzureRTOS I3C/I2C Mix bus testApp"/>
 	<file category="source"       name="THREADX/samples/CMP_testapp.c"	  attr="template" select="AzureRTOS Comparator testApp"/>
 	<file category="source"       name="THREADX/samples/MRAM_Threadx.c"    attr="template" select="AzureRTOS MRAM flash testApp"/>
+	<file category="source"       name="THREADX/samples/MW_testapp.c"		  attr="template" select="AzureRTOS SPI Microwire test App"/>
 	<file category="source"       name="THREADX/samples/HWSEM_Threadx.c"    attr="template" select="AzureRTOS HWSEM testApp"/>
 	<file category="source"       name="THREADX/samples/MIPI_Interface_Video_testApp.c"    attr="template" select="AzureRTOS Viewfinder testApp"/>
 	<file category="source"       name="THREADX/samples/image_processing.c"    attr="template" select="AzureRTOS Viewfinder testApp"/>
-<!--	<file category="source"       name="THREADX/samples/bayer.c"			  attr="template" select="AzureRTOS Viewfinder testApp"/>
+	<file category="source"       name="THREADX/samples/bayer.c"			  attr="template" select="AzureRTOS Viewfinder testApp"/>
 	<file category="source"       name="THREADX/samples/bayer2rgb.c"		  attr="template" select="AzureRTOS Viewfinder testApp"/>
-	<file category="header"		  name="THREADX/samples/Include/bayer.h"          attr="template" select="AzureRTOS Viewfinder testApp"/>-->
+	<file category="header"		  name="THREADX/samples/Include/bayer.h"          attr="template" select="AzureRTOS Viewfinder testApp"/>
 	<file category="source"       name="THREADX/samples/Flash_ISSI_Threadx_app.c"		  attr="template" select="AzureRTOS (OSPI)ISSI Flash testApp"/>
 <!--	<file category="source"       name="THREADX/samples/QEC_app.c"		  attr="template" select="AzureRTOS QEC testApp"/>-->
 	<file category="source"       name="THREADX/samples/PDM_testApp.c"		  attr="template" select="AzureRTOS PDM testApp"/>
 	<file category="source"       name="THREADX/samples/LPPDM_testApp.c"		  attr="template" select="AzureRTOS LPPDM testApp"/>
 	<file category="source"       name="THREADX/samples/dma_testmemcpy.c"		  attr="template" select="AzureRTOS DMA Testmemcpy testApp"/>
 	<file category="source"       name="THREADX/samples/GT911_TestApp.c"		  attr="template" select="AzureRTOS Touch Screen testApp"/>
+	<file category="source"       name="THREADX/samples/TSENS_testapp.c"		  attr="template" select="AzureRTOS TSENS App"/>
+    <file category="header"       name="THREADX/samples/temperature.h"		  attr="template" select="AzureRTOS TSENS App"/>
 	<file category="source"       name="THREADX/samples/SPI0_SPI1_testapp.c"		  attr="template" select="AzureRTOS SPI testApp"/>
 	<file category="source"       name="THREADX/samples/LPSPI_SPI_testapp.c"		  attr="template" select="AzureRTOS LPSPI testApp"/>
 	<file category="source"       name="THREADX/samples/i3c_master_loopback_testapp.c"		  attr="template" select="AzureRTOS I3C Master Loopback testApp"/>

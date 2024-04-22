@@ -561,6 +561,15 @@ void camera_demo_thread_entry(ULONG thread_input)
         printf("\r\n Error: CAMERA image conversion failed.\r\n");
         return;
     }
+
+    else
+    {
+        printf("\n Bayer to RGB Converted Tiff Color Image Memory Address is :");
+        printf("\n \t starting_addr: 0x%X \r\n \t ending_addr  : 0x%X\n", \
+               (uint32_t) bayer_to_rgb_buffer_pool,
+               (uint32_t) (bayer_to_rgb_buffer_pool + BAYER_TO_RGB_BUFFER_POOL_SIZE - 1));
+    }
+
 #endif /* end of IMAGE_CONVERSION_BAYER_TO_RGB_EN */
 
     /* How to dump captured/converted image data from memory address?

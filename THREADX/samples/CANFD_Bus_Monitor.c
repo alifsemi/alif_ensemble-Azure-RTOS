@@ -75,26 +75,27 @@
 /* Define the ThreadX object control blocks...  */
 #define THREAD_STACK_SIZE                   1024U
 
-TX_THREAD               canfd_thread;
-TX_EVENT_FLAGS_GROUP    event_flags_canfd;
+static TX_THREAD               canfd_thread;
+static TX_EVENT_FLAGS_GROUP    event_flags_canfd;
 
 /* CANFD instance object */
 extern ARM_DRIVER_CAN  Driver_CANFD;
-static ARM_DRIVER_CAN* CANFD_instance    = &Driver_CANFD;
+static ARM_DRIVER_CAN* CANFD_instance           = &Driver_CANFD;
 
 /* File Global variables */
-volatile bool is_msg_read                = false;
-volatile bool bus_error                  = false;
-volatile bool bus_off                    = false;
-volatile bool passive_mode               = false;
-uint8_t       rx_obj_id                  = 255U;
-ARM_CAN_MSG_INFO rx_msg_header;
-volatile uint8_t rx_msg_size             = 8U;
-uint8_t rx_data[CANFD_MAX_MSG_SIZE + 1U];
+static volatile bool is_msg_read                = false;
+static volatile bool bus_error                  = false;
+static volatile bool bus_off                    = false;
+static volatile bool passive_mode               = false;
+static uint8_t       rx_obj_id                  = 255U;
+static ARM_CAN_MSG_INFO rx_msg_header;
+static volatile uint8_t rx_msg_size             = 8U;
+static uint8_t rx_data[CANFD_MAX_MSG_SIZE + 1U];
 
 /* A map between Data length code to the payload size */
-const uint8_t canfd_len_dlc_map[0x10U] =
-              {0U, 1U, 2U, 3U, 4U, 5U, 6U, 7U, 8U, 12U, 16U, 20U, 24U, 32U, 48U, 64U};
+static const uint8_t canfd_len_dlc_map[0x10U] =
+                     {0U, 1U, 2U, 3U, 4U, 5U, 6U, 7U, 8U,
+                      12U, 16U, 20U, 24U, 32U, 48U, 64U};
 
 /* Support functions */
 static void canfd_process_rx_message(void);
@@ -133,13 +134,13 @@ static int32_t pinmux_config(void)
 }
 
 /**
- * @fn      void cb_unit_event(uint32_t event)
+ * @fn      static void cb_unit_event(uint32_t event)
  * @brief   CANFD Callback function for events
  * @note    none
  * @param   event: CANFD event
  * @retval  none
  */
-void cb_unit_event(uint32_t event)
+static void cb_unit_event(uint32_t event)
 {
     if(event == ARM_CAN_EVENT_UNIT_ACTIVE)
     {
@@ -169,16 +170,17 @@ void cb_unit_event(uint32_t event)
 }
 
 /**
- * @fn      void cb_object_event(uint32_t obj_idx, uint32_t event)
+ * @fn      static void cb_object_event(uint32_t obj_idx, uint32_t event)
  * @brief   CANFD Callback function for particular object events
  * @note    none
  * @param   obj_idx : Object ID
  * @param   event   : CANFD event
  * @retval  none
  */
-void cb_object_event(uint32_t obj_idx, uint32_t event)
+static void cb_object_event(uint32_t obj_idx, uint32_t event)
 {
-    if((event & ARM_CAN_EVENT_RECEIVE) || (event & ARM_CAN_EVENT_RECEIVE_OVERRUN))
+    if((event & ARM_CAN_EVENT_RECEIVE) ||
+       (event & ARM_CAN_EVENT_RECEIVE_OVERRUN))
     {
         /* Sets msg_rx_complete if the Receive Object matches */
         if(obj_idx == rx_obj_id)
@@ -193,13 +195,13 @@ void cb_object_event(uint32_t obj_idx, uint32_t event)
 }
 
 /**
- * @fn      void canfd_lom_demo_task(ULONG thread_input)
+ * @fn      static void canfd_lom_demo_task(ULONG thread_input)
  * @brief   CANFD Listen only mode Demo
  * @note    none.
  * @param   thread_input : Input for thread
  * @retval  none
  */
-void canfd_lom_demo_task(ULONG thread_input)
+static void canfd_lom_demo_task(ULONG thread_input)
 {
     int32_t ret_val                 = ARM_DRIVER_OK;
     UINT    event_ret               = 0U;
@@ -209,6 +211,8 @@ void canfd_lom_demo_task(ULONG thread_input)
     ULONG task_notified_value       = 0U;
     uint32_t error_code             = 0U;
     uint32_t service_error_code     = 0U;
+
+    ARG_UNUSED(thread_input);
 
     /* Initialize the SE services */
     se_services_port_init();
@@ -446,8 +450,8 @@ void tx_application_define(void *first_unused_memory)
 {
     UINT status;
 
-    /* Put system definition stuff in here, e.g. thread creates and other assorted
-        create information.  */
+    /* Put system definition stuff in here, e.g. thread creates and
+       other assorted create information. */
 
     /* Create the event flags group used by CANFD thread */
     status = tx_event_flags_create(&event_flags_canfd, "CANFD Events");
@@ -459,8 +463,8 @@ void tx_application_define(void *first_unused_memory)
 
     /* Create the main thread.  */
     status = tx_thread_create(&canfd_thread, "CANFD_LOM", canfd_lom_demo_task,
-                              0U, first_unused_memory, THREAD_STACK_SIZE, 1U, 1U,
-                              TX_NO_TIME_SLICE, TX_AUTO_START);
+                              0U, first_unused_memory, THREAD_STACK_SIZE,
+                              1U, 1U, TX_NO_TIME_SLICE, TX_AUTO_START);
     if(status != TX_SUCCESS)
     {
         printf("Unable to Create LOM Task\n");
@@ -468,13 +472,13 @@ void tx_application_define(void *first_unused_memory)
     }
 }
 /**
- * @fn      void canfd_check_error(void)
+ * @fn      static void canfd_check_error(void)
  * @brief   Checks for the errors in CANFD
  * @note    none
  * @param   none
  * @retval  none
  */
-void canfd_check_error(void)
+static void canfd_check_error(void)
 {
     ARM_CAN_STATUS cur_sts;
 
@@ -487,7 +491,8 @@ void canfd_check_error(void)
         {
             /*  Reading arrived CANFD Message */
             if(CANFD_instance->MessageRead(rx_obj_id, &rx_msg_header,
-                                           rx_data, rx_msg_size) != ARM_DRIVER_OK)
+                                           rx_data,
+                                           rx_msg_size) != ARM_DRIVER_OK)
             {
                 printf("Error: Message reception failed\r\n");
             }
@@ -500,7 +505,8 @@ void canfd_check_error(void)
         }
         else
         {
-            printf("Error in CANFD-->Error code: %d\r\n", cur_sts.last_error_code);
+            printf("Error in CANFD-->Error code: %d\r\n",
+                    cur_sts.last_error_code);
         }
         bus_error = false;
     }
@@ -518,13 +524,13 @@ void canfd_check_error(void)
 }
 
 /**
- * @fn      void canfd_process_rx_message(void)
+ * @fn      static void canfd_process_rx_message(void)
  * @brief   Processes the received messages
  * @note    none
  * @param   none
  * @retval  none
  */
-void canfd_process_rx_message(void)
+static void canfd_process_rx_message(void)
 {
     uint8_t iter = 0U;
 
