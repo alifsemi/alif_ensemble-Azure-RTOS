@@ -60,13 +60,19 @@ extern ARM_DRIVER_USART ARM_Driver_USART_(UART);
 /* UART Driver instance */
 static ARM_DRIVER_USART *USARTdrv = &ARM_Driver_USART_(UART);
 
-
 void myUART_Thread_entry(ULONG thread_input);
 
 /* Define the ThreadX object control blocks...  */
 #define DEMO_STACK_SIZE                        1024
 #define DEMO_BYTE_POOL_SIZE                    9120
-#define TX_EVENT_REQUESTED_FLAGS_TO_SET        0x01
+
+#define UART_CB_TX_EVENT           (1U << 0)
+#define UART_CB_RX_EVENT           (1U << 1)
+#define UART_CB_RX_TIMEOUT         (1U << 2)
+#define UART_CB_RX_BREAK           (1U << 3)
+#define UART_CB_RX_FRAMING_ERROR   (1U << 4)
+#define UART_CB_RX_PARITY_ERROR    (1U << 5)
+#define UART_CB_RX_OVERFLOW        (1U << 6)
 
 TX_THREAD               UART_thread;
 TX_BYTE_POOL            byte_pool_0;
@@ -104,19 +110,43 @@ void myUART_callback(UINT event)
     if (event & ARM_USART_EVENT_SEND_COMPLETE)
     {
         /* Send Success: Wake-up Thread. */
-        tx_event_flags_set(&event_flags_uart, TX_EVENT_REQUESTED_FLAGS_TO_SET, TX_OR);
+        tx_event_flags_set(&event_flags_uart, UART_CB_TX_EVENT, TX_OR);
     }
 
     if (event & ARM_USART_EVENT_RECEIVE_COMPLETE)
     {
         /* Receive Success: Wake-up Thread. */
-        tx_event_flags_set(&event_flags_uart, TX_EVENT_REQUESTED_FLAGS_TO_SET, TX_OR);
+        tx_event_flags_set(&event_flags_uart, UART_CB_RX_EVENT, TX_OR);
     }
 
     if (event & ARM_USART_EVENT_RX_TIMEOUT)
     {
-        /* Receive Success: Wake-up Thread. */
-        tx_event_flags_set(&event_flags_uart, TX_EVENT_REQUESTED_FLAGS_TO_SET, TX_OR);
+        /* Receive Success with rx timeout: Wake-up Thread. */
+        tx_event_flags_set(&event_flags_uart, UART_CB_RX_TIMEOUT, TX_OR);
+    }
+
+    if (event & ARM_USART_EVENT_RX_BREAK)
+    {
+        /* Receive RX Break: Wake-up Thread. */
+        tx_event_flags_set(&event_flags_uart, UART_CB_RX_BREAK, TX_OR);
+    }
+
+    if (event & ARM_USART_EVENT_RX_FRAMING_ERROR)
+    {
+        /* Receive RX Framing error: Wake-up Thread. */
+        tx_event_flags_set(&event_flags_uart, UART_CB_RX_FRAMING_ERROR, TX_OR);
+    }
+
+    if (event & ARM_USART_EVENT_RX_PARITY_ERROR)
+    {
+        /* Receive RX Parity error: Wake-up Thread. */
+        tx_event_flags_set(&event_flags_uart, UART_CB_RX_PARITY_ERROR, TX_OR);
+    }
+
+    if (event & ARM_USART_EVENT_RX_OVERFLOW)
+    {
+        /* Receive RX Overflow: Wake-up Thread. */
+        tx_event_flags_set(&event_flags_uart, UART_CB_RX_OVERFLOW, TX_OR);
     }
 }
 
@@ -137,6 +167,7 @@ void myUART_Thread_entry(ULONG thread_input)
     CHAR  cmd    = 0;
     INT   ret    = 0;
     ULONG events = 0;
+    ULONG temp = 0;
     ARM_DRIVER_VERSION version;
 
 #if (RTE_UART2_CLK_SOURCE == 0) /* CLK_38.4MHz */
@@ -222,7 +253,7 @@ void myUART_Thread_entry(ULONG thread_input)
     }
 
     /* wait till Send complete event comes in isr callback */
-    ret = tx_event_flags_get(&event_flags_uart, TX_EVENT_REQUESTED_FLAGS_TO_SET, TX_OR_CLEAR, &events, TX_WAIT_FOREVER);
+    ret = tx_event_flags_get(&event_flags_uart, UART_CB_TX_EVENT, TX_OR_CLEAR, &events, TX_WAIT_FOREVER);
     if (ret != TX_SUCCESS)
     {
         printf(" \r\n Error in tx_event_flags_get.\r\n");
@@ -231,6 +262,10 @@ void myUART_Thread_entry(ULONG thread_input)
 
     while(1)
     {
+        /* clear event flag (if set) before UART call */
+        tx_event_flags_get(&event_flags_uart, (UART_CB_RX_EVENT | UART_CB_RX_TIMEOUT), \
+                           TX_OR_CLEAR, &temp, TX_NO_WAIT);
+
         /* Get byte from UART */
         ret = USARTdrv->Receive(&cmd, 1);
         if(ret != ARM_DRIVER_OK)
@@ -239,29 +274,63 @@ void myUART_Thread_entry(ULONG thread_input)
             goto error_poweroff;
         }
 
-        /* wait till Receive complete event comes in isr callback */
-        ret = tx_event_flags_get(&event_flags_uart, TX_EVENT_REQUESTED_FLAGS_TO_SET, TX_OR_CLEAR, &events, TX_WAIT_FOREVER);
+        /* wait till Receive complete or Receive timeout event comes in isr callback */
+        ret = tx_event_flags_get(&event_flags_uart, (UART_CB_RX_EVENT | UART_CB_RX_TIMEOUT | UART_CB_RX_BREAK ), \
+                                 TX_OR_CLEAR, &events, TX_WAIT_FOREVER);
         if (ret != TX_SUCCESS)
         {
             printf(" \r\n Error in tx_event_flags_get.\r\n");
             goto error_poweroff;
         }
 
-        if (cmd == 13) /* received 'Enter', send back "Hello World!". */
+        /* check for any RX error. */
+        if (events & (UART_CB_RX_BREAK | UART_CB_RX_FRAMING_ERROR | \
+                      UART_CB_RX_PARITY_ERROR | UART_CB_RX_OVERFLOW))
         {
-            ret = USARTdrv->Send("\nHello World!\n", 14);
-        }
-        else /* else send back received character. */
-        {
-            ret = USARTdrv->Send(&cmd, 1);
+            /* clear error flags. */
+            if (events & (UART_CB_RX_BREAK))
+            {
+                printf("\r\n RX Break sequence detected.\r\n");
+                tx_event_flags_get(&event_flags_uart, UART_CB_RX_BREAK, TX_OR_CLEAR, &temp, TX_NO_WAIT);
+            }
+
+            if (events & (UART_CB_RX_FRAMING_ERROR))
+            {
+                printf("\r\n RX Framing Error.\r\n");
+                tx_event_flags_get(&event_flags_uart, UART_CB_RX_FRAMING_ERROR, TX_OR_CLEAR, &temp, TX_NO_WAIT);
+            }
+
+            if (events & (UART_CB_RX_PARITY_ERROR))
+            {
+                printf("\r\n RX Parity Error.\r\n");
+                tx_event_flags_get(&event_flags_uart, UART_CB_RX_PARITY_ERROR, TX_OR_CLEAR, &temp, TX_NO_WAIT);
+            }
+
+            if (events & (UART_CB_RX_OVERFLOW))
+            {
+                printf("\r\n RX Overflow Error.\r\n");
+                tx_event_flags_get(&event_flags_uart, UART_CB_RX_OVERFLOW, TX_OR_CLEAR, &temp, TX_NO_WAIT);
+            }
         }
 
-        /* wait till Send complete event comes in isr callback */
-        ret = tx_event_flags_get(&event_flags_uart, TX_EVENT_REQUESTED_FLAGS_TO_SET, TX_OR_CLEAR, &events, TX_WAIT_FOREVER);
-        if (ret != TX_SUCCESS)
+        if (events & (UART_CB_RX_EVENT))
         {
-            printf(" \r\n Error in tx_event_flags_get.\r\n");
-            goto error_poweroff;
+            if (cmd == 13) /* received 'Enter', send back "Hello World!". */
+            {
+                ret = USARTdrv->Send("\nHello World!\n", 14);
+            }
+            else /* else send back received character. */
+            {
+                ret = USARTdrv->Send(&cmd, 1);
+            }
+
+            /* wait till Send complete event comes in isr callback */
+            ret = tx_event_flags_get(&event_flags_uart, UART_CB_TX_EVENT, TX_OR_CLEAR, &events, TX_WAIT_FOREVER);
+            if (ret != TX_SUCCESS)
+            {
+                printf(" \r\n Error in tx_event_flags_get.\r\n");
+                goto error_poweroff;
+            }
         }
     }
 

@@ -90,7 +90,7 @@ TX_EVENT_FLAGS_GROUP                event_flags;
  *  Allocated in the "camera_frame_buf" section.
  */
 uint8_t cam_framebuffer_pool[CAMERA_FRAMEBUFFER_POOL_SIZE] \
-        __attribute__((section("camera_frame_buf")));
+        __attribute__((section(".bss.camera_frame_buf")));
 
 /* @Note: ILI9806E LCD Panel configurations
  *        are directly borrowed from ILI9806E LCD Panel drivers,
@@ -132,7 +132,7 @@ uint8_t cam_framebuffer_pool[CAMERA_FRAMEBUFFER_POOL_SIZE] \
  *  Allocated in the "lcd_frame_buf" section.
  */
 uint8_t lcd_framebuffer_pool[LCD_FRAMEBUFFER_POOL_SIZE] \
-        __attribute__((section("lcd_frame_buf")));
+        __attribute__((section(".bss.lcd_frame_buf")));
 
 /* Required to Crop and interpolate the captured image data format to
  * LCD Panel supported image format.
@@ -181,7 +181,7 @@ extern int crop_and_interpolate( uint8_t const *srcImage, \
  *  Allocated in the "lcd_crop_and_interpolate_buf" section.
  */
 uint8_t crop_and_interpolate_buffer_pool[CRP_FRAMEBUFFER_POOL_SIZE] \
-        __attribute__((section("lcd_crop_and_interpolate_buf")));
+        __attribute__((section(".bss.lcd_crop_and_interpolate_buf")));
 
 
 /* Required convert captured image data format to RGB image format.
@@ -231,7 +231,7 @@ uint8_t crop_and_interpolate_buffer_pool[CRP_FRAMEBUFFER_POOL_SIZE] \
  *  Allocated in the "camera_frame_bayer_to_rgb_buf" section.
  */
 uint8_t bayer_to_rgb_buffer_pool[BAYER_TO_RGB_BUFFER_POOL_SIZE] \
-        __attribute__((section("camera_frame_bayer_to_rgb_buf")));
+        __attribute__((section(".bss.camera_frame_bayer_to_rgb_buf")));
 
 /* Optional:
  *  Camera Image Conversions
@@ -568,6 +568,17 @@ void video_demo_thread_entry(ULONG thread_input)
         printf("\r\nSE: get_run_cfg error = %d\n", error_code);
         goto error_disable_hfosc_clk;
     }
+
+    /*
+     * Note:
+     * This demo uses a specific profile setting that only enables the
+     * items it needs. For example, it only requests the RAM regions and
+     * peripheral power that are relevant for this demo. If you want to adapt
+     * this example for your own use case, you should adjust the profile setting
+     * accordingly. You can either add any additional items that you need, or
+     * remove the request altogether to use the default setting that turns on
+     * almost everything.
+     */
 
     runp.memory_blocks = MRAM_MASK | SRAM0_MASK;
     runp.phy_pwr_gating = MIPI_PLL_DPHY_MASK | MIPI_TX_DPHY_MASK | MIPI_RX_DPHY_MASK | LDO_PHY_MASK;

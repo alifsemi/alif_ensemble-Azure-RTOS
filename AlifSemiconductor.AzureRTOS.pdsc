@@ -13,7 +13,10 @@
   -->
 
   <releases>
-    <release version="1.1.0" date="2024-02-22">
+    <release version="1.2.0" date="2024-06-14">
+      - update sample apps
+    </release>
+  <release version="1.1.0" date="2024-02-22">
       - update sample apps
     </release>
 
@@ -379,6 +382,7 @@
 	<file category="source"       name="THREADX/samples/adc_testapp.c"		  attr="template" select="AzureRTOS ADC test App"/>
 	<file category="source"       name="THREADX/samples/ADC_Click_Board_testapp.c"		  attr="template" select="AzureRTOS ADC Click Board test App"/>
 	<file category="source"       name="THREADX/samples/ADC_Potentiometer_testapp.c"		  attr="template" select="AzureRTOS ADC Potentiometer test App"/>
+	<file category="source"       name="THREADX/samples/ADC_Ext_Trigger_testapp.c"		  attr="template" select="AzureRTOS ADC Extenal Trigger test App"/>
 	<file category="source"       name="THREADX/samples/dac_testapp.c"		  attr="template" select="AzureRTOS DAC test App"/>
 	<file category="source"       name="THREADX/samples/ARX3A0_Camera_Sensor_testApp.c"        attr="template" select="AzureRTOS MIPI CSI2 Image capture App"/>
 	<file category="source"       name="THREADX/samples/bayer.c"			  attr="template" select="AzureRTOS MIPI CSI2 Image capture App"/>
