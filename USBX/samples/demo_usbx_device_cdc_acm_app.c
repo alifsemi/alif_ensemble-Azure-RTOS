@@ -230,6 +230,18 @@ int  main(void)
          printf("SE: get_run_cfg error = %d\n", error_code);
          return 0;
     }
+
+    /*
+     * Note:
+     * This demo uses a specific profile setting that only enables the
+     * items it needs. For example, it only requests the RAM regions and
+     * peripheral power that are relevant for this demo. If you want to adapt
+     * this example for your own use case, you should adjust the profile setting
+     * accordingly. You can either add any additional items that you need, or
+     * remove the request altogether to use the default setting that turns on
+     * almost everything.
+     */
+
     runp.phy_pwr_gating |=  USB_PHY_MASK;
     runp.memory_blocks = SRAM2_MASK | SRAM3_MASK | MRAM_MASK;
 

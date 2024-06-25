@@ -23,8 +23,22 @@
 #include "RTE_Device.h"
 #include "fx_sd_driver.h"
 #include "fx_sd_driver_private.h"
+#ifdef SDMMC_PRINTF_DEBUG
+#include "stdio.h"
+#endif
+
+#define SDMMC_XFER_DONE_EVENT 1
 
 const diskio_t  *p_SD_Driver = &SD_Driver;
+#ifdef SDMMC_IRQ_MODE
+TX_EVENT_FLAGS_GROUP sd_event;
+
+VOID sd_fx_cb(uint32_t status)
+{
+    if (status == FX_SUCCESS)
+        tx_event_flags_set(&sd_event, SDMMC_XFER_DONE_EVENT, TX_OR);
+}
+#endif
 
 /* The SD driver relies on the fx_media_format call to be made prior to
    the fx_media_open call. The following call will format the default
@@ -52,7 +66,11 @@ VOID  _fx_sd_driver(FX_MEDIA *media_ptr)
 
     ULONG partition_start;
     ULONG partition_size;
-    UCHAR status;
+    UCHAR status, retry_cnt = 1;
+    sd_param_t sd_param;
+#ifdef SDMMC_IRQ_MODE
+    ULONG actual_event, wait_ticks = 500;
+#endif
 
     /* There are several useful/important pieces of information contained in
        the media structure, some of which are supplied by FileX and others
@@ -142,7 +160,11 @@ VOID  _fx_sd_driver(FX_MEDIA *media_ptr)
                     status = p_SD_Driver -> disk_read(media_ptr -> fx_media_driver_logical_sector +
                             media_ptr -> fx_media_hidden_sectors, media_ptr -> fx_media_driver_sectors,
                             (UCHAR *)media_ptr -> fx_media_driver_buffer);
+#ifdef SDMMC_IRQ_MODE
+                    status = tx_event_flags_get(&sd_event, SDMMC_XFER_DONE_EVENT, TX_OR_CLEAR, &actual_event, wait_ticks);
 
+                    RTSS_InvalidateDCache_by_Addr(media_ptr -> fx_media_driver_buffer, media_ptr -> fx_media_driver_sectors * SDMMC_BLK_SIZE_512_Msk);
+#endif
                     /* Check status of SD Read.  */
                     if (status == FX_SUCCESS)
                     {
@@ -160,11 +182,15 @@ VOID  _fx_sd_driver(FX_MEDIA *media_ptr)
 
             case FX_DRIVER_WRITE:
                 {
-
+#ifdef SDMMC_IRQ_MODE
+                    RTSS_CleanDCache_by_Addr(media_ptr -> fx_media_driver_buffer, media_ptr -> fx_media_driver_sectors * SDMMC_BLK_SIZE_512_Msk);
+#endif
                     status = p_SD_Driver -> disk_write((media_ptr -> fx_media_driver_logical_sector +
                                 media_ptr -> fx_media_hidden_sectors), media_ptr -> fx_media_driver_sectors,
                             (UCHAR *)media_ptr -> fx_media_driver_buffer);
-
+#ifdef SDMMC_IRQ_MODE
+                    status = tx_event_flags_get(&sd_event, SDMMC_XFER_DONE_EVENT, TX_OR_CLEAR, &actual_event, wait_ticks);
+#endif
                     /* Check status of SD Write.  */
                     if (status == FX_SUCCESS)
                     {
@@ -213,13 +239,31 @@ VOID  _fx_sd_driver(FX_MEDIA *media_ptr)
                     /* Perform basic initialization here... since the boot record is going
                        to be read subsequently and again for volume name requests.  */
 
-                    status = p_SD_Driver->disk_initialize(SDMMC_DEV_ID, RTE_SDC_BUS_WIDTH, RTE_SDC_DMA_SELECT);
+                    sd_param.dev_id         = SDMMC_DEV_ID;
+                    sd_param.clock_id       = RTE_SDC_CLOCK_SELECT;
+                    sd_param.bus_width      = RTE_SDC_BUS_WIDTH;
+                    sd_param.dma_mode       = RTE_SDC_DMA_SELECT;
+                    sd_param.app_callback   = sd_fx_cb;
+
+                    status = p_SD_Driver->disk_initialize(&sd_param);
 
                     /* Check status of SD initialize.  */
                     if (status == FX_SUCCESS)
                     {
                         /* Successful driver request.  */
                         media_ptr -> fx_media_driver_status =  FX_SUCCESS;
+#ifdef SDMMC_PRINTF_DEBUG
+                        printf("Card Initialized Successfully...\n");
+#endif
+#ifdef SDMMC_IRQ_MODE
+                        status = tx_event_flags_create(&sd_event, "SD_EVENT");
+                        if (status != FX_SUCCESS)
+                        {
+
+                            /* Unsuccessful driver request.  */
+                            media_ptr -> fx_media_driver_status =  FX_IO_ERROR;
+                        }
+#endif
                     }
                     else
                     {
@@ -244,7 +288,12 @@ VOID  _fx_sd_driver(FX_MEDIA *media_ptr)
 
             case FX_DRIVER_BOOT_READ:
                 {
-
+#ifdef SDMMC_IRQ_MODE
+RETRY:
+#endif
+#ifdef SDMMC_PRINTF_DEBUG
+                    printf("Reading MBR...\n");
+#endif
                     status = p_SD_Driver -> disk_read(0, media_ptr -> fx_media_driver_sectors,
                             (UCHAR *)media_ptr -> fx_media_driver_buffer);
 
@@ -257,6 +306,17 @@ VOID  _fx_sd_driver(FX_MEDIA *media_ptr)
                         return;
                     }
 
+#ifdef SDMMC_IRQ_MODE
+                    status = tx_event_flags_get(&sd_event, SDMMC_XFER_DONE_EVENT, TX_OR_CLEAR, &actual_event, wait_ticks);
+
+                    if ( status != TX_SUCCESS)
+                    {
+                        if(retry_cnt--)
+                            goto RETRY;
+                    }
+
+                    RTSS_InvalidateDCache_by_Addr(media_ptr -> fx_media_driver_buffer, media_ptr -> fx_media_driver_sectors * SDMMC_BLK_SIZE_512_Msk);
+#endif
                     /* Determine if we have the partition... */
                     partition_start =  0;
 
@@ -277,7 +337,11 @@ VOID  _fx_sd_driver(FX_MEDIA *media_ptr)
                     {
 
                         status = p_SD_Driver -> disk_read(partition_start,1,(UCHAR *)media_ptr -> fx_media_driver_buffer);
+#ifdef SDMMC_IRQ_MODE
+                        status = tx_event_flags_get(&sd_event, SDMMC_XFER_DONE_EVENT, TX_OR_CLEAR, &actual_event, wait_ticks);
 
+                        RTSS_InvalidateDCache_by_Addr(media_ptr -> fx_media_driver_buffer, 1 * SDMMC_BLK_SIZE_512_Msk);
+#endif
                         /* Check status of SD Read.  */
                         if (status != FX_SUCCESS)
                         {
@@ -295,7 +359,10 @@ VOID  _fx_sd_driver(FX_MEDIA *media_ptr)
 
             case FX_DRIVER_BOOT_WRITE:
                 {
-
+#ifdef SDMMC_IRQ_MODE
+                    /* Clean the DCache */
+                    RTSS_CleanDCache_by_Addr(media_ptr -> fx_media_driver_buffer, media_ptr -> fx_media_driver_sectors * SDMMC_BLK_SIZE_512_Msk);
+#endif
                     status = p_SD_Driver -> disk_write((media_ptr -> fx_media_hidden_sectors ),
                             media_ptr -> fx_media_driver_sectors, (UCHAR *)media_ptr -> fx_media_driver_buffer);
 

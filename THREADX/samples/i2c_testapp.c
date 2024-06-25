@@ -54,7 +54,9 @@ void i2c_demo_Thread_entry(ULONG thread_input);
 #define DEMO_STACK_SIZE                 1024
 #define DEMO_BYTE_POOL_SIZE             9120
 #define TX_I2C_MST_TRANSFER_DONE        0x01
-#define TX_I2C_SLV_TRANSFER_DONE        0x02
+#define TX_I2C_ADDR_NACKED              0X02
+#define TX_I2C_TRANSFER_INCOMPLETE      0X03
+#define TX_I2C_SLV_TRANSFER_DONE        0x04
 
 TX_THREAD               i2c_thread;
 TX_BYTE_POOL            byte_pool_0;
@@ -110,21 +112,34 @@ uint8_t SLV_TX_BUF[SLV_BYTE_TO_TRANSMIT] =
 
 /* Slave parameter set END */
 
-
 static void i2c_mst_transfer_callback(uint32_t event)
 {
-      if (event & ARM_I2C_EVENT_TRANSFER_DONE) {
+    if (event & ARM_I2C_EVENT_TRANSFER_DONE)
+    {
         /* Master Transfer done. Wake-up Thread. */
         tx_event_flags_set(&event_flags_i2c, TX_I2C_MST_TRANSFER_DONE, TX_OR);
-      }
+    }
+
+    if (event & ARM_I2C_EVENT_ADDRESS_NACK)
+    {
+        /* Master Transfer done. Wake-up Thread. */
+        tx_event_flags_set(&event_flags_i2c, TX_I2C_ADDR_NACKED, TX_OR);
+    }
+
+    if (event & ARM_I2C_EVENT_TRANSFER_INCOMPLETE)
+    {
+        /* Master Transfer done. Wake-up Thread. */
+        tx_event_flags_set(&event_flags_i2c, TX_I2C_TRANSFER_INCOMPLETE, TX_OR);
+    }
 }
 
 static void i2c_slv_transfer_callback(uint32_t event)
 {
-      if (event & ARM_I2C_EVENT_TRANSFER_DONE) {
+    if (event & ARM_I2C_EVENT_TRANSFER_DONE)
+    {
         /* Slave Transfer done. Wake-up Thread. */
         tx_event_flags_set(&event_flags_i2c, TX_I2C_SLV_TRANSFER_DONE, TX_OR);
-      }
+    }
 }
 
 /* Pinmux for B0 */
@@ -211,6 +226,9 @@ void i2c_demo_Thread_entry(ULONG thread_input)
 
     printf("\n----------------Master transmit/slave receive-----------------------\n");
 
+    /* Clear event */
+    events = 0;
+
     /* I2C Slave Receive */
     ret = I2C_SlvDrv->SlaveReceive(SLV_RX_BUF, MST_BYTE_TO_TRANSMIT);
     if (ret != ARM_DRIVER_OK)
@@ -237,15 +255,30 @@ void i2c_demo_Thread_entry(ULONG thread_input)
     }
 
     /* wait till master/slave isr callback */
-    ret = tx_event_flags_get(&event_flags_i2c, TX_I2C_MST_TRANSFER_DONE, TX_OR_CLEAR, &events, TX_WAIT_FOREVER);
+    ret = tx_event_flags_get(&event_flags_i2c, TX_I2C_MST_TRANSFER_DONE |
+                             TX_I2C_ADDR_NACKED | TX_I2C_TRANSFER_INCOMPLETE,
+                             TX_OR_CLEAR, &events, TX_WAIT_FOREVER);
     if (ret != TX_SUCCESS) {
         printf("Error: I2C tx_event_flags_get\n");
         goto error_poweroff;
     }
 
+    if (events == TX_I2C_ADDR_NACKED)
+    {
+        printf("\r\n Error: Slave NACKED\n");
+        goto error_uninitialize;
+    }
+    else if (events == TX_I2C_TRANSFER_INCOMPLETE)
+    {
+        printf("\r\n Error: Transfer incomplete\n");
+        goto error_uninitialize;
+    }
+
     /* wait till master/slave isr callback */
-    ret = tx_event_flags_get(&event_flags_i2c, TX_I2C_SLV_TRANSFER_DONE, TX_OR_CLEAR, &events, TX_WAIT_FOREVER);
-    if (ret != TX_SUCCESS) {
+    ret = tx_event_flags_get(&event_flags_i2c, TX_I2C_SLV_TRANSFER_DONE,
+                             TX_OR_CLEAR, &events, TX_WAIT_FOREVER);
+    if (ret != TX_SUCCESS)
+    {
         printf("Error: I2C tx_event_flags_get\n");
         goto error_poweroff;
     }
@@ -260,13 +293,16 @@ void i2c_demo_Thread_entry(ULONG thread_input)
 
     printf("\n----------------Master receive/slave transmit-----------------------\n");
 
+    /* Clear event */
+    events = 0;
+
     /* I2C Master Receive */
 #if (ADDRESS_MODE == ADDRESS_MODE_10BIT)
-     ret = I2C_MstDrv->MasterReceive((TAR_ADDRS | ARM_I2C_ADDRESS_10BIT),
-                                     MST_RX_BUF, SLV_BYTE_TO_TRANSMIT, STOP);
+    ret = I2C_MstDrv->MasterReceive((TAR_ADDRS | ARM_I2C_ADDRESS_10BIT),
+                                    MST_RX_BUF, SLV_BYTE_TO_TRANSMIT, STOP);
 #else
-     ret = I2C_MstDrv->MasterReceive(TAR_ADDRS, MST_RX_BUF,
-                                     SLV_BYTE_TO_TRANSMIT, STOP);
+    ret = I2C_MstDrv->MasterReceive(TAR_ADDRS, MST_RX_BUF,
+                                    SLV_BYTE_TO_TRANSMIT, STOP);
 #endif
 
     if (ret != ARM_DRIVER_OK)
@@ -284,15 +320,31 @@ void i2c_demo_Thread_entry(ULONG thread_input)
     }
 
     /* wait till master/slave isr callback */
-    ret = tx_event_flags_get(&event_flags_i2c, TX_I2C_MST_TRANSFER_DONE, TX_OR_CLEAR, &events, TX_WAIT_FOREVER);
-    if (ret != TX_SUCCESS) {
+    ret = tx_event_flags_get(&event_flags_i2c, TX_I2C_MST_TRANSFER_DONE |
+                             TX_I2C_ADDR_NACKED | TX_I2C_TRANSFER_INCOMPLETE,
+                             TX_OR_CLEAR, &events, TX_WAIT_FOREVER);
+    if (ret != TX_SUCCESS)
+    {
         printf("Error: I2C tx_event_flags_get\n");
         goto error_poweroff;
     }
 
+    if (events == TX_I2C_ADDR_NACKED)
+    {
+        printf("\r\n Error: Slave NACKED\n");
+        goto error_uninitialize;
+    }
+    else if (events == TX_I2C_TRANSFER_INCOMPLETE)
+    {
+        printf("\r\n Error: Transfer incomplete\n");
+        goto error_uninitialize;
+    }
+
     /* wait till master/slave isr callback */
-    ret = tx_event_flags_get(&event_flags_i2c, TX_I2C_SLV_TRANSFER_DONE, TX_OR_CLEAR, &events, TX_WAIT_FOREVER);
-    if (ret != TX_SUCCESS) {
+    ret = tx_event_flags_get(&event_flags_i2c, TX_I2C_SLV_TRANSFER_DONE,
+                             TX_OR_CLEAR, &events, TX_WAIT_FOREVER);
+    if (ret != TX_SUCCESS)
+    {
         printf("Error: I2C tx_event_flags_get\n");
         goto error_poweroff;
     }
@@ -322,32 +374,32 @@ void i2c_demo_Thread_entry(ULONG thread_input)
     printf("\n ---END--- \r\n wait forever >>> \n");
     while(1);
 
-  error_poweroff:
-      /* Power off I2C peripheral */
-      ret = I2C_MstDrv->PowerControl(ARM_POWER_OFF);
-      if(ret != ARM_DRIVER_OK)
-      {
+error_poweroff:
+    /* Power off I2C peripheral */
+    ret = I2C_MstDrv->PowerControl(ARM_POWER_OFF);
+    if(ret != ARM_DRIVER_OK)
+    {
          printf("\r\n Error: I2C Master Power OFF failed.\r\n");
-      }
-      ret = I2C_SlvDrv->PowerControl(ARM_POWER_OFF);
-      if(ret != ARM_DRIVER_OK)
-      {
+    }
+    ret = I2C_SlvDrv->PowerControl(ARM_POWER_OFF);
+    if(ret != ARM_DRIVER_OK)
+    {
          printf("\r\n Error: I2C Slave Power OFF failed.\r\n");
-      }
+    }
 
-  error_uninitialize:
-      /* Un-initialize I2C driver */
-      ret = I2C_MstDrv->Uninitialize();
-      if(ret == ARM_DRIVER_OK)
-      {
+error_uninitialize:
+    /* Un-initialize I2C driver */
+    ret = I2C_MstDrv->Uninitialize();
+    if(ret == ARM_DRIVER_OK)
+    {
         printf("\r\n I2C Master Uninitialize\r\n");
-      }
-      ret = I2C_SlvDrv->Uninitialize();
-      if(ret == ARM_DRIVER_OK)
-      {
+    }
+    ret = I2C_SlvDrv->Uninitialize();
+    if(ret == ARM_DRIVER_OK)
+    {
         printf("\r\n I2C Slave Uninitialize\r\n");
-      }
-      printf("\r\n I2C demo thread exiting...\r\n");
+    }
+    printf("\r\n I2C demo thread exiting...\r\n");
 }
 
 /* Define main entry point.  */
