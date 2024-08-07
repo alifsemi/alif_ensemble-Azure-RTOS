@@ -4,7 +4,7 @@
   <vendor>AlifSemiconductor</vendor>
   <name>AzureRTOS</name>
   <description>AzureRTOS support for Alif Semiconductor M55_HP and M55_HE device</description>
-  <url>https://www.alifsemi.com/</url>
+  <url>https://github.com/alifsemi/alif_ensemble-Azure-RTOS/raw/main/</url>
   <supportContact>support@alifsemi.com</supportContact>
   <!-- optional license file -->
   <!--
