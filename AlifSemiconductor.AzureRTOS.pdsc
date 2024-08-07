@@ -4,7 +4,7 @@
   <vendor>AlifSemiconductor</vendor>
   <name>AzureRTOS</name>
   <description>AzureRTOS support for Alif Semiconductor M55_HP and M55_HE device</description>
-  <url>https://www.alifsemi.com/</url>
+  <url>https://github.com/alifsemi/alif_ensemble-Azure-RTOS/raw/main/</url>
   <supportContact>support@alifsemi.com</supportContact>
   <!-- optional license file -->
   <!--
@@ -418,7 +418,7 @@
         <file category="source" name="THREADX/samples/CANFD_NormalMode.c" attr="template" select="AzureRTOS CANFD data transfer testApp"/>
 	</files>
     </component>
-    
+
      <component Cgroup="Kernel" Csub="ARMClang_Port" Cversion="6.2.1" condition="RTOS AzureRTOS" >
       <description>ARM release version 6.2.1</description>
        <files>
@@ -448,7 +448,7 @@
 	<file category="source" name="THREADX/ports/cortex_m55/ac6/src/tx_misra.S" />
        </files>
     </component>
-    
+
     <component Cgroup="Kernel" Csub="GCC_Port" Cversion="6.2.1" condition="RTOS AzureRTOS" >
     <description>GCC release version 6.2.1</description>
        <files>
@@ -478,7 +478,7 @@
 	<file category="source" name="THREADX/ports/cortex_m55/gnu/src/tx_misra.S" />
        </files>
     </component>
-     
+
 
     <!-- ====================== FILEX Component Description ====================== -->
     <component Cgroup="FILEX" Csub="Core" Cversion="6.2.1" condition="AzureRTOS FILEX" >
@@ -1964,7 +1964,7 @@
         <file category="source" name="USBX/core/src/ux_hcd_sim_host_least_traffic_list_get.c"/>
         <file category="source" name="USBX/core/src/ux_hcd_sim_host_asynchronous_endpoint_destroy.c"/>
         <file category="source" name="USBX/core/src/ux_hcd_sim_host_frame_number_get.c"/>
-        <file category="source" name="USBX/core/src/ux_hcd_sim_host_request_interupt_transfer.c"/> 
+        <file category="source" name="USBX/core/src/ux_hcd_sim_host_request_interupt_transfer.c"/>
         <file category="source" name="USBX/core/src/ux_dcd_sim_slave_initialize_complete.c"/>
         <file category="source" name="USBX/core/src/ux_dcd_sim_slave_frame_number_get.c"/>
         <file category="source" name="USBX/core/src/ux_dcd_sim_slave_address_set.c"/>
