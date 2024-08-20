@@ -69,7 +69,7 @@ VOID  _fx_sd_driver(FX_MEDIA *media_ptr)
     UCHAR status, retry_cnt = 1;
     sd_param_t sd_param;
 #ifdef SDMMC_IRQ_MODE
-    ULONG actual_event, wait_ticks = 500;
+    ULONG actual_event, wait_ticks = 50;
 #endif
 
     /* There are several useful/important pieces of information contained in
@@ -281,8 +281,24 @@ VOID  _fx_sd_driver(FX_MEDIA *media_ptr)
                     /* There is nothing to do in this case for the SD driver.  For actual
                        devices some shutdown processing may be necessary.  */
 
-                    /* Successful driver request.  */
-                    media_ptr -> fx_media_driver_status =  FX_SUCCESS;
+                    p_SD_Driver->disk_uninitialize(SDMMC_DEV_ID);
+
+                    status = tx_event_flags_delete(&sd_event);
+                    if(status)
+                    {
+#ifdef SDMMC_PRINTF_DEBUG
+                        printf("Unable to delete sd event... status:%d\n",status);
+#endif
+                        media_ptr -> fx_media_driver_status = status;
+
+                    }
+                    else
+                    {
+                        memset(&sd_event, '\0', sizeof(sd_event));
+
+                        /* Successful driver request.  */
+                        media_ptr -> fx_media_driver_status =  FX_SUCCESS;
+                    }
                     break;
                 }
 
