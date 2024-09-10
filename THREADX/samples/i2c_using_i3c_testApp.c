@@ -172,6 +172,13 @@ void i2c_using_i3c_demo_thread_entry(ULONG thread_input)
     printf("\r\n i3c version api:0x%X driver:0x%X \r\n",  \
                            version.api, version.drv);
 
+    if((version.api < ARM_DRIVER_VERSION_MAJOR_MINOR(7U, 0U))        ||
+       (version.drv < ARM_DRIVER_VERSION_MAJOR_MINOR(7U, 0U)))
+    {
+        printf("\r\n Error: >>>Old driver<<< Please use new one \r\n");
+        return;
+    }
+
     /* Initialize i3c hardware pins using PinMux Driver. */
     ret = hardware_init();
     if(ret != 0)
@@ -196,6 +203,14 @@ void i2c_using_i3c_demo_thread_entry(ULONG thread_input)
         goto error_uninitialize;
     }
 
+    /* Initialize I3C master */
+    ret = I3Cdrv->Control(I3C_MASTER_INIT, NULL);
+    if(ret != ARM_DRIVER_OK)
+    {
+        printf("\r\n Error: Master Init control failed.\r\n");
+        goto error_uninitialize;
+    }
+
     /* i2c Speed Mode Configuration:
      *  I3C_BUS_MODE_MIXED_FAST_I2C_FMP_SPEED_1_MBPS  : Fast Mode Plus   1 MBPS
      *  I3C_BUS_MODE_MIXED_FAST_I2C_FM_SPEED_400_KBPS : Fast Mode      400 KBPS
@@ -209,6 +224,30 @@ void i2c_using_i3c_demo_thread_entry(ULONG thread_input)
         goto error_poweroff;
     }
 
+    /* Reject Hot-Join request */
+    ret = I3Cdrv->Control(I3C_MASTER_SETUP_HOT_JOIN_ACCEPTANCE, 0);
+    if(ret != ARM_DRIVER_OK)
+    {
+        printf("\r\n Error: Hot Join control failed.\r\n");
+        goto error_uninitialize;
+    }
+
+    /* Reject Master request */
+    ret = I3Cdrv->Control(I3C_MASTER_SETUP_MR_ACCEPTANCE, 0);
+    if(ret != ARM_DRIVER_OK)
+    {
+        printf("\r\n Error: Master Request control failed.\r\n");
+        goto error_uninitialize;
+    }
+
+    /* Reject Slave Interrupt request */
+    ret = I3Cdrv->Control(I3C_MASTER_SETUP_SIR_ACCEPTANCE, 0);
+    if(ret != ARM_DRIVER_OK)
+    {
+        printf("\r\n Error: Slave Interrupt Request control failed.\r\n");
+        goto error_uninitialize;
+    }
+
     /* Attach all the slave address */
     printf("\r\n Start attaching all i2c slave addr to i3c.\r\n");
     for(i=0; i<MAX_SLAVE_SUPPORTED; i++)
@@ -216,7 +255,7 @@ void i2c_using_i3c_demo_thread_entry(ULONG thread_input)
         printf("\r\n  >> i=%d attaching i2c slave addr:0x%X to i3c...\r\n",  \
                            i, slave_addr[i]);
 
-        ret = I3Cdrv->AttachI2Cdev(slave_addr[i]);
+        ret = I3Cdrv->AttachSlvDev(ARM_I3C_DEVICE_TYPE_I2C, slave_addr[i]);
         if(ret != ARM_DRIVER_OK)
         {
             printf("\r\n Error: I3C Attach I2C device failed.\r\n");

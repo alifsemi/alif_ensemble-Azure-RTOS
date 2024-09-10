@@ -30,6 +30,7 @@
 #define SDMMC_XFER_DONE_EVENT 1
 
 const diskio_t  *p_SD_Driver = &SD_Driver;
+sd_cardinfo_t card_info;
 #ifdef SDMMC_IRQ_MODE
 TX_EVENT_FLAGS_GROUP sd_event;
 
@@ -157,24 +158,55 @@ VOID  _fx_sd_driver(FX_MEDIA *media_ptr)
             case FX_DRIVER_READ:
                 {
 
-                    status = p_SD_Driver -> disk_read(media_ptr -> fx_media_driver_logical_sector +
-                            media_ptr -> fx_media_hidden_sectors, media_ptr -> fx_media_driver_sectors,
-                            (UCHAR *)media_ptr -> fx_media_driver_buffer);
-#ifdef SDMMC_IRQ_MODE
-                    status = tx_event_flags_get(&sd_event, SDMMC_XFER_DONE_EVENT, TX_OR_CLEAR, &actual_event, wait_ticks);
-
-                    RTSS_InvalidateDCache_by_Addr(media_ptr -> fx_media_driver_buffer, media_ptr -> fx_media_driver_sectors * SDMMC_BLK_SIZE_512_Msk);
-#endif
-                    /* Check status of SD Read.  */
-                    if (status == FX_SUCCESS)
+                    if(card_info.cardtype == SDMMC_CARD_SDSC)
                     {
-                        /* Successful driver request.  */
-                        media_ptr -> fx_media_driver_status =  FX_SUCCESS;
+                        uint32_t sec_cnt = media_ptr -> fx_media_driver_sectors;
+                        for(uint32_t idx = 0; sec_cnt; sec_cnt--, idx++)
+                        {
+
+                            status = p_SD_Driver -> disk_read(media_ptr -> fx_media_driver_logical_sector + idx +
+                                    media_ptr -> fx_media_hidden_sectors, 1,
+                                    (UCHAR *)media_ptr -> fx_media_driver_buffer + (idx * SDMMC_BLK_SIZE_512_Msk));
+
+                            status = tx_event_flags_get(&sd_event, SDMMC_XFER_DONE_EVENT, TX_OR_CLEAR, &actual_event, wait_ticks);
+                        }
+
+                        RTSS_InvalidateDCache_by_Addr(media_ptr -> fx_media_driver_buffer, media_ptr -> fx_media_driver_sectors * SDMMC_BLK_SIZE_512_Msk);
+
+                        /* Check status of SD Read.  */
+                        if (status == FX_SUCCESS)
+                        {
+                            /* Successful driver request.  */
+                            media_ptr -> fx_media_driver_status =  FX_SUCCESS;
+                        }
+                        else
+                        {
+                            /* Unsuccessful driver request.  */
+                            media_ptr -> fx_media_driver_status =  FX_IO_ERROR;
+                        }
+
                     }
                     else
                     {
-                        /* Unsuccessful driver request.  */
-                        media_ptr -> fx_media_driver_status =  FX_IO_ERROR;
+                        status = p_SD_Driver -> disk_read(media_ptr -> fx_media_driver_logical_sector +
+                                media_ptr -> fx_media_hidden_sectors, media_ptr -> fx_media_driver_sectors,
+                                (UCHAR *)media_ptr -> fx_media_driver_buffer);
+#ifdef SDMMC_IRQ_MODE
+                        status = tx_event_flags_get(&sd_event, SDMMC_XFER_DONE_EVENT, TX_OR_CLEAR, &actual_event, wait_ticks);
+
+                        RTSS_InvalidateDCache_by_Addr(media_ptr -> fx_media_driver_buffer, media_ptr -> fx_media_driver_sectors * SDMMC_BLK_SIZE_512_Msk);
+#endif
+                        /* Check status of SD Read.  */
+                        if (status == FX_SUCCESS)
+                        {
+                            /* Successful driver request.  */
+                            media_ptr -> fx_media_driver_status =  FX_SUCCESS;
+                        }
+                        else
+                        {
+                            /* Unsuccessful driver request.  */
+                            media_ptr -> fx_media_driver_status =  FX_IO_ERROR;
+                        }
                     }
 
                     break;
@@ -185,21 +217,52 @@ VOID  _fx_sd_driver(FX_MEDIA *media_ptr)
 #ifdef SDMMC_IRQ_MODE
                     RTSS_CleanDCache_by_Addr(media_ptr -> fx_media_driver_buffer, media_ptr -> fx_media_driver_sectors * SDMMC_BLK_SIZE_512_Msk);
 #endif
-                    status = p_SD_Driver -> disk_write((media_ptr -> fx_media_driver_logical_sector +
-                                media_ptr -> fx_media_hidden_sectors), media_ptr -> fx_media_driver_sectors,
-                            (UCHAR *)media_ptr -> fx_media_driver_buffer);
-#ifdef SDMMC_IRQ_MODE
-                    status = tx_event_flags_get(&sd_event, SDMMC_XFER_DONE_EVENT, TX_OR_CLEAR, &actual_event, wait_ticks);
-#endif
-                    /* Check status of SD Write.  */
-                    if (status == FX_SUCCESS)
+
+                    if(card_info.cardtype == SDMMC_CARD_SDSC)
                     {
-                        /* Successful driver request.  */
-                        media_ptr -> fx_media_driver_status =  FX_SUCCESS;
+                        uint32_t sec_cnt = media_ptr -> fx_media_driver_sectors;
+                        for(uint32_t idx = 0; sec_cnt; sec_cnt--, idx++)
+                        {
+
+                            status = p_SD_Driver -> disk_write(media_ptr -> fx_media_driver_logical_sector + idx +
+                                    media_ptr -> fx_media_hidden_sectors, 1,
+                                    (UCHAR *)media_ptr -> fx_media_driver_buffer + (idx * SDMMC_BLK_SIZE_512_Msk));
+
+                            status = tx_event_flags_get(&sd_event, SDMMC_XFER_DONE_EVENT, TX_OR_CLEAR, &actual_event, wait_ticks);
+                        }
+
+                        /* Check status of SD Read.  */
+                        if (status == FX_SUCCESS)
+                        {
+                            /* Successful driver request.  */
+                            media_ptr -> fx_media_driver_status =  FX_SUCCESS;
+                        }
+                        else
+                        {
+                            /* Unsuccessful driver request.  */
+                            media_ptr -> fx_media_driver_status =  FX_IO_ERROR;
+                        }
+
                     }
-                    else {
-                        /* Unsuccessful driver request.  */
-                        media_ptr -> fx_media_driver_status =  FX_IO_ERROR;
+                    else
+                    {
+                        status = p_SD_Driver -> disk_write((media_ptr -> fx_media_driver_logical_sector +
+                                    media_ptr -> fx_media_hidden_sectors), media_ptr -> fx_media_driver_sectors,
+                                (UCHAR *)media_ptr -> fx_media_driver_buffer);
+#ifdef SDMMC_IRQ_MODE
+                        status = tx_event_flags_get(&sd_event, SDMMC_XFER_DONE_EVENT, TX_OR_CLEAR, &actual_event, wait_ticks);
+#endif
+                        /* Check status of SD Write.  */
+                        if (status == FX_SUCCESS)
+                        {
+                            /* Successful driver request.  */
+                            media_ptr -> fx_media_driver_status =  FX_SUCCESS;
+                        }
+                        else
+                        {
+                            /* Unsuccessful driver request.  */
+                            media_ptr -> fx_media_driver_status =  FX_IO_ERROR;
+                        }
                     }
 
                     break;
@@ -263,6 +326,9 @@ VOID  _fx_sd_driver(FX_MEDIA *media_ptr)
                             /* Unsuccessful driver request.  */
                             media_ptr -> fx_media_driver_status =  FX_IO_ERROR;
                         }
+
+                        /* get the card info */
+                        p_SD_Driver->disk_info(&card_info);
 #endif
                     }
                     else

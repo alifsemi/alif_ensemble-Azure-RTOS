@@ -1,13 +1,12 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 
 /**************************************************************************/
@@ -316,7 +315,7 @@ UINT   round;
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _nx_crypto_des_encrypt                              PORTABLE C      */
-/*                                                           6.1          */
+/*                                                           6.1.11       */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Timothy Stapko, Microsoft Corporation                               */
@@ -355,6 +354,10 @@ UINT   round;
 /*  09-30-2020     Timothy Stapko           Modified comment(s),          */
 /*                                            updated constants,          */
 /*                                            resulting in version 6.1    */
+/*  04-25-2022     Timothy Stapko           Modified comments(s), added   */
+/*                                            warning supression for      */
+/*                                            obsolete DES/3DES,          */
+/*                                            resulting in version 6.1.11 */
 /*                                                                        */
 /**************************************************************************/
 NX_CRYPTO_KEEP UINT  _nx_crypto_des_encrypt(NX_CRYPTO_DES *context, UCHAR source[8], UCHAR destination[8], UINT length)
@@ -362,7 +365,7 @@ NX_CRYPTO_KEEP UINT  _nx_crypto_des_encrypt(NX_CRYPTO_DES *context, UCHAR source
     NX_CRYPTO_PARAMETER_NOT_USED(length);
 
     /* Encrypt the block by supplying the encryption key set.  */
-    _nx_crypto_des_process_block(source, destination, context -> nx_des_encryption_keys);
+    _nx_crypto_des_process_block(source, destination, context -> nx_des_encryption_keys); /* lgtm[cpp/weak-cryptographic-algorithm] */
 
     /* Return successful completion.  */
     return(NX_CRYPTO_SUCCESS);
@@ -374,7 +377,7 @@ NX_CRYPTO_KEEP UINT  _nx_crypto_des_encrypt(NX_CRYPTO_DES *context, UCHAR source
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _nx_crypto_des_decrypt                              PORTABLE C      */
-/*                                                           6.1          */
+/*                                                           6.1.11       */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Timothy Stapko, Microsoft Corporation                               */
@@ -413,6 +416,10 @@ NX_CRYPTO_KEEP UINT  _nx_crypto_des_encrypt(NX_CRYPTO_DES *context, UCHAR source
 /*  09-30-2020     Timothy Stapko           Modified comment(s),          */
 /*                                            updated constants,          */
 /*                                            resulting in version 6.1    */
+/*  04-25-2022     Timothy Stapko           Modified comments(s), added   */
+/*                                            warning supression for      */
+/*                                            obsolete DES/3DES,          */
+/*                                            resulting in version 6.1.11 */
 /*                                                                        */
 /**************************************************************************/
 NX_CRYPTO_KEEP UINT  _nx_crypto_des_decrypt(NX_CRYPTO_DES *context, UCHAR source[8], UCHAR destination[8], UINT length)
@@ -420,7 +427,7 @@ NX_CRYPTO_KEEP UINT  _nx_crypto_des_decrypt(NX_CRYPTO_DES *context, UCHAR source
     NX_CRYPTO_PARAMETER_NOT_USED(length);
 
     /* Decrypt the block by supplying the decryption key set.  */
-    _nx_crypto_des_process_block(source, destination, context -> nx_des_decryption_keys);
+    _nx_crypto_des_process_block(source, destination, context -> nx_des_decryption_keys); /* lgtm[cpp/weak-cryptographic-algorithm] */
 
     /* Return successful completion.  */
     return(NX_CRYPTO_SUCCESS);
@@ -566,7 +573,7 @@ UINT   round;
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _nx_crypto_method_des_init                          PORTABLE C      */
-/*                                                           6.1          */
+/*                                                           6.3.0        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Timothy Stapko, Microsoft Corporation                               */
@@ -604,6 +611,12 @@ UINT   round;
 /*  05-19-2020     Timothy Stapko           Initial Version 6.0           */
 /*  09-30-2020     Timothy Stapko           Modified comment(s),          */
 /*                                            resulting in version 6.1    */
+/*  04-25-2022     Timothy Stapko           Modified comments(s), added   */
+/*                                            warning supression for      */
+/*                                            obsolete DES/3DES,          */
+/*                                            resulting in version 6.1.11 */
+/*  10-31-2023     Yanwu Cai                Modified comment(s),          */
+/*                                            resulting in version 6.3.0  */
 /*                                                                        */
 /**************************************************************************/
 NX_CRYPTO_KEEP UINT  _nx_crypto_method_des_init(struct NX_CRYPTO_METHOD_STRUCT *method,
@@ -623,12 +636,12 @@ NX_CRYPTO_DES *des_context_ptr;
         return(NX_CRYPTO_PTR_ERROR);
     }
 
-    if ((key_size_in_bits != NX_CRYPTO_DES_KEY_LEN_IN_BITS) || (crypto_metadata_size < sizeof(NX_CRYPTO_DES)))
+    if ((key_size_in_bits != NX_CRYPTO_DES_KEY_LEN_IN_BITS) || (crypto_metadata_size < sizeof(NX_CRYPTO_DES))) /* lgtm[cpp/weak-cryptographic-algorithm] */
     {
         return(NX_CRYPTO_SIZE_ERROR);
     }
 
-    /* Verify the metadata addrsss is 4-byte aligned. */
+    /* Verify the metadata address is 4-byte aligned. */
     if((((ULONG)crypto_metadata) & 0x3) != 0)
     {
         return(NX_CRYPTO_PTR_ERROR);
@@ -636,7 +649,7 @@ NX_CRYPTO_DES *des_context_ptr;
 
     des_context_ptr = (NX_CRYPTO_DES *)(crypto_metadata);
 
-    _nx_crypto_des_key_set(des_context_ptr, key);
+    _nx_crypto_des_key_set(des_context_ptr, key); /* lgtm[cpp/weak-cryptographic-algorithm] */
 
     return(NX_CRYPTO_SUCCESS);
 }
@@ -705,7 +718,7 @@ NX_CRYPTO_KEEP UINT  _nx_crypto_method_des_cleanup(VOID *crypto_metadata)
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _nx_crypto_method_des_operation                     PORTABLE C      */
-/*                                                           6.1          */
+/*                                                           6.3.0        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Timothy Stapko, Microsoft Corporation                               */
@@ -752,6 +765,12 @@ NX_CRYPTO_KEEP UINT  _nx_crypto_method_des_cleanup(VOID *crypto_metadata)
 /*  05-19-2020     Timothy Stapko           Initial Version 6.0           */
 /*  09-30-2020     Timothy Stapko           Modified comment(s),          */
 /*                                            resulting in version 6.1    */
+/*  04-25-2022     Timothy Stapko           Modified comments(s), added   */
+/*                                            warning supression for      */
+/*                                            obsolete DES/3DES,          */
+/*                                            resulting in version 6.1.11 */
+/*  10-31-2023     Yanwu Cai                Modified comment(s),          */
+/*                                            resulting in version 6.3.0  */
 /*                                                                        */
 /**************************************************************************/
 NX_CRYPTO_KEEP UINT  _nx_crypto_method_des_operation(UINT op,       /* Encrypt, Decrypt, Authenticate */
@@ -792,7 +811,7 @@ NX_CRYPTO_DES *context;
         return(NX_CRYPTO_PTR_ERROR);
     }
 
-    /* Verify the metadata addrsss is 4-byte aligned. */
+    /* Verify the metadata address is 4-byte aligned. */
     if((((ULONG)crypto_metadata) & 0x3) != 0)
     {
         return(NX_CRYPTO_PTR_ERROR);
@@ -803,7 +822,7 @@ NX_CRYPTO_DES *context;
         return(NX_CRYPTO_PTR_ERROR);
     }
 
-    if (method -> nx_crypto_algorithm != NX_CRYPTO_ENCRYPTION_DES_CBC)
+    if (method -> nx_crypto_algorithm != NX_CRYPTO_ENCRYPTION_DES_CBC) /* lgtm[cpp/weak-cryptographic-algorithm] */
     {
         /* Incorrect method. */
         return(NX_CRYPTO_NOT_SUCCESSFUL);
@@ -825,7 +844,7 @@ NX_CRYPTO_DES *context;
             status = _nx_crypto_cbc_decrypt(context, &(context -> nx_crypto_cbc_context),
                                             (UINT (*)(VOID *, UCHAR *, UCHAR *, UINT))_nx_crypto_des_decrypt,
                                             input, output, input_length_in_byte,
-                                            (NX_CRYPTO_DES_BLOCK_SIZE_IN_BITS >> 3));
+                                            (NX_CRYPTO_DES_BLOCK_SIZE_IN_BITS >> 3)); /* lgtm[cpp/weak-cryptographic-algorithm] */
         } break;
 
         case NX_CRYPTO_ENCRYPT:
@@ -840,7 +859,7 @@ NX_CRYPTO_DES *context;
             status = _nx_crypto_cbc_encrypt(context, &(context -> nx_crypto_cbc_context),
                                             (UINT (*)(VOID *, UCHAR *, UCHAR *, UINT))_nx_crypto_des_encrypt,
                                             input, output, input_length_in_byte,
-                                            (NX_CRYPTO_DES_BLOCK_SIZE_IN_BITS >> 3));
+                                            (NX_CRYPTO_DES_BLOCK_SIZE_IN_BITS >> 3)); /* lgtm[cpp/weak-cryptographic-algorithm] */
         } break;
 
         case NX_CRYPTO_DECRYPT_INITIALIZE:
@@ -860,7 +879,7 @@ NX_CRYPTO_DES *context;
             status = _nx_crypto_cbc_decrypt(context, &(context -> nx_crypto_cbc_context),
                                             (UINT (*)(VOID *, UCHAR *, UCHAR *, UINT))_nx_crypto_des_decrypt,
                                             input, output, input_length_in_byte,
-                                            (NX_CRYPTO_DES_BLOCK_SIZE_IN_BITS >> 3));
+                                            (NX_CRYPTO_DES_BLOCK_SIZE_IN_BITS >> 3)); /* lgtm[cpp/weak-cryptographic-algorithm] */
         } break;
 
         case NX_CRYPTO_ENCRYPT_UPDATE:
@@ -868,7 +887,7 @@ NX_CRYPTO_DES *context;
             status = _nx_crypto_cbc_encrypt(context, &(context -> nx_crypto_cbc_context),
                                             (UINT (*)(VOID *, UCHAR *, UCHAR *, UINT))_nx_crypto_des_encrypt,
                                             input, output, input_length_in_byte,
-                                            (NX_CRYPTO_DES_BLOCK_SIZE_IN_BITS >> 3));
+                                            (NX_CRYPTO_DES_BLOCK_SIZE_IN_BITS >> 3)); /* lgtm[cpp/weak-cryptographic-algorithm] */
         } break;
 
         case NX_CRYPTO_ENCRYPT_CALCULATE:

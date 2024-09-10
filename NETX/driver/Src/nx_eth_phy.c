@@ -72,7 +72,7 @@ UINT nx_phy_init(uint8_t phy_id, phy_read_t read_fn, phy_write_t write_fn)
     \param mode A bitmask of Speed/Duplex/Autonegotiation settings.
     \return NX_INVALID_INTERFACE if PHY has not been initialized or status of the operation(NX_SUCCESS/NX_NOT_SUCCESSFUL).
 */
-UINT nx_phy_setmode(uint32_t mode)
+UINT nx_phy_setmode(UINT mode)
 {
 	uint16_t val = 0;
 

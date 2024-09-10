@@ -260,8 +260,7 @@ void mix_bus_i2c_i3c_demo_thread_entry(ULONG thread_input)
     ULONG wait_timer_ticks = 0;
     ARM_DRIVER_VERSION version;
 
-    /* I3C CCC (Common Command Codes) */
-    I3C_CMD i3c_cmd;
+    ARM_I3C_CMD i3c_cmd;
     uint8_t i3c_cmd_tx_data[4] = {0x0F};
     uint8_t i3c_cmd_rx_data[4] = {0};
 
@@ -272,6 +271,13 @@ void mix_bus_i2c_i3c_demo_thread_entry(ULONG thread_input)
     version = I3Cdrv->GetVersion();
     printf("\r\n i3c version api:0x%X driver:0x%X \r\n",  \
                            version.api, version.drv);
+
+    if((version.api < ARM_DRIVER_VERSION_MAJOR_MINOR(7U, 0U))        ||
+       (version.drv < ARM_DRIVER_VERSION_MAJOR_MINOR(7U, 0U)))
+    {
+        printf("\r\n Error: >>>Old driver<<< Please use new one \r\n");
+        return;
+    }
 
     /* Initialize i3c hardware pins using PinMux Driver. */
     ret = hardware_init();
@@ -297,18 +303,50 @@ void mix_bus_i2c_i3c_demo_thread_entry(ULONG thread_input)
         goto error_uninitialize;
     }
 
+    /* Initialize I3C master */
+    ret = I3Cdrv->Control(I3C_MASTER_INIT, NULL);
+    if(ret != ARM_DRIVER_OK)
+    {
+        printf("\r\n Error: Master Init control failed.\r\n");
+        goto error_uninitialize;
+    }
+
     /* i3c Speed Mode Configuration:
      *  I3C_BUS_MODE_PURE                             : Only Pure I3C devices
      *  I3C_BUS_MODE_MIXED_FAST_I2C_FMP_SPEED_1_MBPS  : Fast Mode Plus   1 Mbps
      *  I3C_BUS_MODE_MIXED_FAST_I2C_FM_SPEED_400_KBPS : Fast Mode      400 Kbps
      *  I3C_BUS_MODE_MIXED_SLOW_I2C_SS_SPEED_100_KBPS : Standard Mode  100 Kbps
      */
-    ret = I3Cdrv->Control(I3C_MASTER_SET_BUS_MODE,  \
-                      I3C_BUS_MODE_MIXED_FAST_I2C_FM_SPEED_400_KBPS);
+    ret = I3Cdrv->Control(I3C_MASTER_SET_BUS_MODE,
+                          I3C_BUS_MODE_MIXED_FAST_I2C_FM_SPEED_400_KBPS);
     if(ret != ARM_DRIVER_OK)
     {
         printf("\r\n Error: I3C Control failed.\r\n");
         goto error_poweroff;
+    }
+
+    /* Reject Hot-Join request */
+    ret = I3Cdrv->Control(I3C_MASTER_SETUP_HOT_JOIN_ACCEPTANCE, 0);
+    if(ret != ARM_DRIVER_OK)
+    {
+        printf("\r\n Error: Hot Join control failed.\r\n");
+        goto error_uninitialize;
+    }
+
+    /* Reject Master request */
+    ret = I3Cdrv->Control(I3C_MASTER_SETUP_MR_ACCEPTANCE, 0);
+    if(ret != ARM_DRIVER_OK)
+    {
+        printf("\r\n Error: Master Request control failed.\r\n");
+        goto error_uninitialize;
+    }
+
+    /* Reject Slave Interrupt request */
+    ret = I3Cdrv->Control(I3C_MASTER_SETUP_SIR_ACCEPTANCE, 0);
+    if(ret != ARM_DRIVER_OK)
+    {
+        printf("\r\n Error: Slave Interrupt Request control failed.\r\n");
+        goto error_uninitialize;
     }
 
     /* Delay for n micro second.
@@ -319,7 +357,15 @@ void mix_bus_i2c_i3c_demo_thread_entry(ULONG thread_input)
     /* Assign Dynamic Address to i3c Accelerometer */
     printf("\r\n >> i3c: Get dynamic addr for static addr:0x%X.\r\n",I3C_ACCERO_ADDR);
 
-    ret = I3Cdrv->MasterAssignDA(&slave_addr[0], I3C_ACCERO_ADDR);
+    i3c_cmd.rw            = 0U;
+    i3c_cmd.cmd_id        = I3C_CCC_SETDASA;
+    i3c_cmd.len           = 1U;
+    /* Assign Slave's Static address */
+    i3c_cmd.addr          = I3C_ACCERO_ADDR;
+    i3c_cmd.data          = NULL;
+    i3c_cmd.def_byte      = 0U;
+
+    ret = I3Cdrv->MasterAssignDA(&i3c_cmd);
     if(ret != ARM_DRIVER_OK)
     {
         printf("\r\n Error: I3C MasterAssignDA failed.\r\n");
@@ -348,8 +394,17 @@ void mix_bus_i2c_i3c_demo_thread_entry(ULONG thread_input)
         printf("\nError: I3C MasterAssignDA failed\n");
     }
 
-    printf("\r\n >> i3c: Received dyn_addr:0x%X for static addr:0x%X. \r\n",   \
-                                 slave_addr[0],I3C_ACCERO_ADDR);
+    /* Get assigned dynamic address for the static address */
+    ret = I3Cdrv->GetSlaveDynAddr(I3C_ACCERO_ADDR, &slave_addr[0]);
+    if(ret != ARM_DRIVER_OK)
+    {
+        printf("\r\n Error: I3C Failed to get Dynamic Address.\r\n");
+    }
+    else
+    {
+        printf("\r\n >> i3c: Rcvd dyn_addr:0x%X for static addr:0x%X\r\n",
+                slave_addr[0],I3C_ACCERO_ADDR);
+    }
 
     /* Delay for n micro second. */
     sys_busy_loop_us(1000);
@@ -447,7 +502,7 @@ void mix_bus_i2c_i3c_demo_thread_entry(ULONG thread_input)
     /* Attach i2c BMI slave using static address */
     printf("\r\n >> i2c: Attaching i2c BMI slave addr:0x%X to i3c...\r\n",slave_addr[1]);
 
-    ret = I3Cdrv->AttachI2Cdev(slave_addr[1]);
+    ret = I3Cdrv->AttachSlvDev(ARM_I3C_DEVICE_TYPE_I2C, slave_addr[1]);
     if(ret != ARM_DRIVER_OK)
     {
         printf("\r\n Error: I3C Attach I2C device failed.\r\n");
