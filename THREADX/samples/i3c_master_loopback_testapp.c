@@ -17,13 +17,6 @@
  *           - Data transmitted from master and slave receive's it.And,
  *             same data is transmitted from slave and master receive it.
  *
- *           - I3C master configuration
- *             Select appropriate i3c Speed mode as per i2c or i3c slave device.
- *             I3C_BUS_MODE_PURE                             : Only Pure I3C devices
- *             I3C_BUS_MODE_MIXED_FAST_I2C_FMP_SPEED_1_MBPS  : Fast Mode Plus   1 Mbps
- *             I3C_BUS_MODE_MIXED_FAST_I2C_FM_SPEED_400_KBPS : Fast Mode      400 Kbps
- *             I3C_BUS_MODE_MIXED_SLOW_I2C_SS_SPEED_100_KBPS : Standard Mode  100 Kbps
- *
  *           Hardware Setup:
  *            Required two boards one for Master and one for Slave
  *             (as there is only one i3c instance is available on ASIC).
@@ -235,21 +228,16 @@ void i3c_master_demo_thread_entry(ULONG thread_input)
     }
 
     /* Initialize I3C master */
-    ret = I3Cdrv->Control(I3C_MASTER_INIT, NULL);
+    ret = I3Cdrv->Control(I3C_MASTER_INIT, 0);
     if(ret != ARM_DRIVER_OK)
     {
         printf("\r\n Error: Master Init control failed.\r\n");
         goto error_uninitialize;
     }
 
-    /* i3c Speed Mode Configuration:
-     *  I3C_BUS_MODE_PURE                             : Only Pure I3C devices
-     *  I3C_BUS_MODE_MIXED_FAST_I2C_FMP_SPEED_1_MBPS  : Fast Mode Plus   1 Mbps
-     *  I3C_BUS_MODE_MIXED_FAST_I2C_FM_SPEED_400_KBPS : Fast Mode      400 Kbps
-     *  I3C_BUS_MODE_MIXED_SLOW_I2C_SS_SPEED_100_KBPS : Standard Mode  100 Kbps
-     */
+    /* i3c Speed Mode Configuration: Bus mode slow  */
     ret = I3Cdrv->Control(I3C_MASTER_SET_BUS_MODE,
-                          I3C_BUS_MODE_PURE);
+                          I3C_BUS_SLOW_MODE);
 
     /* Reject Hot-Join request */
     ret = I3Cdrv->Control(I3C_MASTER_SETUP_HOT_JOIN_ACCEPTANCE, 0);
@@ -360,6 +348,10 @@ void i3c_master_demo_thread_entry(ULONG thread_input)
         printf("\r\n >> i3c: Rcvd dyn_addr:0x%X for static addr:0x%X\r\n",
                 slave_addr,I3C_SLV_TAR);
     }
+
+    /* i3c Speed Mode Configuration: Normal I3C mode */
+    ret = I3Cdrv->Control(I3C_MASTER_SET_BUS_MODE,
+                          I3C_BUS_NORMAL_MODE);
 
     while(1)
     {

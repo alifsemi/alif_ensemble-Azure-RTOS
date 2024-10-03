@@ -47,6 +47,13 @@
 #include   "tx_api.h"
 #include   "nx_api.h"
 
+#include <stdint.h>
+#include "RTE_Components.h"
+#include "Driver_Common.h"
+#if defined(RTE_Compiler_IO_STDOUT)
+#include "retarget_stdout.h"
+#endif  /* RTE_Compiler_IO_STDOUT */
+
 #ifdef DEMO_USES_DHCP
 #include   "nxd_dhcp_client.h"
 #endif
@@ -102,6 +109,17 @@ void tcp_server_disconnect_received(NX_TCP_SOCKET *server_socket);
 
 int main()
 {
+    #if defined(RTE_Compiler_IO_STDOUT_User)
+    int32_t ret;
+    ret = stdout_init();
+    if(ret != ARM_DRIVER_OK)
+    {
+        while(1)
+        {
+        }
+    }
+    #endif
+
     /* Enter the ThreadX kernel.  */
     tx_kernel_enter();
 }
