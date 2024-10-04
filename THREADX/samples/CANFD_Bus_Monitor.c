@@ -349,7 +349,7 @@ static void canfd_lom_demo_task(ULONG thread_input)
        goto power_off_canfd;
     }
 
-    /* Setting CANFD to Normal mode */
+    /* Setting CANFD to Bus Monitor mode */
     ret_val = CANFD_instance->SetMode(ARM_CAN_MODE_MONITOR);
     if(ret_val != ARM_DRIVER_OK)
     {

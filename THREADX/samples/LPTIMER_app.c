@@ -29,7 +29,7 @@
 #endif  /* RTE_Compiler_IO_STDOUT */
 
 
-#define LPTIMER_THREAD_STACK_SIZE  (512)
+#define LPTIMER_THREAD_STACK_SIZE  (1024U)
 #define LPTIMER_CALLBACK_EVENT     0x1
 #define LPTIMER_CHANNEL_0          0      /* lptimer have 0-3 channels, using channel zero for demo app */
 #define LPTIMER_EVENT_WAIT_TIME    (6 * TX_TIMER_TICKS_PER_SECOND)  /* interrupt wait time: 6 seconds */

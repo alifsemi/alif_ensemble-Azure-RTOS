@@ -193,6 +193,13 @@ void i3c_slave_demo_thread_entry(ULONG thread_input)
     printf("\r\n i3c version api:0x%X driver:0x%X \r\n",  \
                            version.api, version.drv);
 
+    if((version.api < ARM_DRIVER_VERSION_MAJOR_MINOR(7U, 0U))        ||
+       (version.drv < ARM_DRIVER_VERSION_MAJOR_MINOR(7U, 0U)))
+    {
+        printf("\r\n Error: >>>Old driver<<< Please use new one \r\n");
+        return;
+    }
+
     /* Initialize i3c hardware pins using PinMux Driver. */
     ret = hardware_init();
     if(ret != 0)
@@ -359,4 +366,3 @@ void tx_application_define(void *first_unused_memory)
 }
 
 /************************ (C) COPYRIGHT ALIF SEMICONDUCTOR *****END OF FILE***/
-

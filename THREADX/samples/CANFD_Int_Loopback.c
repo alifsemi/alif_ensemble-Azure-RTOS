@@ -350,7 +350,7 @@ static void canfd_lbi_demo_task(ULONG thread_input)
        goto power_off_canfd;
     }
 
-    /* Setting CANFD to Normal mode */
+    /* Setting CANFD to Internal Loopback mode */
     ret_val = CANFD_instance->SetMode(ARM_CAN_MODE_LOOPBACK_INTERNAL);
     if(ret_val != ARM_DRIVER_OK)
     {
