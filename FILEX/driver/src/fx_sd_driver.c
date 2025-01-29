@@ -34,9 +34,11 @@ sd_cardinfo_t card_info;
 #ifdef SDMMC_IRQ_MODE
 TX_EVENT_FLAGS_GROUP sd_event;
 
-VOID sd_fx_cb(uint32_t status)
+VOID sd_fx_cb(uint16_t cmd_status, uint16_t xfer_status)
 {
-    if (status == FX_SUCCESS)
+	(void)cmd_status; /* command evt status handled in sd low level driver */
+
+    if (xfer_status == SDMMC_XFER_DONE_EVENT)
         tx_event_flags_set(&sd_event, SDMMC_XFER_DONE_EVENT, TX_OR);
 }
 #endif
