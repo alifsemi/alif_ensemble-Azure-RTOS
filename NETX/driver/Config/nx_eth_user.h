@@ -170,8 +170,8 @@ extern "C"
 #define ETH_TXEN_PIN                            PIN_6
 #define ETH_TXEN_PIN_FUNCTION                   PINMUX_ALTERNATE_FUNCTION_6
 
-#define ETH_IRQ_PORT                            PORT_1
-#define ETH_IRQ_PIN                             PIN_6
+#define ETH_IRQ_PORT                            PORT_11
+#define ETH_IRQ_PIN                             PIN_7
 #define ETH_IRQ_PIN_FUNCTION                    PINMUX_ALTERNATE_FUNCTION_6
 
 #define ETH_REFCLK_PORT                         PORT_11
