@@ -26,6 +26,7 @@
 #include <string.h>
 #include "tx_api.h"
 
+#include "RTE_Device.h"
 #include "RTE_Components.h"
 #include CMSIS_device_header
 
@@ -50,12 +51,6 @@ const char * rel_msg = "\nM55_HE releasing the semaphore\r\n\n";
 
 #define DEMO_STACK_SIZE                        1024
 
-TX_THREAD               hwsem_thread;
-TX_EVENT_FLAGS_GROUP    event_flags_uart;
-TX_EVENT_FLAGS_GROUP    event_flags_hwsem;
-
-#define UART_CB_TX_EVENT          0x01
-
 #define HWSEM_CB_EVENT            0x01
 
 /* HWSEM Driver instance */
@@ -71,6 +66,14 @@ static ARM_DRIVER_USART *USARTdrv = &ARM_Driver_USART_(UART);
 extern ARM_DRIVER_HWSEM ARM_Driver_HWSEM_(HWSEM);
 static ARM_DRIVER_HWSEM *HWSEMdrv = &ARM_Driver_HWSEM_(HWSEM);
 
+TX_THREAD               hwsem_thread;
+TX_EVENT_FLAGS_GROUP    event_flags_hwsem;
+
+#if !RTE_UART4_BLOCKING_MODE_ENABLE
+
+#define UART_CB_TX_EVENT          0x01
+
+TX_EVENT_FLAGS_GROUP    event_flags_uart;
 /**
  * @function    static VOID myUART_callback(UINT event)
  * @brief       UART isr callabck
@@ -85,6 +88,7 @@ static VOID myUART_callback(UINT event)
         tx_event_flags_set(&event_flags_uart, UART_CB_TX_EVENT, TX_OR);
     }
 }
+#endif
 
 /**
  * @function   static void HWSEM_callback(INT event, UCHAR sem_id)
@@ -115,7 +119,8 @@ static INT pinmux_init(void)
     INT ret;
 
     /* UART4_RX_B */
-    ret = pinconf_set(PORT_12, PIN_1, PINMUX_ALTERNATE_FUNCTION_2, PADCTRL_READ_ENABLE);
+    ret = pinconf_set(PORT_12, PIN_1, PINMUX_ALTERNATE_FUNCTION_2,
+                      PADCTRL_READ_ENABLE);
 
     if (ret)
     {
@@ -149,7 +154,8 @@ static void hwsem_demo_entry(ULONG thread_input)
 
     version = HWSEMdrv->GetVersion();
 
-    printf("\r\n HWSEM version api:%X driver:%X...\r\n",version.api, version.drv);
+    printf("\r\n HWSEM version api:%X driver:%X...\r\n",
+           version.api, version.drv);
 
     /* Initialize HWSEM driver */
     ret = HWSEMdrv->Initialize(myHWSEM_callback);
@@ -174,7 +180,9 @@ static void hwsem_demo_entry(ULONG thread_input)
         /* If HWSEM already locked, then wait for the interrupt */
         while (ret == ARM_DRIVER_ERROR_BUSY)
         {
-            status = tx_event_flags_get(&event_flags_hwsem, HWSEM_CB_EVENT, TX_OR_CLEAR, &events_hwsem, TX_WAIT_FOREVER);
+            status = tx_event_flags_get(&event_flags_hwsem, HWSEM_CB_EVENT,
+                                        TX_OR_CLEAR, &events_hwsem,
+                                        TX_WAIT_FOREVER);
 
             if (status == TX_SUCCESS)
             {
@@ -202,9 +210,13 @@ static void hwsem_demo_entry(ULONG thread_input)
             init = 0;
         }
 
+#if !RTE_UART4_BLOCKING_MODE_ENABLE
         /* Initialize UART driver */
         ret = USARTdrv->Initialize(myUART_callback);
-
+#else
+        /* Initialize UART driver */
+        ret = USARTdrv->Initialize(NULL);
+#endif
         if (ret != ARM_DRIVER_OK)
         {
             printf("\r\n Error in UART Initialize.\r\n");
@@ -251,15 +263,17 @@ static void hwsem_demo_entry(ULONG thread_input)
             goto error_unlock;
         }
 
+#if !RTE_UART4_BLOCKING_MODE_ENABLE
         /* wait for event flag after UART call */
-        status = tx_event_flags_get(&event_flags_uart, UART_CB_TX_EVENT, TX_OR_CLEAR, &events_uart, TX_WAIT_FOREVER);
-
+        status = tx_event_flags_get(&event_flags_uart, UART_CB_TX_EVENT,
+                                    TX_OR_CLEAR, &events_uart,
+                                    TX_WAIT_FOREVER);
         if (status != TX_SUCCESS)
         {
             printf(" \r\n Error in tx_event_flags_get.\r\n");
             goto error_unlock;
         }
-
+#endif
         /* Print 10 messages */
         for (int iter = 1; iter <= 10; iter++)
         {
@@ -273,14 +287,18 @@ static void hwsem_demo_entry(ULONG thread_input)
                 goto error_unlock;
             }
 
+#if !RTE_UART4_BLOCKING_MODE_ENABLE
             /* wait for event flag after UART call */
-            status = tx_event_flags_get(&event_flags_uart, UART_CB_TX_EVENT, TX_OR_CLEAR, &events_uart, TX_WAIT_FOREVER);
+            status = tx_event_flags_get(&event_flags_uart, UART_CB_TX_EVENT,
+                                        TX_OR_CLEAR, &events_uart,
+                                        TX_WAIT_FOREVER);
 
             if (status != TX_SUCCESS)
             {
                 printf(" \r\n Error in tx_event_flags_get.\r\n");
                 goto error_unlock;
             }
+#endif
             tx_thread_sleep(timer_ticks);
         }
 
@@ -292,15 +310,18 @@ static void hwsem_demo_entry(ULONG thread_input)
             goto error_unlock;
         }
 
+#if !RTE_UART4_BLOCKING_MODE_ENABLE
         /* wait for event flag after UART call */
-        status = tx_event_flags_get(&event_flags_uart, UART_CB_TX_EVENT, TX_OR_CLEAR, &events_uart, TX_WAIT_FOREVER);
+        status = tx_event_flags_get(&event_flags_uart, UART_CB_TX_EVENT,
+                                    TX_OR_CLEAR, &events_uart,
+                                    TX_WAIT_FOREVER);
 
         if (status != TX_SUCCESS)
         {
             printf(" \r\n Error in tx_event_flags_get.\r\n");
             goto error_unlock;
         }
-
+#endif
         ret = USARTdrv->PowerControl(ARM_POWER_OFF);
 
         if (ret != ARM_DRIVER_OK)
@@ -373,6 +394,7 @@ void tx_application_define(void *first_unused_memory)
     CHAR    *pointer = TX_NULL;
     UINT     status;
 
+#if !RTE_UART4_BLOCKING_MODE_ENABLE
     /* Create the event flags group used by UART thread */
     status = tx_event_flags_create(&event_flags_uart, "event flags UART");
 
@@ -381,7 +403,7 @@ void tx_application_define(void *first_unused_memory)
         printf("Could not create event flags\n");
         return;
     }
-
+#endif
     /* Create the event flags group used by HWSEM thread */
     status = tx_event_flags_create(&event_flags_hwsem, "event flags HWSEM");
 
@@ -392,8 +414,9 @@ void tx_application_define(void *first_unused_memory)
     }
 
     /* Create the main thread. */
-    status = tx_thread_create(&hwsem_thread, "HWSEM_thread", hwsem_demo_entry, 0, first_unused_memory, DEMO_STACK_SIZE,
-                                                                      1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
+    status = tx_thread_create(&hwsem_thread, "HWSEM_thread", hwsem_demo_entry,
+                              0, first_unused_memory, DEMO_STACK_SIZE,
+                              1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
     if (status != TX_SUCCESS)
     {
         printf("Could not create HWSEM demo thread \n");
