@@ -34,7 +34,7 @@
  ******************************************************************************/
 
 /* System Includes */
-#include "Driver_GPIO.h"
+#include "Driver_IO.h"
 #include <stdio.h>
 #include "tx_api.h"
 #include "system_utils.h"
@@ -82,11 +82,11 @@
 #define ERROR    -1
 #define SUCCESS   0
 
-extern  ARM_DRIVER_GPIO ARM_Driver_GPIO_(GPIO12_PORT);
-ARM_DRIVER_GPIO *ledDrv = &ARM_Driver_GPIO_(GPIO12_PORT);
+extern  ARM_DRIVER_IO ARM_Driver_IO_(GPIO12_PORT);
+ARM_DRIVER_IO *ledDrv = &ARM_Driver_IO_(GPIO12_PORT);
 
-extern  ARM_DRIVER_GPIO ARM_Driver_GPIO_(CMP14_PORT);
-ARM_DRIVER_GPIO *CMPout = &ARM_Driver_GPIO_(CMP14_PORT);
+extern  ARM_DRIVER_IO ARM_Driver_IO_(CMP14_PORT);
+ARM_DRIVER_IO *CMPout = &ARM_Driver_IO_(CMP14_PORT);
 
 #if(CMP_INSTANCE == LPCMP)
 #if !defined(M55_HE)
@@ -326,19 +326,19 @@ static int32_t led_init(void)
         goto error_uninitialize_LED;
     }
 
-   ret1 = ledDrv->SetDirection(LED0_R, GPIO_PIN_DIRECTION_OUTPUT);
+   ret1 = ledDrv->SetDirection(LED0_R, IO_PIN_DIRECTION_OUTPUT);
    if(ret1 != ARM_DRIVER_OK) {
         printf("ERROR: Failed to configure\n");
         goto error_power_off_LED;
     }
 
-   ret1 = CMPout->SetDirection(CMP_OUTPIN, GPIO_PIN_DIRECTION_OUTPUT);
+   ret1 = CMPout->SetDirection(CMP_OUTPIN, IO_PIN_DIRECTION_OUTPUT);
    if(ret1 != ARM_DRIVER_OK) {
         printf("ERROR: Failed to configure\n");
         goto error_power_off_LED;
     }
 
-    ret1 = ledDrv->SetValue(LED0_R, GPIO_PIN_OUTPUT_STATE_HIGH);
+    ret1 = ledDrv->SetValue(LED0_R, IO_PIN_OUTPUT_STATE_HIGH);
     if(ret1 != ARM_DRIVER_OK) {
         printf("ERROR: Failed to configure\n");
         goto error_power_off_LED;
@@ -403,7 +403,7 @@ int32_t led_toggle(void)
 {
     int32_t ret1 = 0;
 
-    ret1 = ledDrv->SetValue(LED0_R, GPIO_PIN_OUTPUT_STATE_TOGGLE);
+    ret1 = ledDrv->SetValue(LED0_R, IO_PIN_OUTPUT_STATE_TOGGLE);
     if(ret1 != ARM_DRIVER_OK) {
         printf("ERROR: Failed to toggle LEDs\n");
         goto error_power_off_LED;

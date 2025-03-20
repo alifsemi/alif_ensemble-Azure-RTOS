@@ -28,7 +28,7 @@
 
 #include "Driver_UTIMER.h"
 #include "pinconf.h"
-#include "Driver_GPIO.h"
+#include "Driver_IO.h"
 #include "RTE_Components.h"
 #if defined(RTE_Compiler_IO_STDOUT)
 #include "retarget_stdout.h"
@@ -82,8 +82,8 @@ extern ARM_DRIVER_UTIMER Driver_UTIMER0;
 ARM_DRIVER_UTIMER *ptrUTIMER = &Driver_UTIMER0;
 
 /* GPIO3 Driver instance */
-extern ARM_DRIVER_GPIO ARM_Driver_GPIO_(GPIO3);
-ARM_DRIVER_GPIO *ptrDrv = &ARM_Driver_GPIO_(GPIO3);
+extern ARM_DRIVER_IO ARM_Driver_IO_(GPIO3);
+ARM_DRIVER_IO *ptrDrv = &ARM_Driver_IO_(GPIO3);
 
 /**
  * @function    INT gpio_init(ARM_UTIMER_MODE mode)
@@ -117,13 +117,13 @@ static INT gpio_init(ARM_UTIMER_MODE mode)
             return -1;
         }
 
-        ret = ptrDrv->SetDirection(GPIO3_PIN5, GPIO_PIN_DIRECTION_OUTPUT);
+        ret = ptrDrv->SetDirection(GPIO3_PIN5, IO_PIN_DIRECTION_OUTPUT);
         if (ret != ARM_DRIVER_OK) {
             printf("ERROR: Failed to set direction for GPIO3_PIN5\n");
             return -1;
         }
 
-        ret = ptrDrv->SetValue(GPIO3_PIN5, GPIO_PIN_OUTPUT_STATE_LOW);
+        ret = ptrDrv->SetValue(GPIO3_PIN5, IO_PIN_OUTPUT_STATE_LOW);
         if (ret != ARM_DRIVER_OK) {
             printf("ERROR: Failed to set value for GPIO3_PIN5\n");
             return -1;
@@ -148,13 +148,13 @@ static INT gpio_init(ARM_UTIMER_MODE mode)
             return -1;
         }
 
-        ret = ptrDrv->SetDirection(GPIO3_PIN6, GPIO_PIN_DIRECTION_OUTPUT);
+        ret = ptrDrv->SetDirection(GPIO3_PIN6, IO_PIN_DIRECTION_OUTPUT);
         if (ret != ARM_DRIVER_OK) {
             printf("ERROR: Failed to set direction for GPIO3_PIN6\n");
             return -1;
         }
 
-        ret = ptrDrv->SetValue(GPIO3_PIN6, GPIO_PIN_OUTPUT_STATE_LOW);
+        ret = ptrDrv->SetValue(GPIO3_PIN6, IO_PIN_OUTPUT_STATE_LOW);
         if (ret != ARM_DRIVER_OK) {
             printf("ERROR: Failed to set value for GPIO3_PIN6\n");
             return -1;
@@ -182,13 +182,13 @@ static INT gpio_init(ARM_UTIMER_MODE mode)
             return -1;
         }
 
-        ret = ptrDrv->SetDirection(GPIO3_PIN3, GPIO_PIN_DIRECTION_OUTPUT);
+        ret = ptrDrv->SetDirection(GPIO3_PIN3, IO_PIN_DIRECTION_OUTPUT);
         if (ret != ARM_DRIVER_OK) {
             printf("ERROR: Failed to set direction for GPIO3_PIN3\n");
             return -1;
         }
 
-        ret = ptrDrv->SetValue(GPIO3_PIN3, GPIO_PIN_OUTPUT_STATE_LOW);
+        ret = ptrDrv->SetValue(GPIO3_PIN3, IO_PIN_OUTPUT_STATE_LOW);
         if (ret != ARM_DRIVER_OK) {
             printf("ERROR: Failed to set value for GPIO3_PIN3\n");
             return -1;
@@ -213,13 +213,13 @@ static INT gpio_init(ARM_UTIMER_MODE mode)
             return -1;
         }
 
-        ret = ptrDrv->SetDirection(GPIO3_PIN4, GPIO_PIN_DIRECTION_OUTPUT);
+        ret = ptrDrv->SetDirection(GPIO3_PIN4, IO_PIN_DIRECTION_OUTPUT);
         if (ret != ARM_DRIVER_OK) {
             printf("ERROR: Failed to set direction for GPIO3_PIN4\n");
             return -1;
         }
 
-        ret = ptrDrv->SetValue(GPIO3_PIN4, GPIO_PIN_OUTPUT_STATE_LOW);
+        ret = ptrDrv->SetValue(GPIO3_PIN4, IO_PIN_OUTPUT_STATE_LOW);
         if (ret != ARM_DRIVER_OK) {
             printf("ERROR: Failed to set value for GPIO3_PIN4\n");
             return -1;
@@ -613,7 +613,7 @@ static void utimer_trigger_mode_app(ULONG thread_input)
     value = ptrUTIMER->GetCount(channel, ARM_UTIMER_CNTR);
     printf("counter value before triggering : %d\n",value);
 
-    ret = ptrDrv->SetValue(GPIO3_PIN5, GPIO_PIN_OUTPUT_STATE_HIGH);
+    ret = ptrDrv->SetValue(GPIO3_PIN5, IO_PIN_OUTPUT_STATE_HIGH);
     if ((ret != ARM_DRIVER_OK)) {
         printf("ERROR: Failed set value for GPIO3_PIN5\n");
     }
@@ -664,7 +664,7 @@ static void utimer_capture_mode_cb_func(UCHAR event)
     if(event == ARM_UTIMER_EVENT_CAPTURE_A) {
         tx_event_flags_set(&capture_mode_event_flag, UTIMER_CAPTURE_A_CB_EVENT, TX_OR);
 
-        ptrDrv->SetValue(GPIO3_PIN3, GPIO_PIN_OUTPUT_STATE_LOW);
+        ptrDrv->SetValue(GPIO3_PIN3, IO_PIN_OUTPUT_STATE_LOW);
     }
 }
 
@@ -777,7 +777,7 @@ static void utimer_capture_mode_app(ULONG thread_input)
     {
         /* Delay of 100 ms */
         tx_thread_sleep(10);
-        ret = ptrDrv->SetValue(GPIO3_PIN3, GPIO_PIN_OUTPUT_STATE_HIGH);
+        ret = ptrDrv->SetValue(GPIO3_PIN3, IO_PIN_OUTPUT_STATE_HIGH);
         if ((ret != ARM_DRIVER_OK)) {
             printf("ERROR: Failed set value for GPIO3_PIN3\n");
         }

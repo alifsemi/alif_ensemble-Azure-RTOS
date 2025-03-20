@@ -23,7 +23,7 @@
 
 #include "Driver_UTIMER.h"
 #include "pinconf.h"
-#include "Driver_GPIO.h"
+#include "Driver_IO.h"
 #include "RTE_Components.h"
 #if defined(RTE_Compiler_IO_STDOUT)
 #include "retarget_stdout.h"
@@ -41,8 +41,8 @@ extern ARM_DRIVER_UTIMER Driver_UTIMER0;
 ARM_DRIVER_UTIMER *ptrUTIMER = &Driver_UTIMER0;
 
 /* GPIO1 Driver instance */
-extern ARM_DRIVER_GPIO ARM_Driver_GPIO_(GPIO1);
-ARM_DRIVER_GPIO *ptrGPIO = &ARM_Driver_GPIO_(GPIO1);
+extern ARM_DRIVER_IO ARM_Driver_IO_(GPIO1);
+ARM_DRIVER_IO *ptrGPIO = &ARM_Driver_IO_(GPIO1);
 
 /* Define the ThreadX object control blocks  */
 #define QEC_THREAD_STACK_SIZE                    (512U)
@@ -111,13 +111,13 @@ static INT gpio_init(void)
         return -1;
     }
 
-    ret = ptrGPIO->SetDirection(GPIO1_PIN0, GPIO_PIN_DIRECTION_OUTPUT);
+    ret = ptrGPIO->SetDirection(GPIO1_PIN0, IO_PIN_DIRECTION_OUTPUT);
     if (ret != ARM_DRIVER_OK) {
         printf("ERROR: Failed to set direction for GPIO1_PIN0\n");
         return -1;
     }
 
-    ret = ptrGPIO->SetValue(GPIO1_PIN0, GPIO_PIN_OUTPUT_STATE_LOW);
+    ret = ptrGPIO->SetValue(GPIO1_PIN0, IO_PIN_OUTPUT_STATE_LOW);
     if (ret != ARM_DRIVER_OK) {
         printf("ERROR: Failed to set value for GPIO1_PIN0\n");
         return -1;
@@ -142,13 +142,13 @@ static INT gpio_init(void)
         return -1;
     }
 
-    ret = ptrGPIO->SetDirection(GPIO1_PIN1, GPIO_PIN_DIRECTION_OUTPUT);
+    ret = ptrGPIO->SetDirection(GPIO1_PIN1, IO_PIN_DIRECTION_OUTPUT);
     if (ret != ARM_DRIVER_OK) {
         printf("ERROR: Failed to set direction for GPIO1_PIN1\n");
         return -1;
     }
 
-    ret = ptrGPIO->SetValue(GPIO1_PIN1, GPIO_PIN_OUTPUT_STATE_LOW);
+    ret = ptrGPIO->SetValue(GPIO1_PIN1, IO_PIN_OUTPUT_STATE_LOW);
     if (ret != ARM_DRIVER_OK) {
         printf("ERROR: Failed to set value for GPIO1_PIN1\n");
         return -1;
@@ -173,13 +173,13 @@ static INT gpio_init(void)
         return -1;
     }
 
-    ret = ptrGPIO->SetDirection(GPIO1_PIN2, GPIO_PIN_DIRECTION_OUTPUT);
+    ret = ptrGPIO->SetDirection(GPIO1_PIN2, IO_PIN_DIRECTION_OUTPUT);
     if (ret != ARM_DRIVER_OK) {
         printf("ERROR: Failed to set direction for GPIO1_PIN2\n");
         return -1;
     }
 
-    ret = ptrGPIO->SetValue(GPIO1_PIN2, GPIO_PIN_OUTPUT_STATE_LOW);
+    ret = ptrGPIO->SetValue(GPIO1_PIN2, IO_PIN_OUTPUT_STATE_LOW);
     if (ret != ARM_DRIVER_OK) {
         printf("ERROR: Failed to set value for GPIO1_PIN2\n");
         return -1;
@@ -289,7 +289,7 @@ static void qec0_app(ULONG thread_input)
     /* Toggling gpio's connected to x for 20 times to increment cnt value for 10 times */
     for(int i=0; i<20; i++)
     {
-        ret = ptrGPIO->SetValue (GPIO1_PIN0, GPIO_PIN_OUTPUT_STATE_TOGGLE);
+        ret = ptrGPIO->SetValue (GPIO1_PIN0, IO_PIN_OUTPUT_STATE_TOGGLE);
         if (ret != ARM_DRIVER_OK) {
             printf("ERROR: Failed to set value for GPIO1_PIN0\n");
         }
@@ -300,7 +300,7 @@ static void qec0_app(ULONG thread_input)
     /* Toggling gpio connected to y for 10 times to decrement cnt value for 5 times */
     for(int i=0; i<10; i++)
     {
-        ret = ptrGPIO->SetValue (GPIO1_PIN1, GPIO_PIN_OUTPUT_STATE_TOGGLE);
+        ret = ptrGPIO->SetValue (GPIO1_PIN1, IO_PIN_OUTPUT_STATE_TOGGLE);
        if (ret != ARM_DRIVER_OK) {
             printf("ERROR: Failed to set value for GPIO1_PIN1\n");
         }
@@ -309,7 +309,7 @@ static void qec0_app(ULONG thread_input)
     printf("counter value after counter decrement: %d\n", ptrUTIMER->GetCount (channel, ARM_UTIMER_CNTR));
 
     /* Making z event as high to clear count value */
-    ret = ptrGPIO->SetValue (GPIO1_PIN2, GPIO_PIN_OUTPUT_STATE_HIGH);
+    ret = ptrGPIO->SetValue (GPIO1_PIN2, IO_PIN_OUTPUT_STATE_HIGH);
     if (ret != ARM_DRIVER_OK) {
         printf("ERROR: Failed to set value for GPIO1_PIN2\n");
     }
