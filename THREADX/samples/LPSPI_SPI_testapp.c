@@ -23,7 +23,7 @@
 #include <stdio.h>
 #include "Driver_SPI.h"
 #include "pinconf.h"
-#include "Driver_IO.h"
+#include "Driver_GPIO.h"
 #include "RTE_Components.h"
 #if defined(RTE_Compiler_IO_STDOUT)
 #include "retarget_stdout.h"
@@ -59,8 +59,8 @@ ARM_DRIVER_SPI *ptrLPSPI = &ARM_Driver_SPI_(LPSPI);
 extern ARM_DRIVER_SPI ARM_Driver_SPI_(SPI0);
 ARM_DRIVER_SPI *ptrSPI0 = &ARM_Driver_SPI_(SPI0);
 
-extern  ARM_DRIVER_IO ARM_Driver_IO_(GPIO7);
-ARM_DRIVER_IO *gpioDrv7 = &ARM_Driver_IO_(GPIO7);
+extern  ARM_DRIVER_GPIO ARM_Driver_GPIO_(GPIO7);
+ARM_DRIVER_GPIO *gpioDrv7 = &ARM_Driver_GPIO_(GPIO7);
 
 /**
  * @fn      int32_t pinmux_config(void)
@@ -171,7 +171,7 @@ void lpspi_spi0_transfer(ULONG thread_input)
     uint32_t lpspi_tx_buff, spi0_rx_buff = 0;
     int32_t ret = ARM_DRIVER_OK;
     uint32_t lpspi_control, spi0_control;
-    uint32_t arg = ARM_IO_FLEXIO_VOLT_1V8;
+    uint32_t arg = ARM_GPIO_FLEXIO_VOLT_1V8;
     uint32_t status;
 #if DATA_TRANSFER_TYPE
     uint32_t spi0_tx_buff, lpspi_rx_buff = 0;
@@ -203,7 +203,7 @@ void lpspi_spi0_transfer(ULONG thread_input)
     if ((ret != ARM_DRIVER_OK)) {
         printf("ERROR: Failed to power off \n");
     }
-    ret = gpioDrv7->Control(PIN_4, ARM_IO_CONFIG_FLEXIO, &arg);
+    ret = gpioDrv7->Control(PIN_4, ARM_GPIO_CONFIG_FLEXIO, &arg);
     if ((ret != ARM_DRIVER_OK)) {
         printf("ERROR: Failed to power off \n");
     }

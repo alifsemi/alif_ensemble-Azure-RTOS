@@ -44,7 +44,7 @@
 
 /* PINMUX Driver */
 #include "pinconf.h"
-#include "Driver_IO.h"
+#include "Driver_GPIO.h"
 
 #include "RTE_Components.h"
 #if defined(RTE_Compiler_IO_STDOUT)
@@ -99,8 +99,8 @@ int32_t hardware_init(void)
      */
 #define GPIO7_PORT          7
 
-    extern  ARM_DRIVER_IO ARM_Driver_IO_(GPIO7_PORT);
-    ARM_DRIVER_IO *gpioDrv = &ARM_Driver_IO_(GPIO7_PORT);
+    extern  ARM_DRIVER_GPIO ARM_Driver_GPIO_(GPIO7_PORT);
+    ARM_DRIVER_GPIO *gpioDrv = &ARM_Driver_GPIO_(GPIO7_PORT);
 
     int32_t  ret = 0;
     uint32_t arg = 0;
@@ -120,8 +120,8 @@ int32_t hardware_init(void)
     }
 
     /* select control argument as flex 1.8-V */
-    arg = ARM_IO_FLEXIO_VOLT_1V8;
-    ret = gpioDrv->Control(PIN_6, ARM_IO_CONFIG_FLEXIO, &arg);
+    arg = ARM_GPIO_FLEXIO_VOLT_1V8;
+    ret = gpioDrv->Control(PIN_6, ARM_GPIO_CONFIG_FLEXIO, &arg);
     if (ret != ARM_DRIVER_OK)
     {
         printf("ERROR: Failed to control GPIO Flex \n");

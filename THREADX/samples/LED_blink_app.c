@@ -20,7 +20,7 @@
  ******************************************************************************/
 
 #include "tx_api.h"
-#include "Driver_IO.h"
+#include "Driver_GPIO.h"
 #include "pinconf.h"
 #include <stdio.h>
 #include "RTE_Components.h"
@@ -47,16 +47,16 @@
 TX_THREAD                               led_thread;
 
 /* GPIO port used for LED0_R & LED0_B */
-extern  ARM_DRIVER_IO ARM_Driver_IO_(GPIO12_PORT);
-ARM_DRIVER_IO *gpioDrv12 = &ARM_Driver_IO_(GPIO12_PORT);
+extern  ARM_DRIVER_GPIO ARM_Driver_GPIO_(GPIO12_PORT);
+ARM_DRIVER_GPIO *gpioDrv12 = &ARM_Driver_GPIO_(GPIO12_PORT);
 
 /* GPIO port used for LED0_G */
-extern  ARM_DRIVER_IO ARM_Driver_IO_(GPIO7_PORT);
-ARM_DRIVER_IO *gpioDrv7 = &ARM_Driver_IO_(GPIO7_PORT);
+extern  ARM_DRIVER_GPIO ARM_Driver_GPIO_(GPIO7_PORT);
+ARM_DRIVER_GPIO *gpioDrv7 = &ARM_Driver_GPIO_(GPIO7_PORT);
 
 /* GPIO port used for LED1_R, LED1_B & LED1_G */
-extern  ARM_DRIVER_IO ARM_Driver_IO_(GPIO6_PORT);
-ARM_DRIVER_IO *gpioDrv6 = &ARM_Driver_IO_(GPIO6_PORT);
+extern  ARM_DRIVER_GPIO ARM_Driver_GPIO_(GPIO6_PORT);
+ARM_DRIVER_GPIO *gpioDrv6 = &ARM_Driver_GPIO_(GPIO6_PORT);
 
 
 /**
@@ -137,20 +137,20 @@ void led_blink_app (ULONG thread_input)
         goto error_uninitialize;
     }
 
-    ret1 = gpioDrv12->SetDirection(LED0_R, IO_PIN_DIRECTION_OUTPUT);
-    ret2 = gpioDrv6->SetDirection(LED1_R, IO_PIN_DIRECTION_OUTPUT);
+    ret1 = gpioDrv12->SetDirection(LED0_R, GPIO_PIN_DIRECTION_OUTPUT);
+    ret2 = gpioDrv6->SetDirection(LED1_R, GPIO_PIN_DIRECTION_OUTPUT);
     if ((ret1 != ARM_DRIVER_OK) || (ret2 != ARM_DRIVER_OK)) {
         printf("ERROR: Failed to configure\n");
         goto error_power_off;
     }
-    ret1 = gpioDrv7->SetDirection(LED0_G, IO_PIN_DIRECTION_OUTPUT);
-    ret2 = gpioDrv6->SetDirection(LED1_G, IO_PIN_DIRECTION_OUTPUT);
+    ret1 = gpioDrv7->SetDirection(LED0_G, GPIO_PIN_DIRECTION_OUTPUT);
+    ret2 = gpioDrv6->SetDirection(LED1_G, GPIO_PIN_DIRECTION_OUTPUT);
     if ((ret1 != ARM_DRIVER_OK) || (ret2 != ARM_DRIVER_OK)) {
         printf("ERROR: Failed to configure\n");
         goto error_power_off;
     }
-    ret1 = gpioDrv12->SetDirection(LED0_B, IO_PIN_DIRECTION_OUTPUT);
-    ret2 = gpioDrv6->SetDirection(LED1_B, IO_PIN_DIRECTION_OUTPUT);
+    ret1 = gpioDrv12->SetDirection(LED0_B, GPIO_PIN_DIRECTION_OUTPUT);
+    ret2 = gpioDrv6->SetDirection(LED1_B, GPIO_PIN_DIRECTION_OUTPUT);
     if ((ret1 != ARM_DRIVER_OK) || (ret2 != ARM_DRIVER_OK)) {
         printf("ERROR: Failed to configure\n");
         goto error_power_off;
@@ -159,8 +159,8 @@ void led_blink_app (ULONG thread_input)
     while (1)
     {
         /* Toggle Red LED */
-        ret1 = gpioDrv12->SetValue(LED0_R, IO_PIN_OUTPUT_STATE_HIGH);
-        ret2 = gpioDrv6->SetValue(LED1_R, IO_PIN_OUTPUT_STATE_HIGH);
+        ret1 = gpioDrv12->SetValue(LED0_R, GPIO_PIN_OUTPUT_STATE_HIGH);
+        ret2 = gpioDrv6->SetValue(LED1_R, GPIO_PIN_OUTPUT_STATE_HIGH);
         if ((ret1 != ARM_DRIVER_OK) || (ret2 != ARM_DRIVER_OK)) {
             printf("ERROR: Failed to toggle LEDs\n");
             goto error_power_off;
@@ -169,8 +169,8 @@ void led_blink_app (ULONG thread_input)
         /*< thread will sleep for one sec >*/
         tx_thread_sleep(1 * TX_TIMER_TICKS_PER_SECOND);
 
-        ret1 = gpioDrv12->SetValue(LED0_R, IO_PIN_OUTPUT_STATE_LOW);
-        ret2 = gpioDrv6->SetValue(LED1_R, IO_PIN_OUTPUT_STATE_LOW);
+        ret1 = gpioDrv12->SetValue(LED0_R, GPIO_PIN_OUTPUT_STATE_LOW);
+        ret2 = gpioDrv6->SetValue(LED1_R, GPIO_PIN_OUTPUT_STATE_LOW);
         if ((ret1 != ARM_DRIVER_OK) || (ret2 != ARM_DRIVER_OK)) {
             printf("ERROR: Failed to toggle LEDs\n");
             goto error_power_off;
@@ -181,8 +181,8 @@ void led_blink_app (ULONG thread_input)
 
 
         /* Toggle Green LED */
-        ret1 = gpioDrv7->SetValue(LED0_G, IO_PIN_OUTPUT_STATE_HIGH);
-        ret2 = gpioDrv6->SetValue(LED1_G, IO_PIN_OUTPUT_STATE_HIGH);
+        ret1 = gpioDrv7->SetValue(LED0_G, GPIO_PIN_OUTPUT_STATE_HIGH);
+        ret2 = gpioDrv6->SetValue(LED1_G, GPIO_PIN_OUTPUT_STATE_HIGH);
         if ((ret1 != ARM_DRIVER_OK) || (ret2 != ARM_DRIVER_OK)) {
             printf("ERROR: Failed to toggle LEDs\n");
             goto error_power_off;
@@ -191,8 +191,8 @@ void led_blink_app (ULONG thread_input)
         /*< thread will sleep for one sec >*/
         tx_thread_sleep(1 * TX_TIMER_TICKS_PER_SECOND);
 
-        ret1 = gpioDrv7->SetValue(LED0_G, IO_PIN_OUTPUT_STATE_LOW);
-        ret2 = gpioDrv6->SetValue(LED1_G, IO_PIN_OUTPUT_STATE_LOW);
+        ret1 = gpioDrv7->SetValue(LED0_G, GPIO_PIN_OUTPUT_STATE_LOW);
+        ret2 = gpioDrv6->SetValue(LED1_G, GPIO_PIN_OUTPUT_STATE_LOW);
         if ((ret1 != ARM_DRIVER_OK) || (ret2 != ARM_DRIVER_OK)) {
             printf("ERROR: Failed to toggle LEDs\n");
             goto error_power_off;
@@ -203,8 +203,8 @@ void led_blink_app (ULONG thread_input)
 
 
         /* Toggle Blue LED */
-        ret1 = gpioDrv12->SetValue(LED0_B, IO_PIN_OUTPUT_STATE_HIGH);
-        ret2 = gpioDrv6->SetValue(LED1_B, IO_PIN_OUTPUT_STATE_HIGH);
+        ret1 = gpioDrv12->SetValue(LED0_B, GPIO_PIN_OUTPUT_STATE_HIGH);
+        ret2 = gpioDrv6->SetValue(LED1_B, GPIO_PIN_OUTPUT_STATE_HIGH);
         if ((ret1 != ARM_DRIVER_OK) || (ret2 != ARM_DRIVER_OK)) {
             printf("ERROR: Failed to toggle LEDs\n");
             goto error_power_off;
@@ -213,8 +213,8 @@ void led_blink_app (ULONG thread_input)
         /*< thread will sleep for one sec >*/
         tx_thread_sleep(1 * TX_TIMER_TICKS_PER_SECOND);
 
-        ret1 = gpioDrv12->SetValue(LED0_B, IO_PIN_OUTPUT_STATE_LOW);
-        ret2 = gpioDrv6->SetValue(LED1_B, IO_PIN_OUTPUT_STATE_LOW);
+        ret1 = gpioDrv12->SetValue(LED0_B, GPIO_PIN_OUTPUT_STATE_LOW);
+        ret2 = gpioDrv6->SetValue(LED1_B, GPIO_PIN_OUTPUT_STATE_LOW);
         if ((ret1 != ARM_DRIVER_OK) || (ret2 != ARM_DRIVER_OK)) {
             printf("ERROR: Failed to toggle LEDs\n");
             goto error_power_off;

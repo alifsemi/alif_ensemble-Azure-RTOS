@@ -30,7 +30,7 @@
 
 #include "pinconf.h"
 #include "Driver_Flash.h"
-#include "Driver_IO.h"
+#include "Driver_GPIO.h"
 #if defined(RTE_Compiler_IO_STDOUT)
 #include "retarget_stdout.h"
 #endif  /* RTE_Compiler_IO_STDOUT */
@@ -45,8 +45,8 @@ extern ARM_DRIVER_FLASH ARM_Driver_Flash_(FLASH_ISSI_DRV_INSTANCE);
 #define OSPI_RESET_PORT     15
 #define OSPI_RESET_PIN      7
 
-extern  ARM_DRIVER_IO ARM_Driver_IO_(OSPI_RESET_PORT);
-ARM_DRIVER_IO *GPIODrv = &ARM_Driver_IO_(OSPI_RESET_PORT);
+extern  ARM_DRIVER_GPIO ARM_Driver_GPIO_(OSPI_RESET_PORT);
+ARM_DRIVER_GPIO *GPIODrv = &ARM_Driver_GPIO_(OSPI_RESET_PORT);
 
 void demo_thread_entry(ULONG thread_input);
 
@@ -140,15 +140,15 @@ static INT setup_pinmux(void)
     if (ret != ARM_DRIVER_OK)
         return -1;
 
-    ret = GPIODrv->SetDirection(OSPI_RESET_PIN, IO_PIN_DIRECTION_OUTPUT);
+    ret = GPIODrv->SetDirection(OSPI_RESET_PIN, GPIO_PIN_DIRECTION_OUTPUT);
     if (ret != ARM_DRIVER_OK)
         return -1;
 
-    ret = GPIODrv->SetValue(OSPI_RESET_PIN, IO_PIN_OUTPUT_STATE_LOW);
+    ret = GPIODrv->SetValue(OSPI_RESET_PIN, GPIO_PIN_OUTPUT_STATE_LOW);
     if (ret != ARM_DRIVER_OK)
         return -1;
 
-    ret = GPIODrv->SetValue(OSPI_RESET_PIN, IO_PIN_OUTPUT_STATE_HIGH);
+    ret = GPIODrv->SetValue(OSPI_RESET_PIN, GPIO_PIN_OUTPUT_STATE_HIGH);
     if (ret != ARM_DRIVER_OK)
         return -1;
 
