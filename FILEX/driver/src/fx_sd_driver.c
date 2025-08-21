@@ -26,6 +26,10 @@
 #ifdef SDMMC_PRINTF_DEBUG
 #include "stdio.h"
 #endif
+#include "board_config.h"
+#ifdef BOARD_SD_RESET_GPIO_PORT
+#include "Driver_IO.h"
+#endif
 
 #define SDMMC_XFER_DONE_EVENT 1
 
@@ -36,10 +40,42 @@ TX_EVENT_FLAGS_GROUP sd_event;
 
 VOID sd_fx_cb(uint16_t cmd_status, uint16_t xfer_status)
 {
-	(void)cmd_status; /* command evt status handled in sd low level driver */
+    (void)cmd_status; /* command evt status handled in sd low level driver */
 
     if (xfer_status == SDMMC_XFER_DONE_EVENT)
         tx_event_flags_set(&sd_event, SDMMC_XFER_DONE_EVENT, TX_OR);
+}
+#endif
+
+/**
+ * \fn           sd_reset(void)
+ * \brief        Perform SD reset sequence
+ * \return       none
+ */
+#ifdef BOARD_SD_RESET_GPIO_PORT
+extern ARM_DRIVER_GPIO ARM_Driver_GPIO_(BOARD_SD_RESET_GPIO_PORT);
+void sd_reset_cb(void)
+{
+    int status;
+
+    ARM_DRIVER_GPIO *sd_rst_gpio = &ARM_Driver_GPIO_(BOARD_SD_RESET_GPIO_PORT);
+
+    status = sd_rst_gpio->SetValue(BOARD_SD_RESET_GPIO_PIN, GPIO_PIN_OUTPUT_STATE_LOW);
+    if (status) {
+#ifdef SDMMC_PRINT_ERR
+        printf("ERROR: Failed to toggle sd reset pin\n");
+#endif
+    }
+
+    sys_busy_loop_us(SDMMC_RESET_DELAY_US);
+
+    status = sd_rst_gpio->SetValue(BOARD_SD_RESET_GPIO_PIN, GPIO_PIN_OUTPUT_STATE_HIGH);
+    if (status) {
+#ifdef SDMMC_PRINT_ERR
+        printf("ERROR: Failed to toggle sd reset pin\n");
+#endif
+    }
+
 }
 #endif
 
@@ -303,12 +339,61 @@ VOID  _fx_sd_driver(FX_MEDIA *media_ptr)
 
                     /* Perform basic initialization here... since the boot record is going
                        to be read subsequently and again for volume name requests.  */
+#ifdef BOARD_SD_RESET_GPIO_PORT
+                    ARM_DRIVER_GPIO *sd_rst_gpio = &ARM_Driver_GPIO_(BOARD_SD_RESET_GPIO_PORT);
+
+                    status = sd_rst_gpio->Initialize(BOARD_SD_RESET_GPIO_PIN, NULL);
+                    if (status) {
+#ifdef SDMMC_PRINT_ERR
+                        printf("ERROR: Failed to initialize SD RST GPIO\n");
+#endif
+                        media_ptr -> fx_media_driver_status =  FX_IO_ERROR;
+						break;
+                    }
+
+                    status = sd_rst_gpio->PowerControl(BOARD_SD_RESET_GPIO_PIN, ARM_POWER_FULL);
+                    if (status) {
+#ifdef SDMMC_PRINT_ERR
+                        printf("ERROR: Failed to set power to full\n");
+#endif
+                        media_ptr -> fx_media_driver_status =  FX_IO_ERROR;
+						break;
+                    }
+
+                    status = sd_rst_gpio->SetDirection(BOARD_SD_RESET_GPIO_PIN, GPIO_PIN_DIRECTION_OUTPUT);
+                    if (status) {
+#ifdef SDMMC_PRINT_ERR
+                        printf("ERROR: Failed to configure\n");
+#endif
+                        media_ptr -> fx_media_driver_status =  FX_IO_ERROR;
+						break;
+                    }
+
+                    status = sd_rst_gpio->SetValue(BOARD_SD_RESET_GPIO_PIN, GPIO_PIN_OUTPUT_STATE_HIGH);
+                    if (status) {
+#ifdef SDMMC_PRINT_ERR
+                        printf("ERROR: Failed to toggle sd reset pin\n");
+#endif
+                        status = FX_IO_ERROR;
+                    }
+                    
+					if (status == FX_IO_ERROR) {
+                        
+                        media_ptr -> fx_media_driver_status =  FX_IO_ERROR;
+						break;
+					}
+#endif
 
                     sd_param.dev_id         = SDMMC_DEV_ID;
                     sd_param.clock_id       = RTE_SDC_CLOCK_SELECT;
                     sd_param.bus_width      = RTE_SDC_BUS_WIDTH;
                     sd_param.dma_mode       = RTE_SDC_DMA_SELECT;
                     sd_param.app_callback   = sd_fx_cb;
+#ifdef BOARD_SD_RESET_GPIO_PORT
+                    sd_param.reset_cb       = sd_reset_cb;
+#else
+                    sd_param.reset_cb       = 0;
+#endif
 
                     status = p_SD_Driver->disk_initialize(&sd_param);
 
