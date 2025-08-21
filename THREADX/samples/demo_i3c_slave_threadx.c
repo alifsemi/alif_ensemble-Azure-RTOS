@@ -8,31 +8,26 @@
  */
 
 /**************************************************************************//**
- * @file     i3c_slaveside_loopback_testapp.c
- * @author   Prabhakar kumar
- * @email    prabhakar.kumar@alifsemi.com
- * @version  V1.0.0
- * @date     27-May-2023
- * @brief    TestApp to verify slave side loop back test
- *           - Data received from master is stored in buffer and
- *             same data is transmitted back to the master.
+ * @file     : demo_i3c_slave_threadx.c
+ * @author   : Prabhakar kumar
+ * @email    : prabhakar.kumar@alifsemi.com
+ * @version  : V1.0.0
+ * @date     : 27-May-2023
+ * @brief    : TestApp to verify slave side loop back test
+ *            - Data received from master is stored in buffer and
+ *              same data is transmitted back to the master.
  *
- *           I3C slave configuration.
- *           - In control API parameter:
- *             control : I3C_SET_SLAVE_ADDR(set slave address)
- *             arg     : I3C_SLAVE_ADDRESS macro is defined to set address
+ *             I3C slave configuration.
+ *             - In control API parameter:
+ *               control : I3C_SET_SLAVE_ADDR(set slave address)
+ *               arg     : I3C_SLAVE_ADDRESS macro is defined to set address
  *                       of slave
  *
- *           Hardware Setup:
- *            Required two boards one for Master and one for Slave
- *             (as there is only one i3c instance is available on ASIC).
- *
- *           Connect SDA to SDA and SCL to SCL and GND to GND.
- *            - SDA P7_6 -> SDA P7_6
- *            - SCL P7_7 -> SCL P7_7
- *            - GND      -> GND
- * @bug      None.
- * @Note     None.
+ *             Hardware Setup:
+ *              Required two boards one for Master and one for Slave
+ *              (as there is only one i3c instance is available on ASIC).
+ * @bug      : None.
+ * @Note     : None.
  ******************************************************************************/
 
 /* System Includes */
@@ -41,17 +36,16 @@
 
 /* Project Includes */
 #include "Driver_I3C.h"
-#include "Driver_GPIO.h"
-#include "system_utils.h"
+#include "app_utils.h"
 
 /* PINMUX Driver */
-#include "pinconf.h"
+#include "board_config.h"
 
 #include "RTE_Components.h"
-#if defined(RTE_Compiler_IO_STDOUT)
+#if defined(RTE_CMSIS_Compiler_STDOUT)
+#include "retarget_init.h"
 #include "retarget_stdout.h"
-#endif  /* RTE_Compiler_IO_STDOUT */
-
+#endif /* RTE_CMSIS_Compiler_STDOUT */
 
 /* i3c Driver instance 0 */
 extern ARM_DRIVER_I3C Driver_I3C;
@@ -61,7 +55,7 @@ static ARM_DRIVER_I3C *I3Cdrv = &Driver_I3C;
 #define I3C_SLAVE_ADDRESS             (0X48)
 
 /* receive data from i3c */
-uint8_t rx_data[4] = {0x00};
+uint8_t __ALIGNED(4) rx_data[4];
 
 uint32_t tx_cnt = 0;
 uint32_t rx_cnt = 0;
@@ -75,10 +69,10 @@ TX_THREAD               I3C_thread;
 TX_EVENT_FLAGS_GROUP    event_flags_i3c;
 
 /* i3c callback events */
-typedef enum {
-    I3C_CB_EVENT_SUCCESS        = (1 << 0),
-    I3C_CB_EVENT_ERROR          = (1 << 1)
-}I3C_CB_EVENTS;
+typedef enum _I3C_CB_EVENT {
+    I3C_CB_EVENT_SUCCESS = (1 << 0),
+    I3C_CB_EVENT_ERROR   = (1 << 1)
+} I3C_CB_EVENT;
 
 /**
   \fn          INT hardware_init(void)
@@ -90,62 +84,53 @@ typedef enum {
 */
 int32_t hardware_init(void)
 {
+    int32_t ret = 0;
+#if BOARD_I3C_FLEXIO_PRESENT
     /* for I3C_D(PORT_7 PIN_6(SDA)/PIN_7(SCL)) instance,
-      *  for I3C in I3C mode (not required for I3C in I2C mode)
-      *  GPIO voltage level(flex) has to be change to 1.8-V power supply.
-      *
-      *  GPIO_CTRL Register field VOLT:
-      *   Select voltage level for the 1.8-V/3.3-V (flex) I/O pins
-      *    0x0: I/O pin will be used with a 3.3-V power supply
-      *    0x1: I/O pin will be used with a 1.8-V power supply
-      */
+     *  for I3C in I3C mode (not required for I3C in I2C mode)
+     *  GPIO voltage level(flex) has to be change to 1.8-V power supply.
+     *
+     *  GPIO_CTRL Register field VOLT:
+     *   Select voltage level for the 1.8-V/3.3-V (flex) I/O pins
+     *    0x0: I/O pin will be used with a 3.3-V power supply
+     *    0x1: I/O pin will be used with a 1.8-V power supply
+     */
 
-     /* Configure GPIO flex I/O pins to 1.8-V:
-      *  P7_6 and P7_7 pins are part of GPIO flex I/O pins,
-      *   so we can use any one of the pin to configure flex I/O.
-      */
- #define GPIO7_PORT          7
+    /* Configure GPIO flex I/O pins to 1.8-V:
+     *  P7_6 and P7_7 pins are part of GPIO flex I/O pins.
+     */
+    /* config flexio pins to 1.8V */
+    uint32_t      error_code = SERVICES_REQ_SUCCESS;
+    uint32_t      service_error_code;
+    run_profile_t runp;
 
-     extern  ARM_DRIVER_GPIO ARM_Driver_GPIO_(GPIO7_PORT);
-     ARM_DRIVER_GPIO *gpioDrv = &ARM_Driver_GPIO_(GPIO7_PORT);
+    /* Initialize the SE services */
+    se_services_port_init();
 
-     int32_t  ret = 0;
-     uint32_t arg = 0;
+    /* Get the current run configuration from SE */
+    error_code = SERVICES_get_run_cfg(se_services_s_handle, &runp, &service_error_code);
+    if (error_code) {
+        printf("Get Current run config failed\n");
+        WAIT_FOREVER_LOOP
+    }
 
-     ret = gpioDrv->Initialize(PIN_6, NULL);
-     if (ret != 0)
-     {
-         printf("ERROR: Failed to initialize GPIO \n");
-         return -1;
-     }
+    runp.vdd_ioflex_3V3 = IOFLEX_LEVEL_1V8;
+    /* Set the new run configuration */
+    error_code          = SERVICES_set_run_cfg(se_services_s_handle, &runp, &service_error_code);
+    if (error_code) {
+        printf("Set new run config failed\n");
+        WAIT_FOREVER_LOOP
+    }
+#endif
 
-     ret = gpioDrv->PowerControl(PIN_6, ARM_POWER_FULL);
-     if (ret != 0)
-     {
-         printf("ERROR: Failed to powered full GPIO \n");
-         return -1;
-     }
+    /* pin mux and configuration for all device IOs requested from pins.h*/
+    ret = board_pins_config();
+    if (ret != ARM_DRIVER_OK) {
+        printf("ERROR: Pin configuration failed: %d\n", ret);
+        return ret;
+    }
 
-     /* select control argument as flex 1.8-V */
-     arg = ARM_GPIO_FLEXIO_VOLT_1V8;
-     ret = gpioDrv->Control(PIN_6, ARM_GPIO_CONFIG_FLEXIO, &arg);
-     if (ret != 0)
-     {
-         printf("ERROR: Failed to control GPIO Flex \n");
-         return -1;
-     }
-
-     /* I3C_SDA_D */
-     ret = pinconf_set(PORT_7, PIN_6, PINMUX_ALTERNATE_FUNCTION_6,
-                 PADCTRL_READ_ENABLE | PADCTRL_DRIVER_DISABLED_PULL_UP |
-                 PADCTRL_OUTPUT_DRIVE_STRENGTH_4MA);
-
-     /* I3C_SCL_D */
-     ret = pinconf_set(PORT_7, PIN_7, PINMUX_ALTERNATE_FUNCTION_6,
-                 PADCTRL_READ_ENABLE | PADCTRL_DRIVER_DISABLED_PULL_UP |
-                 PADCTRL_OUTPUT_DRIVE_STRENGTH_4MA);
-
-     return ret;
+    return ARM_DRIVER_OK;
 }
 
 /**
@@ -156,14 +141,12 @@ int32_t hardware_init(void)
 */
 void I3C_callback(UINT event)
 {
-    if (event & ARM_I3C_EVENT_TRANSFER_DONE)
-    {
+    if (event & ARM_I3C_EVENT_TRANSFER_DONE) {
         /* Transfer Success: Wake-up Thread. */
         tx_event_flags_set(&event_flags_i3c, I3C_CB_EVENT_SUCCESS, TX_OR);
     }
 
-    if (event & ARM_I3C_EVENT_TRANSFER_ERROR)
-    {
+    if (event & ARM_I3C_EVENT_TRANSFER_ERROR) {
         /* Transfer Error: Wake-up Thread. */
         tx_event_flags_set(&event_flags_i3c, I3C_CB_EVENT_ERROR, TX_OR);
     }
@@ -193,53 +176,46 @@ void i3c_slave_demo_thread_entry(ULONG thread_input)
     printf("\r\n i3c version api:0x%X driver:0x%X \r\n",  \
                            version.api, version.drv);
 
-    if((version.api < ARM_DRIVER_VERSION_MAJOR_MINOR(7U, 0U))        ||
-       (version.drv < ARM_DRIVER_VERSION_MAJOR_MINOR(7U, 0U)))
-    {
+    if ((version.api < ARM_DRIVER_VERSION_MAJOR_MINOR(7U, 0U))        ||
+       (version.drv < ARM_DRIVER_VERSION_MAJOR_MINOR(7U, 0U))) {
         printf("\r\n Error: >>>Old driver<<< Please use new one \r\n");
         return;
     }
 
     /* Initialize i3c hardware pins using PinMux Driver. */
     ret = hardware_init();
-    if(ret != 0)
-    {
+    if (ret != 0) {
         printf("\r\n Error: i3c hardware_init failed.\r\n");
         return;
     }
 
     /* Initialize I3C driver */
     ret = I3Cdrv->Initialize(I3C_callback);
-    if(ret != ARM_DRIVER_OK)
-    {
+    if (ret != ARM_DRIVER_OK) {
         printf("\r\n Error: I3C Initialize failed.\r\n");
         return;
     }
 
     /* Power up I3C peripheral */
     ret = I3Cdrv->PowerControl(ARM_POWER_FULL);
-    if(ret != ARM_DRIVER_OK)
-    {
+    if (ret != ARM_DRIVER_OK) {
         printf("\r\n Error: I3C Power Up failed.\r\n");
         goto error_uninitialize;
     }
 
     /* Control I3C interface */
     ret = I3Cdrv->Control(I3C_SLAVE_SET_ADDR, I3C_SLAVE_ADDRESS);
-    if(ret != ARM_DRIVER_OK)
-    {
+    if (ret != ARM_DRIVER_OK) {
         printf("\r\n Error: I3C Control failed.\r\n");
         goto error_poweroff;
     }
 
-    while(1)
-    {
+    while (1) {
         len = 4;
 
         /* Slave Receive */
         ret = I3Cdrv->SlaveReceive(rx_data, len);
-        if(ret != ARM_DRIVER_OK)
-        {
+        if (ret != ARM_DRIVER_OK) {
             printf("\r\n Error: I3C slave Receive failed. \r\n");
             goto error_poweroff;
         }
@@ -249,16 +225,14 @@ void i3c_slave_demo_thread_entry(ULONG thread_input)
                            TX_OR_CLEAR,
                            &actual_events,
                            TX_WAIT_FOREVER);
-        if (ret != TX_SUCCESS)
-        {
+        if (ret != TX_SUCCESS) {
             printf("Error: I3C rx_event_flags_get failed.\n");
             goto error_poweroff;
         }
 
-        if(actual_events == I3C_CB_EVENT_ERROR)
-        {
+        if (actual_events == I3C_CB_EVENT_ERROR) {
             printf("\nError: I3C Slave receive failed\n");
-            while(1);
+            while (1);
         }
 
         /* clear callback */
@@ -272,8 +246,7 @@ void i3c_slave_demo_thread_entry(ULONG thread_input)
 
         /* Slave Transmit*/
         ret = I3Cdrv->SlaveTransmit(rx_data, len);
-        if(ret != ARM_DRIVER_OK)
-        {
+        if (ret != ARM_DRIVER_OK) {
             printf("\r\n Error: I3C slave Transmit failed. \r\n");
             goto error_poweroff;
         }
@@ -283,16 +256,14 @@ void i3c_slave_demo_thread_entry(ULONG thread_input)
                            TX_OR_CLEAR,
                            &actual_events,
                            TX_WAIT_FOREVER);
-        if (ret != TX_SUCCESS)
-        {
+        if (ret != TX_SUCCESS) {
             printf("Error: I3C tx_event_flags_get failed.\n");
             goto error_poweroff;
         };
 
-        if(actual_events == I3C_CB_EVENT_ERROR)
-        {
+        if (actual_events == I3C_CB_EVENT_ERROR) {
             printf("\nError: I3C Slave transmit failed\n");
-            while(1);
+            while (1);
         }
 
         /* clear callback */
@@ -305,8 +276,7 @@ error_poweroff:
 
     /* Power off I3C peripheral */
     ret = I3Cdrv->PowerControl(ARM_POWER_OFF);
-    if(ret != ARM_DRIVER_OK)
-    {
+    if (ret != ARM_DRIVER_OK) {
          printf("\r\n Error: I3C Power OFF failed.\r\n");
     }
 
@@ -314,8 +284,7 @@ error_uninitialize:
 
     /* Un-initialize I3C driver */
     ret = I3Cdrv->Uninitialize();
-    if(ret != ARM_DRIVER_OK)
-    {
+    if (ret != ARM_DRIVER_OK) {
         printf("\r\n Error: I3C Uninitialize failed.\r\n");
     }
 
@@ -325,16 +294,14 @@ error_uninitialize:
 /* Define main entry point.  */
 int main()
 {
-    #if defined(RTE_Compiler_IO_STDOUT_User)
-    int32_t ret;
+#if defined(RTE_CMSIS_Compiler_STDOUT_Custom)
+    extern int stdout_init(void);
+    int32_t    ret;
     ret = stdout_init();
-    if(ret != ARM_DRIVER_OK)
-    {
-        while(1)
-        {
-        }
+    if (ret != ARM_DRIVER_OK) {
+        WAIT_FOREVER_LOOP
     }
-    #endif
+#endif
 
     /* Enter the ThreadX kernel.  */
     tx_kernel_enter();
@@ -347,8 +314,7 @@ void tx_application_define(void *first_unused_memory)
 
     /* Create the event flags group used by i3c thread  */
     status = tx_event_flags_create(&event_flags_i3c, "event flags I3C");
-    if (status != TX_SUCCESS)
-    {
+    if (status != TX_SUCCESS) {
         printf("Could not create event flags\n");
         return;
     }
@@ -358,8 +324,7 @@ void tx_application_define(void *first_unused_memory)
                               i3c_slave_demo_thread_entry, 0,
                               first_unused_memory, DEMO_STACK_SIZE,
                               1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
-    if (status != TX_SUCCESS)
-    {
+    if (status != TX_SUCCESS) {
         printf("Could not create thread \n");
         return;
     }
