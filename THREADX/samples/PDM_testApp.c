@@ -40,21 +40,24 @@
  ******************************************************************************/
 /* System Includes */
 #include <stdio.h>
-#include <stdlib.h>
 #include "tx_api.h"
+#include <stdlib.h>
+#include <inttypes.h>
+#include "app_utils.h"
 
 /* Project Includes */
 /* include for PDM Driver */
 #include "Driver_PDM.h"
 #include "pinconf.h"
+#include "board_config.h"
 #include "RTE_Components.h"
-#if defined(RTE_Compiler_IO_STDOUT)
+#if defined(RTE_CMSIS_Compiler_STDOUT)
 #include "retarget_stdout.h"
-#endif  /* RTE_Compiler_IO_STDOUT */
+#endif  /* RTE_CMSIS_Compiler_STDOUT */
 
-
-#define ENABLE              1
-#define DISABLE             0
+// Set to 0: Use application-defined PDM pin configuration.
+// Set to 1: Use Conductor-generated pin configuration (from pins.h).
+#define USE_CONDUCTOR_TOOL_PINS_CONFIG 0
 
 /* Store the number of samples */
 /* For 30000 samples user can hear maximum up to 4 sec of audio
@@ -105,12 +108,44 @@ PDM_CH_CONFIG pdm_coef_reg;
 uint16_t sample_buf[NUM_SAMPLE];
 
 /* Channel 4 FIR coefficient */
-uint32_t ch4_fir[18] = { 0x00000001,0x00000003,0x00000003,0x000007F4,0x00000004,0x000007ED,0x000007F5,0x000007F4,0x000007D3,
-                        0x000007FE,0x000007BC,0x000007E5,0x000007D9,0x00000793,0x00000029,0x0000072C,0x00000072,0x000002FD};
+uint32_t ch4_fir[18] = {0x00000001,
+                        0x00000003,
+                        0x00000003,
+                        0x000007F4,
+                        0x00000004,
+                        0x000007ED,
+                        0x000007F5,
+                        0x000007F4,
+                        0x000007D3,
+                        0x000007FE,
+                        0x000007BC,
+                        0x000007E5,
+                        0x000007D9,
+                        0x00000793,
+                        0x00000029,
+                        0x0000072C,
+                        0x00000072,
+                        0x000002FD};
 
 /* Channel 5 FIR coefficient */
-uint32_t ch5_fir[18] = {0x00000000, 0x000007FF,0x00000000,0x00000004,0x00000004,0x000007FC,0x00000000,0x000007FB,0x000007E4,
-                       0x00000000,0x0000002B,0x00000009,0x00000016,0x00000049,0x00000793,0x000006F8,0x00000045,0x00000178};
+uint32_t ch5_fir[18] = {0x00000000,
+                        0x000007FF,
+                        0x00000000,
+                        0x00000004,
+                        0x00000004,
+                        0x000007FC,
+                        0x00000000,
+                        0x000007FB,
+                        0x000007E4,
+                        0x00000000,
+                        0x0000002B,
+                        0x00000009,
+                        0x00000016,
+                        0x00000049,
+                        0x00000793,
+                        0x000006F8,
+                        0x00000045,
+                        0x00000178};
 
 void PDM_fifo_callback(uint32_t event)
 {
@@ -129,6 +164,93 @@ void PDM_fifo_callback(uint32_t event)
         tx_event_flags_set(&event_flags_pdm, PDM_CALLBACK_AUDIO_DETECTION_EVENT, TX_OR);
     }
 }
+
+#if (!USE_CONDUCTOR_TOOL_PINS_CONFIG)
+/**
+ * @fn      static int32_t board_pdm_pins_config(void)
+ * @brief   Configure PDM pinmux which is not
+ *          handled by the board support library.
+ * @retval  execution status.
+ */
+static int32_t board_pdm_pins_config(void)
+{
+    int32_t status;
+
+    /* channel 0_1 data line */
+    status = pinconf_set(PORT_(BOARD_PDM_D0_A_GPIO_PORT),
+                         BOARD_PDM_D0_A_GPIO_PIN,
+                         PINMUX_ALTERNATE_FUNCTION_3,
+                         PADCTRL_READ_ENABLE);
+    if (status) {
+        return status;
+    }
+
+    /* channel 2_3 data line */
+    status = pinconf_set(PORT_(BOARD_PDM_D1_C_GPIO_PORT),
+                         BOARD_PDM_D1_C_GPIO_PIN,
+                         PINMUX_ALTERNATE_FUNCTION_4,
+                         PADCTRL_READ_ENABLE);
+    if (status) {
+        return status;
+    }
+
+    /* channel 4_5 data line */
+    status = pinconf_set(PORT_(BOARD_PDM_D2_B_GPIO_PORT),
+                         BOARD_PDM_D2_B_GPIO_PIN,
+                         PINMUX_ALTERNATE_FUNCTION_3,
+                         PADCTRL_READ_ENABLE);
+    if (status) {
+        return status;
+    }
+
+    /* channel 6_7 data line */
+    status = pinconf_set(PORT_(BOARD_PDM_D3_A_GPIO_PORT),
+                         BOARD_PDM_D3_A_GPIO_PIN,
+                         PINMUX_ALTERNATE_FUNCTION_3,
+                         PADCTRL_READ_ENABLE);
+    if (status) {
+        return status;
+    }
+
+    /* Channel 0_1 clock line */
+    status = pinconf_set(PORT_(BOARD_PDM_C0_A_GPIO_PORT),
+                         BOARD_PDM_C0_A_GPIO_PIN,
+                         PINMUX_ALTERNATE_FUNCTION_3,
+                         PADCTRL_DRIVER_DISABLED_HIGH_Z);
+    if (status) {
+        return status;
+    }
+
+    /* Channel 2_3 clock line */
+    status = pinconf_set(PORT_(BOARD_PDM_C1_C_GPIO_PORT),
+                         BOARD_PDM_C1_C_GPIO_PIN,
+                         PINMUX_ALTERNATE_FUNCTION_4,
+                         PADCTRL_DRIVER_DISABLED_HIGH_Z);
+    if (status) {
+        return status;
+    }
+
+    /* Channel 4_5 clock line */
+    status = pinconf_set(PORT_(BOARD_PDM_C2_A_GPIO_PORT),
+                         BOARD_PDM_C2_A_GPIO_PIN,
+                         PINMUX_ALTERNATE_FUNCTION_3,
+                         PADCTRL_DRIVER_DISABLED_HIGH_Z);
+    if (status) {
+        return status;
+    }
+
+    /* Channel 6_7 clock line */
+    status = pinconf_set(PORT_(BOARD_PDM_C3_A_GPIO_PORT),
+                         BOARD_PDM_C3_A_GPIO_PIN,
+                         PINMUX_ALTERNATE_FUNCTION_3,
+                         PADCTRL_DRIVER_DISABLED_HIGH_Z);
+    if (status) {
+        return status;
+    }
+
+    return APP_SUCCESS;
+}
+#endif
 
 /**
  * @fn         : void pdm_demo_thread_entry(uint32_t event)
@@ -160,6 +282,43 @@ void pdm_demo_thread_entry(ULONG thread_input)
     ULONG actual_events = 0;
     ARM_DRIVER_VERSION version;
     int32_t retval;
+
+#if USE_CONDUCTOR_TOOL_PINS_CONFIG
+    /* pin mux and configuration for all device IOs requested from pins.h*/
+    retval = board_pins_config();
+    if (retval != 0) {
+        printf("Error in pin-mux configuration: %" PRId32 "\n", retval);
+        return;
+    }
+
+#else
+    /*
+     * NOTE: The PDM pins used in this test application are not configured
+     * in the board support library.Therefore, it is being configured manually here.
+     */
+    ret = board_pdm_pins_config();
+    if (ret != 0) {
+        printf("Error in pin-mux configuration: %" PRId32 "\n", ret);
+        return;
+    }
+#endif
+
+#if SOC_FEAT_CLK76P8M_CLK_ENABLE
+    uint32_t error_code = SERVICES_REQ_SUCCESS;
+    uint32_t service_error_code;
+
+    /* Initialize the SE services */
+    se_services_port_init();
+
+    /* enable the HFOSCx2 clock */
+    error_code = SERVICES_clocks_enable_clock(se_services_s_handle,
+                                              /*clock_enable_t*/ CLKEN_HFOSCx2,
+                                              /*bool enable   */ true,
+                                              &service_error_code);
+    if (error_code) {
+        printf("SE: clk enable = %" PRId32 "\n", error_code);
+    }
+#endif
 
     printf("\r\n >>> PDM demo starting up!!! <<< \r\n");
 
@@ -353,16 +512,15 @@ error_uninitialize:
 /* Define main entry point.  */
 int main()
 {
-    #if defined(RTE_Compiler_IO_STDOUT_User)
-    int32_t ret;
+#if defined(RTE_CMSIS_Compiler_STDOUT_Custom)
+    extern int stdout_init(void);
+    int32_t    ret;
+
     ret = stdout_init();
-    if(ret != ARM_DRIVER_OK)
-    {
-        while(1)
-        {
-        }
+    if (ret != ARM_DRIVER_OK) {
+        WAIT_FOREVER_LOOP
     }
-    #endif
+#endif
 
     /* Enter the ThreadX kernel.  */
     tx_kernel_enter();
