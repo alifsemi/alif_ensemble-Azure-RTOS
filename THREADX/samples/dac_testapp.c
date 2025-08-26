@@ -36,19 +36,25 @@
 #include <stdio.h>
 #include "tx_api.h"
 #include "pinconf.h"
+#include "board_config.h"
 
 /* Project Includes */
 /* include for DAC Driver */
 #include "Driver_DAC.h"
 #include "RTE_Components.h"
-#if defined(RTE_Compiler_IO_STDOUT)
+#if defined(RTE_CMSIS_Compiler_STDOUT)
 #include "retarget_stdout.h"
-#endif  /* RTE_Compiler_IO_STDOUT */
+#endif  /* RTE_CMSIS_Compiler_STDOUT */
 
+#include "app_utils.h"
+
+// Set to 0: Use application-defined DAC12 pin configuration (via board_dac12_pins_config()).
+// Set to 1: Use Conductor-generated pin configuration (from pins.h).
+#define USE_CONDUCTOR_TOOL_PINS_CONFIG 0
 
 /* DAC Driver instance */
-extern ARM_DRIVER_DAC Driver_DAC0;
-static ARM_DRIVER_DAC *DACdrv = &Driver_DAC0;
+extern ARM_DRIVER_DAC  ARM_Driver_DAC_(BOARD_DAC12_INSTANCE);
+static ARM_DRIVER_DAC *DACdrv = &ARM_Driver_DAC_(BOARD_DAC12_INSTANCE);
 
 /* DAC maximum resolution is 12-bit */
 #define DAC_MAX_INPUT_VALUE   (0xFFF)
@@ -56,27 +62,39 @@ static ARM_DRIVER_DAC *DACdrv = &Driver_DAC0;
 #define ERROR    -1
 #define SUCCESS   0
 
+#if (!USE_CONDUCTOR_TOOL_PINS_CONFIG)
 /**
- * @fn          void dac_pinmux_config(void)
- * @brief       Initialize the pinmux for DAC output
- * @return      status
-*/
-int32_t dac_pinmux_config(void)
+ * @fn      static int32_t board_dac12_pins_config(void)
+ * @brief   Configure DAC12 pinmux which not
+ *          handled by the board support library.
+ * @retval  execution status.
+ */
+static int32_t board_dac12_pins_config(void)
 {
     int32_t status;
 
-    /* Configure DAC0 output */
-    status = pinconf_set(PORT_2, PIN_2, PINMUX_ALTERNATE_FUNCTION_7, PADCTRL_OUTPUT_DRIVE_STRENGTH_2MA);
-    if(status)
-        return ERROR;
+    /* Configure DAC120 output */
+    status = pinconf_set(PORT_(BOARD_DAC120_OUT_GPIO_PORT),
+                         BOARD_DAC120_OUT_GPIO_PIN,
+                         BOARD_DAC120_ALTERNATE_FUNCTION,
+                         PADCTRL_OUTPUT_DRIVE_STRENGTH_2MA);
+    if (status) {
+        return status;
+    }
 
-    /* Configure DAC1 output */
-    status = pinconf_set(PORT_2, PIN_3, PINMUX_ALTERNATE_FUNCTION_7, PADCTRL_OUTPUT_DRIVE_STRENGTH_2MA);
-    if(status)
-        return ERROR;
-
-    return SUCCESS;
+#if (RTE_DAC1)
+    /* Configure DAC121 output */
+    status = pinconf_set(PORT_(BOARD_DAC121_OUT_GPIO_PORT),
+                         BOARD_DAC121_OUT_GPIO_PIN,
+                         BOARD_DAC121_ALTERNATE_FUNCTION,
+                         PADCTRL_OUTPUT_DRIVE_STRENGTH_2MA);
+    if (status) {
+        return status;
+    }
+#endif
+    return APP_SUCCESS;
 }
+#endif
 
 void dac_demo_Thread_entry(ULONG thread_input);
 
@@ -107,14 +125,27 @@ void dac_demo_Thread_entry(ULONG thread_input)
     INT  ret         = 0;
     ARM_DRIVER_VERSION version;
 
-    printf("\r\n >>> DAC demo threadX starting up!!! <<< \r\n");
-
-    /* Configure the DAC output pins */
-    if(dac_pinmux_config())
-    {
-        printf("DAC pinmux failed\n");
+#if USE_CONDUCTOR_TOOL_PINS_CONFIG
+    /* pin mux and configuration for all device IOs requested from pins.h*/
+    ret = board_pins_config();
+    if (ret != 0) {
+        printf("Error in pin-mux configuration: %d\n", ret);
         return;
     }
+
+#else
+    /*
+     * NOTE: The DAC12 pins used in this test application are not configured
+     * in the board support library. Therefore, it is being configured manually here.
+     */
+    ret = board_dac12_pins_config();
+    if (ret != 0) {
+        printf("Error in pin-mux configuration: %d\n", ret);
+        return;
+    }
+#endif
+
+    printf("\r\n >>> DAC demo threadX starting up!!! <<< \r\n");
 
     version = DACdrv->GetVersion();
     printf("\r\n DAC version api:%X driver:%X...\r\n",version.api, version.drv);
@@ -224,16 +255,15 @@ error_uninitialize:
 /* Define main entry point.  */
 int main()
 {
-    #if defined(RTE_Compiler_IO_STDOUT_User)
-    int32_t ret;
+#if defined(RTE_CMSIS_Compiler_STDOUT_Custom)
+    extern int stdout_init(void);
+    int32_t    ret;
+
     ret = stdout_init();
-    if(ret != ARM_DRIVER_OK)
-    {
-        while(1)
-        {
-        }
+    if (ret != ARM_DRIVER_OK) {
+        WAIT_FOREVER_LOOP
     }
-    #endif
+#endif
 
     /* Enter the ThreadX kernel.  */
     tx_kernel_enter();
