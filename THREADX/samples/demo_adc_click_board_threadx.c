@@ -7,7 +7,7 @@
  * contact@alifsemi.com, or visit: https://alifsemi.com/license
  */
 /**************************************************************************//**
- * @file     : ADC_Click_Board_testapp.c
+ * @file     : demo_adc_click_board_threadx.c
  * @author   : Prabhakar kumar
  * @email    : prabhakar.kumar@alifsemi.com
  * @version  : V1.0.0
@@ -26,28 +26,30 @@
 
 /* System Includes */
 #include <stdio.h>
-#include "tx_api.h"
-#include "system_utils.h"
+#include <inttypes.h>
 
 /* include for ADC Driver */
 #include "Driver_ADC.h"
 
-/* PINMUX include */
-#include "pinconf.h"
+#include "tx_api.h"
+#include "board_config.h"
 
 #include "se_services_port.h"
 #include "RTE_Components.h"
-#if defined(RTE_Compiler_IO_STDOUT)
+#if defined(RTE_CMSIS_Compiler_STDOUT)
+#include "retarget_init.h"
 #include "retarget_stdout.h"
-#endif  /* RTE_Compiler_IO_STDOUT */
+#endif /* RTE_CMSIS_Compiler_STDOUT */
+
+#include "app_utils.h"
 
 /* single shot conversion scan use ARM_ADC_SINGLE_SHOT_CH_CONV*/
 
 #define ADC_CONVERSION    ARM_ADC_SINGLE_SHOT_CH_CONV
 
 /* Instance for ADC12 */
-extern ARM_DRIVER_ADC Driver_ADC121;
-static ARM_DRIVER_ADC *ADCdrv = &Driver_ADC121;
+extern ARM_DRIVER_ADC  ARM_Driver_ADC12(BOARD_CLICKBOARD_ANA_ADC12_INSTANCE);
+static ARM_DRIVER_ADC *ADCdrv = &ARM_Driver_ADC12(BOARD_CLICKBOARD_ANA_ADC12_INSTANCE);
 
 #define CLICK_BOARD_INPUT        ARM_ADC_CHANNEL_0
 #define NUM_CHANNELS             (8)
@@ -65,26 +67,6 @@ TX_EVENT_FLAGS_GROUP    event_flags_adc;
 UINT adc_sample[NUM_CHANNELS];
 
 volatile UINT num_samples = 0;
-
-/**
- * @fn      static int32_t pinmux_config(void)
- * @brief   ADC potentiometer pinmux configuration
- * @retval  execution status.
- */
-static int32_t pinmux_config(void)
-{
-    INT ret = 0U;
-
-    ret = pinconf_set(PORT_0, PIN_7, PINMUX_ALTERNATE_FUNCTION_7,
-                      PADCTRL_READ_ENABLE );
-    if (ret)
-    {
-        /* failed while configuring the PIMUX */
-        return ret;
-    }
-
-    return ret;
-}
 
 /*
  * @func   : void adc_conversion_callback(uint32_t event, uint8_t channel, uint32_t sample_output)
@@ -121,6 +103,13 @@ void adc_click_board_demo(ULONG thread_input)
     UINT  service_error_code;
     ARM_DRIVER_VERSION version;
 
+    /* pin mux and configuration for all device IOs requested from pins.h*/
+    ret = board_pins_config();
+    if (ret != 0) {
+        printf("ERROR: Board pin configuration failed: %" PRId32 "\n", ret);
+        return;
+    }
+
     (void) thread_input;
 
     /* Initialize the SE services */
@@ -140,15 +129,7 @@ void adc_click_board_demo(ULONG thread_input)
     printf("\t\t\n >>> ADC demo starting up!!! <<< \r\n");
 
     version = ADCdrv->GetVersion();
-    printf("\r\n ADC version api:%X driver:%X...\r\n",version.api, version.drv);
-
-    /* PINMUX */
-    ret = pinmux_config();
-    if (ret != 0)
-    {
-        printf("Error in pin-mux configuration\n");
-        return;
-    }
+    printf("\r\n ADC version api:%" PRIx16 " driver:%" PRIx16 "...\r\n", version.api, version.drv);
 
     /* Initialize ADC driver */
     ret = ADCdrv->Initialize(adc_conversion_callback);
@@ -233,7 +214,7 @@ error_uninitialize:
                                               &service_error_code);
     if (error_code)
     {
-        printf("SE Error: 160 MHz clk disable = %d\n", error_code);
+        printf("SE: clk enable = %" PRId32 "\n", error_code);
         return;
     }
 

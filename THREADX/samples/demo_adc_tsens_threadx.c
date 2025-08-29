@@ -7,34 +7,33 @@
  * contact@alifsemi.com, or visit: https://alifsemi.com/license
  */
 /**************************************************************************//**
- * @file     : ADC_Potentiometer_testapp.c
+ * @file     : demo_adc_tsens_threadx.c
  * @author   : Prabhakar kumar
  * @email    : prabhakar.kumar@alifsemi.com
  * @version  : V1.0.0
- * @date     : 15-SEPT-2023
- * @brief    : Testapp demo application code for potentiometer input
- *              - Internal input of potentiometer in analog signal corresponding
+ * @date     : 21-AUG-2023
+ * @brief    : ThreadX demo application code for ADC driver temperature sensor
+ *              - Internal input of temperature  in analog signal corresponding
  *                output is digital value.
- *              - the input from the potentiometer is internally connected to
- *                the ADC121 instance channel_1(j11 Pin 10).
- *              - the converted digital value are stored in user provided memory
+ *              - Converted digital value are stored in user provided memory
  *                address.
  *
  *            Hardware Connection:
- *            Analog variable register R53 is connected internally to the ADC121
- *            channel_1 which volatge vary from 0 to 1.8V
+ *            Common temperature sensor is internally connected to ADC12 6th channel
+ *            of each instance.
+ *            no hardware setup required.
+ * @bug      : None.
+ * @Note     : None.
  ******************************************************************************/
 
 /* System Includes */
 #include <stdio.h>
 #include "tx_api.h"
-#include "system_utils.h"
+#include "app_utils.h"
 
 /* include for ADC Driver */
 #include "Driver_ADC.h"
-
-/* PINMUX include */
-#include "pinconf.h"
+#include "temperature.h"
 
 #include "se_services_port.h"
 #include "RTE_Components.h"
@@ -42,50 +41,28 @@
 #include "retarget_stdout.h"
 #endif  /* RTE_Compiler_IO_STDOUT */
 
-/* single shot conversion scan use ARM_ADC_SINGLE_SHOT_CH_CONV*/
-
 #define ADC_CONVERSION    ARM_ADC_SINGLE_SHOT_CH_CONV
 
-/* Instance for ADC12 */
-extern ARM_DRIVER_ADC Driver_ADC121;
-static ARM_DRIVER_ADC *ADCdrv = &Driver_ADC121;
-
-#define POTENTIOMETER            ARM_ADC_CHANNEL_1
-#define NUM_CHANNELS             (8)
-
-void adc_potentiometer_demo(ULONG thread_input);
+void tsens_demo_Thread_entry(ULONG thread_input);
 
 /* Define the ThreadX object control blocks...  */
 #define DEMO_STACK_SIZE                 1024
 #define TX_ADC_INT_AVG_SAMPLE_RDY       0x01
 
-TX_THREAD               adc_thread;
+TX_THREAD               tsens_thread;
 TX_EVENT_FLAGS_GROUP    event_flags_adc;
 
-/* Demo purpose adc_sample*/
+/* Instance for ADC12 */
+extern ARM_DRIVER_ADC Driver_ADC122;
+static ARM_DRIVER_ADC *ADCdrv = &Driver_ADC122;
+
+#define TEMPERATURE_SENSOR       ARM_ADC_CHANNEL_6
+#define NUM_CHANNELS             (8)
+
+/* Demo purpose Channel_value*/
 UINT adc_sample[NUM_CHANNELS];
 
 volatile UINT num_samples = 0;
-
-/**
- * @fn      static int32_t pinmux_config(void)
- * @brief   ADC potentiometer pinmux configuration
- * @retval  execution status.
- */
-static int32_t pinmux_config(void)
-{
-    INT ret = 0U;
-
-    ret = pinconf_set(PORT_0, PIN_7, PINMUX_ALTERNATE_FUNCTION_7,
-                      PADCTRL_READ_ENABLE );
-    if (ret)
-    {
-        /* failed while configuring the PIMUX */
-        return ret;
-    }
-
-    return ret;
-}
 
 /*
  * @func   : void adc_conversion_callback(uint32_t event, uint8_t channel, uint32_t sample_output)
@@ -98,28 +75,31 @@ static void adc_conversion_callback(uint32_t event, uint8_t channel, uint32_t sa
     {
         num_samples += 1;
 
-        /* Store the value for the respected channels */
+        /* Store the value for the respective channels */
         adc_sample[channel] = sample_output;
+
         /* Sample ready Wake up Thread. */
         tx_event_flags_set(&event_flags_adc, TX_ADC_INT_AVG_SAMPLE_RDY, TX_OR);
     }
 }
 
 /**
- *    @func   : void adc_potentiometer_demo(ULONG thread_input)
- *    @brief  : ADC Potentiometer demo
- *             - test to verify the potentiometer analog input
- *             - Internal input of potentiometer in analog signal corresponding
- *               output is digital value.
- *             - converted value is the allocated user memory address.
- *    @return : NONE
+ *    @func         : void tsens_demo_thread_entry(ULONG thread_input)
+ *    @brief        : tsens demo (temperature sensor)
+ *                  - test to verify the temperature sensor of adc.
+ *                  - Internal input of temperature  in analog signal corresponding
+ *                    output is digital value.
+ *                  - converted value is the allocated user memory address.
+ *    @parameter[1] : thread_input : thread input
+ *    @return       : NONE
 */
-void adc_potentiometer_demo(ULONG thread_input)
+void tsens_demo_thread_entry(ULONG thread_input)
 {
-    INT   ret                = 0;
-    ULONG events             = 0;
-    UINT  error_code         = SERVICES_REQ_SUCCESS;
-    UINT  service_error_code;
+    ULONG events            = 0;
+    UINT ret                = 0;
+    UINT error_code         = SERVICES_REQ_SUCCESS;
+    UINT service_error_code;
+    float    temp;
     ARM_DRIVER_VERSION version;
 
     (void) thread_input;
@@ -138,18 +118,10 @@ void adc_potentiometer_demo(ULONG thread_input)
         return;
     }
 
-    printf("\t\t\n >>> ADC demo starting up!!! <<< \r\n");
+    printf("\r\n >>> ADC demo threadX starting up!!! <<< \r\n");
 
     version = ADCdrv->GetVersion();
     printf("\r\n ADC version api:%X driver:%X...\r\n",version.api, version.drv);
-
-    /* PINMUX */
-    ret = pinmux_config();
-    if (ret != 0)
-    {
-        printf("Error in pin-mux configuration\n");
-        return;
-    }
 
     /* Initialize ADC driver */
     ret = ADCdrv->Initialize(adc_conversion_callback);
@@ -173,13 +145,13 @@ void adc_potentiometer_demo(ULONG thread_input)
     }
 
     /* set initial channel */
-    ret = ADCdrv->Control(ARM_ADC_CHANNEL_INIT_VAL, POTENTIOMETER);
+    ret = ADCdrv->Control(ARM_ADC_CHANNEL_INIT_VAL, TEMPERATURE_SENSOR);
     if (ret != ARM_DRIVER_OK){
         printf("\r\n Error: ADC channel init failed\n");
         goto error_poweroff;
     }
 
-    printf(">>> Allocated memory buffer Address is 0x%X <<<\n",(uint32_t)(adc_sample + POTENTIOMETER));
+    printf(">>> Allocated memory buffer Address is 0x%X <<<\n",(uint32_t)(adc_sample + TEMPERATURE_SENSOR));
     /* Start ADC */
     ret = ADCdrv->Start();
     if (ret != ARM_DRIVER_OK){
@@ -187,7 +159,7 @@ void adc_potentiometer_demo(ULONG thread_input)
         goto error_poweroff;
     }
 
-    /* wait for timeout */
+    /* wait for num_samples */
     while (num_samples == 0);
 
     /* wait till conversion comes ( isr callback ) */
@@ -198,7 +170,16 @@ void adc_potentiometer_demo(ULONG thread_input)
         goto error_poweroff;
     }
 
-    printf("\n Potentiometer conversion completed \n");
+    /* Reading temperature */
+    temp = get_temperature(adc_sample[TEMPERATURE_SENSOR]);
+    if (temp == ARM_DRIVER_ERROR) {
+        printf("\r\n Error: Temperature is outside range\n");
+        goto error_poweroff;
+    }
+    else
+    {
+        printf("\n Current temp %.1f°C\n",temp);
+    }
 
     /* Stop ADC */
     ret = ADCdrv->Stop();
@@ -207,6 +188,8 @@ void adc_potentiometer_demo(ULONG thread_input)
         goto error_poweroff;
     }
 
+    printf("\n >>> ADC conversion completed \n");
+    printf(" Converted value are stored in user allocated memory address.\n");
     printf("\n ---END--- \r\n wait forever >>> \n");
     while(1);
 
@@ -254,7 +237,6 @@ int main()
         }
     }
     #endif
-
     /* Enter the ThreadX kernel.  */
     tx_kernel_enter();
 }
@@ -273,7 +255,7 @@ void tx_application_define(void *first_unused_memory)
     }
 
     /* Create the main thread.  */
-    status = tx_thread_create(&adc_thread, "adc_thread", adc_potentiometer_demo, 0,
+    status = tx_thread_create(&tsens_thread, "tsens_thread", tsens_demo_thread_entry, 0,
             first_unused_memory, DEMO_STACK_SIZE,
             1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
     if (status != TX_SUCCESS)

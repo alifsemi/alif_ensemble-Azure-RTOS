@@ -9,7 +9,7 @@
  */
 
 /**************************************************************************//**
- * @file     : ADC_Ext_Trigger_testapp.c
+ * @file     : demo_adc_ext_trigger_threadx.c 
  * @author   : Prabhakar kumar
  * @email    : prabhakar.kumar@alifsemi.com
  * @version  : V1.0.0
@@ -22,10 +22,23 @@
  *              - Converted digital value are stored in user provided memory
  *                address.
  *              ADC configurations for Demo testApp:
- *              Single channel scan(Default scan)
+ *              Single channel scan(Default scan ADC12) (For E1C P0_0)
  *              - GPIO pin P1_4 are connected to Regulated DC Power supply.
  *                DC Power supply:
- *                - +ve connected to P1_4 (ADC2 channel 0) at 1.0V
+ *                - +ve connected to P1_4 (ADC122 channel 0) at 1.0V
+ *                - -ve connect to GND.
+ *              Differential input
+ *              -ADC12 (For E1C P0_0 and P0_4)
+ *                GPIO pin P1_4 and P1_5 are connected to Regulated DC Power supply.
+ *                2 channel DC Power supply:
+ *                - +ve connected to P1_4 (ADC122 channel 0) at 1.0V and
+ *                  +ve connected to P1_5 (ADC122 channel 1) at 0.4V
+ *                - -ve connect to GND.
+ *              -ADC24
+                  GPIO pins P1_4 and P1_5 are connected to Regulated DC Power supply.
+ *                2 channel DC Power supply:
+ *                - +ve connected to P0_0 (ADC122 channel 0) at 1.0V and
+ *                  +ve connected to P0_4 (ADC122 channel 1) at 0.5V
  *                - -ve connect to GND.
  *
  * @Note     : From RTE_Device.h file set following in UTimer
@@ -33,42 +46,46 @@
  *             - RTE_UTIMER_CHANNEL0_DRV_A_OP_AT_MATCH_COUNTset to 3.
  ******************************************************************************/
 
+/* System Includes */
 #include <stdio.h>
 #include "tx_api.h"
-#include "system_utils.h"
+#include <inttypes.h>
 
 /* Project include */
 #include "Driver_UTIMER.h"
 #include "Driver_ADC.h"
 #include "pinconf.h"
+#include "board_config.h"
 
 #include "se_services_port.h"
 #include "RTE_Components.h"
-#if defined(RTE_Compiler_IO_STDOUT)
+#if defined(RTE_CMSIS_Compiler_STDOUT)
+#include "retarget_init.h"
 #include "retarget_stdout.h"
-#endif  /* RTE_Compiler_IO_STDOUT */
+#endif /* RTE_CMSIS_Compiler_STDOUT */
+
+#include "app_utils.h"
 
 /* UTIMER0 Driver instance */
-extern ARM_DRIVER_UTIMER DRIVER_UTIMER0;
-ARM_DRIVER_UTIMER *ptrUTIMER = &DRIVER_UTIMER0;
+extern ARM_DRIVER_UTIMER Driver_UTIMER0;
+ARM_DRIVER_UTIMER       *ptrUTIMER = &Driver_UTIMER0;
 
 /* Macro for ADC12 and ADC24 */
-#define ADC12    1
-#define ADC24    0
+#define ADC_12    1
+#define ADC_24    0
 
 /* For ADC12 use ADC_INSTANCE ADC12  */
 /* For ADC24 use ADC_INSTANCE ADC24  */
+#define ADC_INSTANCE         ADC_12
+//#define ADC_INSTANCE         ADC_24
 
-#define ADC_INSTANCE         ADC12
-//#define ADC_INSTANCE         ADC24
-
-#if (ADC_INSTANCE == ADC12)
+#if (ADC_INSTANCE == ADC_12)
 /* Instance for ADC12 */
-extern ARM_DRIVER_ADC Driver_ADC122;
-static ARM_DRIVER_ADC *ADCdrv = &Driver_ADC122;
+extern ARM_DRIVER_ADC  ARM_Driver_ADC12(BOARD_ADC12_INSTANCE);
+static ARM_DRIVER_ADC *ADCdrv = &ARM_Driver_ADC12(BOARD_ADC12_INSTANCE);
 #else
 /* Instance for ADC24 */
-extern ARM_DRIVER_ADC Driver_ADC24;
+extern ARM_DRIVER_ADC  Driver_ADC24;
 static ARM_DRIVER_ADC *ADCdrv = &Driver_ADC24;
 #endif
 
@@ -95,6 +112,53 @@ UINT adc_sample[NUM_CHANNELS];
 volatile UINT num_samples = 0;
 
 volatile UINT num_pulses = 0;
+
+#if (!USE_CONDUCTOR_TOOL_PINS_CONFIG)
+/**
+ * @fn      static int32_t board_adc_pins_config(void)
+ * @brief   Configure ADC12 and ADC24 pinmux settings not
+ *          handled by the board support library.
+ * @retval  execution status.
+ */
+static int32_t board_adc_pins_config(void)
+{
+    int32_t ret = 0U;
+
+    if (ADC_INSTANCE == ADC_12) {
+        /* channel 0 */
+        ret = pinconf_set(PORT_(BOARD_ADC12_CH0_GPIO_PORT),
+                          BOARD_ADC12_CH0_GPIO_PIN,
+                          PINMUX_ALTERNATE_FUNCTION_7,
+                          PADCTRL_READ_ENABLE);
+        if (ret) {
+            printf("ERROR: Failed to configure PINMUX \r\n");
+            return ret;
+        }
+    }
+
+    if (ADC_INSTANCE == ADC_24) {
+        /* channel 0 */
+        ret = pinconf_set(PORT_(BOARD_ADC24_CH0_POS_GPIO_PORT),
+                          BOARD_ADC24_CH0_POS_GPIO_PIN,
+                          PINMUX_ALTERNATE_FUNCTION_7,
+                          PADCTRL_READ_ENABLE);
+        if (ret) {
+            printf("ERROR: Failed to configure PINMUX \r\n");
+            return ret;
+        }
+        /* channel 0 */
+        ret = pinconf_set(PORT_(BOARD_ADC24_CH0_NEG_GPIO_PORT),
+                          BOARD_ADC24_CH0_NEG_GPIO_PIN,
+                          PINMUX_ALTERNATE_FUNCTION_7,
+                          PADCTRL_READ_ENABLE);
+        if (ret) {
+            printf("ERROR: Failed to configure PINMUX \r\n");
+            return ret;
+        }
+    }
+    return ret;
+}
+#endif
 
 /*
  * @func   : void adc_conversion_callback(uint32_t event, uint8_t channel, uint32_t sample_output)
@@ -259,6 +323,26 @@ void adc_ext_trigger_demo(ULONG thread_input)
     uint32_t service_error_code;
     ARM_DRIVER_VERSION version;
 
+#if USE_CONDUCTOR_TOOL_PINS_CONFIG
+    /* pin mux and configuration for all device IOs requested from pins.h*/
+    ret = board_pins_config();
+    if (ret != 0) {
+        printf("Error in pin-mux configuration: %" PRId32 "\n", ret);
+        return;
+    }
+
+#else
+    /*
+     * NOTE: The ADC122 and ADC24 pins used in this test application are not configured
+     * in the board support library.Therefore, it is being configured manually here.
+     */
+    ret = board_adc_pins_config();
+    if (ret != 0) {
+        printf("Error in pin-mux configuration: %" PRId32 "\n", ret);
+        return;
+    }
+#endif
+
     (void) thread_input;
 
     /* Initialize the SE services */
@@ -278,7 +362,7 @@ void adc_ext_trigger_demo(ULONG thread_input)
     printf("\r\n >>> ADC demo starting up!!! <<< \r\n");
 
     version = ADCdrv->GetVersion();
-    printf("\r\n ADC version api:%X driver:%X...\r\n",version.api, version.drv);
+    printf("\r\n ADC version api:%" PRIx16 " driver:%" PRIx16 "...\r\n", version.api, version.drv);
 
     /* Initialize ADC driver */
     ret = ADCdrv->Initialize(adc_conversion_callback);
@@ -301,7 +385,7 @@ void adc_ext_trigger_demo(ULONG thread_input)
         goto error_poweroff;
     }
 
-    printf(">>> Allocated memory buffer Address is 0x%X <<<\n",(uint32_t)adc_sample);
+    printf(">>> Allocated memory buffer Address is 0x%" PRIx32 " <<<\n", (uint32_t) adc_sample);
 
     /* Start ADC from External trigger pulse */
     ret = ADCdrv->Control(ARM_ADC_EXTERNAL_TRIGGER_ENABLE, ARM_ADC_EXTERNAL_TRIGGER_SRC_0);
@@ -368,7 +452,7 @@ error_uninitialize:
                                               &service_error_code);
     if (error_code)
     {
-        printf("SE Error: 160 MHz clk disable = %d\n", error_code);
+        printf("SE: clk enable = %" PRId32 "\n", error_code);
         return;
     }
 
