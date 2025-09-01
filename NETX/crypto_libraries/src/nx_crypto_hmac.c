@@ -1,5 +1,6 @@
 /***************************************************************************
  * Copyright (c) 2024 Microsoft Corporation 
+ * Copyright (c) 2025-present Eclipse ThreadX Contributors
  * 
  * This program and the accompanying materials are made available under the
  * terms of the MIT License which is available at
@@ -26,7 +27,7 @@
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _nx_crypto_hmac                                     PORTABLE C      */
-/*                                                           6.1          */
+/*                                                           6.4.3        */
 /*                                                                        */
 /*  AUTHOR                                                                */
 /*                                                                        */
@@ -92,7 +93,7 @@ NX_CRYPTO_KEEP UINT _nx_crypto_hmac(NX_CRYPTO_HMAC *hmac_metadata,
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _nx_crypto_hmac_initialize                          PORTABLE C      */
-/*                                                           6.1          */
+/*                                                           6.4.3        */
 /*                                                                        */
 /*  AUTHOR                                                                */
 /*                                                                        */
@@ -201,7 +202,7 @@ UINT  i;
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _nx_crypto_hmac_update                              PORTABLE C      */
-/*                                                           6.1          */
+/*                                                           6.4.3        */
 /*                                                                        */
 /*  AUTHOR                                                                */
 /*                                                                        */
@@ -255,7 +256,7 @@ NX_CRYPTO_KEEP UINT _nx_crypto_hmac_update(NX_CRYPTO_HMAC *hmac_metadata, UCHAR 
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _nx_crypto_hmac_digest_calculate                    PORTABLE C      */
-/*                                                           6.1          */
+/*                                                           6.4.3        */
 /*                                                                        */
 /*  AUTHOR                                                                */
 /*                                                                        */
@@ -327,7 +328,7 @@ UCHAR icv_ptr[64];
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _nx_crypto_hmac_metadata_set                        PORTABLE C      */
-/*                                                           6.1          */
+/*                                                           6.4.3        */
 /*                                                                        */
 /*  AUTHOR                                                                */
 /*                                                                        */
@@ -397,7 +398,7 @@ NX_CRYPTO_KEEP VOID _nx_crypto_hmac_metadata_set(NX_CRYPTO_HMAC *hmac_metadata,
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _nx_crypto_hmac_hash_initialize                     PORTABLE C      */
-/*                                                           6.1          */
+/*                                                           6.4.3        */
 /*                                                                        */
 /*  AUTHOR                                                                */
 /*                                                                        */
@@ -474,7 +475,7 @@ UINT   status;
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _nx_crypto_hmac_hash_update                         PORTABLE C      */
-/*                                                           6.1          */
+/*                                                           6.4.3        */
 /*                                                                        */
 /*  AUTHOR                                                                */
 /*                                                                        */
@@ -550,7 +551,7 @@ UINT   status;
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _nx_crypto_hmac_hash_digest_calculate               PORTABLE C      */
-/*                                                           6.1          */
+/*                                                           6.4.3        */
 /*                                                                        */
 /*  AUTHOR                                                                */
 /*                                                                        */
@@ -628,7 +629,7 @@ UINT   status;
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _nx_crypto_method_hmac_init                         PORTABLE C      */
-/*                                                           6.3.0        */
+/*                                                           6.4.3        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Timothy Stapko, Microsoft Corporation                               */
@@ -716,7 +717,7 @@ NX_CRYPTO_KEEP UINT  _nx_crypto_method_hmac_init(struct  NX_CRYPTO_METHOD_STRUCT
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _nx_crypto_method_hmac_cleanup                      PORTABLE C      */
-/*                                                           6.1          */
+/*                                                           6.4.3        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Timothy Stapko, Microsoft Corporation                               */
@@ -777,7 +778,7 @@ NX_CRYPTO_KEEP UINT  _nx_crypto_method_hmac_cleanup(VOID *crypto_metadata)
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _nx_crypto_method_hmac_operation                    PORTABLE C      */
-/*                                                           6.3.0        */
+/*                                                           6.4.3        */
 /*                                                                        */
 /*  AUTHOR                                                                */
 /*                                                                        */

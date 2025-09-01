@@ -1,5 +1,6 @@
 /***************************************************************************
  * Copyright (c) 2024 Microsoft Corporation 
+ * Copyright (c) 2025-present Eclipse ThreadX Contributors
  * 
  * This program and the accompanying materials are made available under the
  * terms of the MIT License which is available at
@@ -137,7 +138,7 @@ static UCHAR drbg_test_entropy_count_npr;
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    drbg_test_get_entropy_pr                            PORTABLE C      */
-/*                                                           6.1.7        */
+/*                                                           6.4.3        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Timothy Stapko, Microsoft Corporation                               */
@@ -222,7 +223,7 @@ NX_CRYPTO_KEEP static UINT drbg_test_get_entropy_pr(UCHAR *entropy, UINT *entrop
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    drbg_test_get_entropy_npr                           PORTABLE C      */
-/*                                                           6.1          */
+/*                                                           6.4.3        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Timothy Stapko, Microsoft Corporation                               */
@@ -298,7 +299,7 @@ NX_CRYPTO_KEEP static UINT drbg_test_get_entropy_npr(UCHAR *entropy, UINT *entro
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    nx_crypto_method_self_test_drbg                     PORTABLE C      */
-/*                                                           6.1          */
+/*                                                           6.4.3        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Timothy Stapko, Microsoft Corporation                               */

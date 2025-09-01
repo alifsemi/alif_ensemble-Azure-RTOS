@@ -1,5 +1,6 @@
 /***************************************************************************
  * Copyright (c) 2024 Microsoft Corporation 
+ * Copyright (c) 2025-present Eclipse ThreadX Contributors
  * 
  * This program and the accompanying materials are made available under the
  * terms of the MIT License which is available at
@@ -33,7 +34,7 @@
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _nx_crypto_self_test_memcpy                         PORTABLE C      */
-/*                                                           6.1.7        */
+/*                                                           6.4.3        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Timothy Stapko, Microsoft Corporation                               */
@@ -96,7 +97,7 @@ NX_CRYPTO_KEEP VOID *_nx_crypto_self_test_memcpy(void *dest, const void *src, si
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _nx_crypto_self_test_memset                         PORTABLE C      */
-/*                                                           6.1.7        */
+/*                                                           6.4.3        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Timothy Stapko, Microsoft Corporation                               */
@@ -159,7 +160,7 @@ NX_CRYPTO_KEEP VOID *_nx_crypto_self_test_memset(void *dest, int value, size_t s
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _nx_crypto_self_test_memcmp                         PORTABLE C      */
-/*                                                           6.1.7        */
+/*                                                           6.4.3        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Timothy Stapko, Microsoft Corporation                               */
@@ -225,7 +226,7 @@ NX_CRYPTO_KEEP int _nx_crypto_self_test_memcmp(const void *str1, const void *str
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _nx_crypto_self_test_memmove                        PORTABLE C      */
-/*                                                           6.1.7        */
+/*                                                           6.4.3        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Timothy Stapko, Microsoft Corporation                               */
@@ -296,7 +297,7 @@ NX_CRYPTO_KEEP void* _nx_crypto_self_test_memmove(void *dest, const void *src, s
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _nx_crypto_module_state_get                         PORTABLE C      */
-/*                                                           6.1          */
+/*                                                           6.4.3        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Timothy Stapko, Microsoft Corporation                               */
@@ -348,7 +349,7 @@ NX_CRYPTO_KEEP UINT _nx_crypto_module_state_get(VOID)
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _nx_crypto_initialize                               PORTABLE C      */
-/*                                                           6.1          */
+/*                                                           6.4.3        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Timothy Stapko, Microsoft Corporation                               */

@@ -1,13 +1,12 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 
 /**************************************************************************/
@@ -35,7 +34,7 @@
 /*  FUNCTION                                               RELEASE        */ 
 /*                                                                        */ 
 /*    _ux_host_class_dpump_ioctl                          PORTABLE C      */ 
-/*                                                           6.1          */
+/*                                                           6.1.12       */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Chaoqiong Xiao, Microsoft Corporation                               */
@@ -71,6 +70,10 @@
 /*  05-19-2020     Chaoqiong Xiao           Initial Version 6.0           */
 /*  09-30-2020     Chaoqiong Xiao           Modified comment(s),          */
 /*                                            resulting in version 6.1    */
+/*  07-29-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            fixed parameter/variable    */
+/*                                            names conflict C++ keyword, */
+/*                                            resulting in version 6.1.12 */
 /*                                                                        */
 /**************************************************************************/
 UINT  _ux_host_class_dpump_ioctl(UX_HOST_CLASS_DPUMP *dpump, ULONG ioctl_function,
@@ -78,7 +81,7 @@ UINT  _ux_host_class_dpump_ioctl(UX_HOST_CLASS_DPUMP *dpump, ULONG ioctl_functio
 {
 
 UX_CONFIGURATION            *configuration;
-UX_INTERFACE                *interface;
+UX_INTERFACE                *interface_ptr;
 UINT                           status;
 
     /* Ensure the instance is valid.  */
@@ -104,8 +107,8 @@ UINT                           status;
 
             /* The parameter value has the alternate setting number. 
                We need to scan the entire device framework.  Only one configuration for data pump device framework.  */
-            interface = dpump -> ux_host_class_dpump_interface;
-            configuration = interface -> ux_interface_configuration;
+            interface_ptr = dpump -> ux_host_class_dpump_interface;
+            configuration = interface_ptr -> ux_interface_configuration;
 
             /* Do some verification just in case !  */
             if (configuration == UX_NULL)
@@ -118,25 +121,25 @@ UINT                           status;
             }
                         
             /* Point to the first interface.  */
-            interface =  configuration -> ux_configuration_first_interface;
+            interface_ptr =  configuration -> ux_configuration_first_interface;
 
             /* Loop on all interfaces and alternate settings for this device in search of the right alternate setting.  */
-            while (interface != UX_NULL)
+            while (interface_ptr != UX_NULL)
             {
 
                 /* Check the alternate setting.  */
-                if (interface -> ux_interface_descriptor.bAlternateSetting == (ULONG) (ALIGN_TYPE) parameter)
+                if (interface_ptr -> ux_interface_descriptor.bAlternateSetting == (ULONG) (ALIGN_TYPE) parameter)
                 {
 
                     /* We have found the alternate setting. Select it now.  */
-                    status =  _ux_host_stack_interface_setting_select(interface);
+                    status =  _ux_host_stack_interface_setting_select(interface_ptr);
                     
                     /* We are done here.  */
                     return(status);
                 }
             
                 /* Next interface.  */
-                interface = interface -> ux_interface_next_interface;
+                interface_ptr = interface_ptr -> ux_interface_next_interface;
             }
 
             /* We come here when the alternate setting was not found.  */

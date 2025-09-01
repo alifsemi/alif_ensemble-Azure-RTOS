@@ -1,13 +1,12 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 
 /**************************************************************************/
@@ -34,7 +33,7 @@
 /*  FUNCTION                                               RELEASE        */ 
 /*                                                                        */ 
 /*    _ux_hcd_sim_host_regular_td_obtain                  PORTABLE C      */ 
-/*                                                           6.1          */
+/*                                                           6.1.10       */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Chaoqiong Xiao, Microsoft Corporation                               */
@@ -70,6 +69,9 @@
 /*                                            verified memset and memcpy  */
 /*                                            cases,                      */
 /*                                            resulting in version 6.1    */
+/*  01-31-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            added standalone support,   */
+/*                                            resulting in version 6.1.10 */
 /*                                                                        */
 /**************************************************************************/
 UX_HCD_SIM_HOST_TD  *_ux_hcd_sim_host_regular_td_obtain(UX_HCD_SIM_HOST *hcd_sim_host)
@@ -80,7 +82,7 @@ ULONG                   td_index;
 
 
     /* Get the mutex as this is a critical section.  */
-    _ux_utility_mutex_on(&_ux_system -> ux_system_mutex);
+    _ux_host_mutex_on(&_ux_system -> ux_system_mutex);
 
     /* Start the search from the beginning of the list.  */
     td =  hcd_sim_host -> ux_hcd_sim_host_td_list;
@@ -99,7 +101,7 @@ ULONG                   td_index;
             td -> ux_sim_host_td_status =  UX_USED;
 
             /* Release the mutex protection.  */
-            _ux_utility_mutex_off(&_ux_system -> ux_system_mutex);
+            _ux_host_mutex_off(&_ux_system -> ux_system_mutex);
 
             /* Return the TD pointer.  */
             return(td);
@@ -112,7 +114,7 @@ ULONG                   td_index;
     /* There is no available TD in the TD list. */
 
     /* Release the mutex protection.  */
-    _ux_utility_mutex_off(&_ux_system -> ux_system_mutex);
+    _ux_host_mutex_off(&_ux_system -> ux_system_mutex);
 
     /* Return a NULL pointer.  */
     return(UX_NULL);

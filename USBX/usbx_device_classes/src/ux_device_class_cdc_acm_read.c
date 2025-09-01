@@ -1,13 +1,12 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 /**************************************************************************/
 /**************************************************************************/
@@ -29,12 +28,13 @@
 #include "ux_device_stack.h"
 
 
+#if !defined(UX_DEVICE_STANDALONE)
 /**************************************************************************/ 
 /*                                                                        */ 
 /*  FUNCTION                                               RELEASE        */ 
 /*                                                                        */ 
 /*    _ux_device_class_cdc_acm_read                       PORTABLE C      */ 
-/*                                                           6.1.9        */
+/*                                                           6.3.0        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Chaoqiong Xiao, Microsoft Corporation                               */
@@ -42,6 +42,8 @@
 /*  DESCRIPTION                                                           */
 /*                                                                        */ 
 /*    This function reads from the CDC class.                             */ 
+/*                                                                        */ 
+/*    It's for RTOS mode.                                                 */
 /*                                                                        */ 
 /*  INPUT                                                                 */ 
 /*                                                                        */ 
@@ -61,11 +63,11 @@
 /*                                                                        */ 
 /*    _ux_device_stack_transfer_request     Transfer request              */ 
 /*    _ux_utility_memory_copy               Copy memory                   */ 
-/*    _ux_utility_mutex_off                 Release mutex                 */ 
+/*    _ux_device_mutex_off                  Release mutex                 */ 
 /*                                                                        */ 
 /*  CALLED BY                                                             */ 
 /*                                                                        */ 
-/*    ThreadX                                                             */ 
+/*    Application                                                         */
 /*                                                                        */ 
 /*  RELEASE HISTORY                                                       */ 
 /*                                                                        */ 
@@ -79,6 +81,19 @@
 /*  10-15-2021     Chaoqiong Xiao           Modified comment(s),          */
 /*                                            fixed compile issue,        */
 /*                                            resulting in version 6.1.9  */
+/*  01-31-2022x    Chaoqiong Xiao           Modified comment(s),          */
+/*                                            resulting in version 6.1.10 */
+/*  04-25-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            resulting in version 6.1.11 */
+/*  07-29-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            fixed parameter/variable    */
+/*                                            names conflict C++ keyword, */
+/*                                            resulting in version 6.1.12 */
+/*  10-31-2023     Yajun Xia, CQ Xiao       Modified comment(s),          */
+/*                                            added zero copy support,    */
+/*                                            added a new mode to manage  */
+/*                                            endpoint buffer in classes, */
+/*                                            resulting in version 6.3.0  */
 /*                                                                        */
 /**************************************************************************/
 UINT _ux_device_class_cdc_acm_read(UX_SLAVE_CLASS_CDC_ACM *cdc_acm, UCHAR *buffer, 
@@ -87,7 +102,7 @@ UINT _ux_device_class_cdc_acm_read(UX_SLAVE_CLASS_CDC_ACM *cdc_acm, UCHAR *buffe
 
 UX_SLAVE_ENDPOINT           *endpoint;
 UX_SLAVE_DEVICE             *device;
-UX_SLAVE_INTERFACE          *interface;
+UX_SLAVE_INTERFACE          *interface_ptr;
 UX_SLAVE_TRANSFER           *transfer_request;
 UINT                        status= UX_SUCCESS;
 ULONG                       local_requested_length;
@@ -123,10 +138,10 @@ ULONG                       local_requested_length;
     }
     
     /* This is the first time we are activated. We need the interface to the class.  */
-    interface =  cdc_acm -> ux_slave_class_cdc_acm_interface;
+    interface_ptr =  cdc_acm -> ux_slave_class_cdc_acm_interface;
     
     /* Locate the endpoints.  */
-    endpoint =  interface -> ux_slave_interface_first_endpoint;
+    endpoint =  interface_ptr -> ux_slave_interface_first_endpoint;
     
     /* Check the endpoint direction, if OUT we have the correct endpoint.  */
     if ((endpoint -> ux_slave_endpoint_descriptor.bEndpointAddress & UX_ENDPOINT_DIRECTION) != UX_ENDPOINT_OUT)
@@ -137,14 +152,37 @@ ULONG                       local_requested_length;
     }
 
     /* Protect this thread.  */
-    _ux_utility_mutex_on(&cdc_acm -> ux_slave_class_cdc_acm_endpoint_out_mutex);
-        
-    /* All CDC reading  are on the endpoint OUT, from the host.  */
+    _ux_device_mutex_on(&cdc_acm -> ux_slave_class_cdc_acm_endpoint_out_mutex);
+
+    /* All CDC readings are on the endpoint OUT, from the host.  */
     transfer_request =  &endpoint -> ux_slave_endpoint_transfer_request;
-    
+
+#if UX_DEVICE_ENDPOINT_BUFFER_OWNER == 1
+#if !defined(UX_DEVICE_CLASS_CDC_ACM_ZERO_COPY)
+    transfer_request -> ux_slave_transfer_request_data_pointer =
+                                UX_DEVICE_CLASS_CDC_ACM_READ_BUFFER(cdc_acm);
+#else
+    transfer_request -> ux_slave_transfer_request_data_pointer = buffer;
+#endif
+#endif
+
+#if (UX_DEVICE_ENDPOINT_BUFFER_OWNER == 1) && defined(UX_DEVICE_CLASS_CDC_ACM_ZERO_COPY)
+
+    /* Check if device is configured.  */
+    if (device -> ux_slave_device_state == UX_DEVICE_CONFIGURED)
+    {
+
+        /* Issue the transfer request.  */
+        local_requested_length = requested_length;
+        status = _ux_device_stack_transfer_request(transfer_request, requested_length, local_requested_length);
+        *actual_length = transfer_request -> ux_slave_transfer_request_actual_length;
+    }
+
+#else
+
     /* Reset the actual length.  */
     *actual_length =  0;
-    
+
     /* Check if we need more transactions.  */
     while (device -> ux_slave_device_state == UX_DEVICE_CONFIGURED && requested_length != 0)
     { 
@@ -187,7 +225,7 @@ ULONG                       local_requested_length;
 
                 /* We are done.  */
                 /* Free Mutex resource.  */
-                _ux_utility_mutex_off(&cdc_acm -> ux_slave_class_cdc_acm_endpoint_out_mutex);
+                _ux_device_mutex_off(&cdc_acm -> ux_slave_class_cdc_acm_endpoint_out_mutex);
     
                 /* Return with success.  */
                 return(UX_SUCCESS);
@@ -198,16 +236,17 @@ ULONG                       local_requested_length;
         {
             
             /* Free Mutex resource.  */
-            _ux_utility_mutex_off(&cdc_acm -> ux_slave_class_cdc_acm_endpoint_out_mutex);
+            _ux_device_mutex_off(&cdc_acm -> ux_slave_class_cdc_acm_endpoint_out_mutex);
     
             /* We got an error.  */
             return(status);
         }            
     }
 
-    
+#endif
+
     /* Free Mutex resource.  */
-    _ux_utility_mutex_off(&cdc_acm -> ux_slave_class_cdc_acm_endpoint_out_mutex);
+    _ux_device_mutex_off(&cdc_acm -> ux_slave_class_cdc_acm_endpoint_out_mutex);
 
     /* Check why we got here, either completion or device was extracted.  */
     if (device -> ux_slave_device_state != UX_DEVICE_CONFIGURED)
@@ -228,3 +267,60 @@ ULONG                       local_requested_length;
         return(status);        
 }
 
+/**************************************************************************/
+/*                                                                        */
+/*  FUNCTION                                               RELEASE        */
+/*                                                                        */
+/*    _uxe_device_class_cdc_acm_read                      PORTABLE C      */
+/*                                                           6.3.0        */
+/*  AUTHOR                                                                */
+/*                                                                        */
+/*    Yajun Xia, Microsoft Corporation                                    */
+/*                                                                        */
+/*  DESCRIPTION                                                           */
+/*                                                                        */
+/*    This function checks errors in CDC ACM class read function.         */
+/*                                                                        */
+/*  INPUT                                                                 */
+/*                                                                        */
+/*    cdc_acm                                   Address of cdc_acm class  */
+/*                                              instance                  */
+/*    buffer                                    Pointer to buffer to save */
+/*                                              received data             */
+/*    requested_length                          Length of bytes to read   */
+/*    actual_length                             Pointer to save number of */
+/*                                              bytes read                */
+/*                                                                        */
+/*  OUTPUT                                                                */
+/*                                                                        */
+/*    None                                                                */
+/*                                                                        */
+/*  CALLS                                                                 */
+/*                                                                        */
+/*    _ux_device_class_cdc_acm_read         CDC ACM class read function   */
+/*                                                                        */
+/*  CALLED BY                                                             */
+/*                                                                        */
+/*    Application                                                         */
+/*                                                                        */
+/*  RELEASE HISTORY                                                       */
+/*                                                                        */
+/*    DATE              NAME                      DESCRIPTION             */
+/*                                                                        */
+/*  10-31-2023     Yajun Xia                Initial Version 6.3.0         */
+/*                                                                        */
+/**************************************************************************/
+UINT _uxe_device_class_cdc_acm_read(UX_SLAVE_CLASS_CDC_ACM *cdc_acm, UCHAR *buffer,
+                                    ULONG requested_length, ULONG *actual_length)
+{
+
+    /* Sanity checks.  */
+    if ((cdc_acm == UX_NULL) || ((buffer == UX_NULL) && (requested_length > 0)) || (actual_length == UX_NULL))
+    {
+        return (UX_INVALID_PARAMETER);
+    }
+
+    return (_ux_device_class_cdc_acm_read(cdc_acm, buffer, requested_length, actual_length));
+}
+
+#endif

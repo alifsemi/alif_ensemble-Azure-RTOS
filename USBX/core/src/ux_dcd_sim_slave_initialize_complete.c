@@ -1,13 +1,12 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 
 /**************************************************************************/
@@ -142,7 +141,7 @@ UX_SLAVE_TRANSFER       *transfer_request;
                                 device -> ux_slave_device_descriptor.bMaxPacketSize0;
     transfer_request -> ux_slave_transfer_request_transfer_length =
                                 device -> ux_slave_device_descriptor.bMaxPacketSize0;
-                
+
     /* Attach the control endpoint to the transfer request.  */
     transfer_request -> ux_slave_transfer_request_endpoint =  &device -> ux_slave_device_control_endpoint;
 

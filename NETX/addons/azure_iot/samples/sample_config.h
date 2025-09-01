@@ -1,5 +1,6 @@
 /***************************************************************************
  * Copyright (c) 2024 Microsoft Corporation 
+ * Copyright (c) 2025-present Eclipse ThreadX Contributors
  * 
  * This program and the accompanying materials are made available under the
  * terms of the MIT License which is available at
@@ -40,19 +41,16 @@ TODO`s: Configure core settings of application for your IoTHub.
 /*
 #define DISABLE_C2D_SAMPLE
 */
-#define DISABLE_C2D_SAMPLE
 
 /* Defined, Direct method is disabled.  */
 /*
 #define DISABLE_DIRECT_METHOD_SAMPLE
 */
-#define DISABLE_DIRECT_METHOD_SAMPLE
 
 /* Defined, Device twin is disabled.  */
 /*
 #define DISABLE_DEVICE_TWIN_SAMPLE
 */
-#define DISABLE_DEVICE_TWIN_SAMPLE
 
 /* Defined, ADU is disabled.  */
 /*

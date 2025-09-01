@@ -1,5 +1,6 @@
 /***************************************************************************
  * Copyright (c) 2024 Microsoft Corporation 
+ * Copyright (c) 2025-present Eclipse ThreadX Contributors
  * 
  * This program and the accompanying materials are made available under the
  * terms of the MIT License which is available at
@@ -35,7 +36,7 @@ static CHAR _nx_utility_base64_array[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijkl
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _nx_utility_string_length_check                     PORTABLE C      */
-/*                                                           6.1          */
+/*                                                           6.4.3        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Yuxin Zhou, Microsoft Corporation                                   */
@@ -113,7 +114,7 @@ UINT    i;
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _nx_utility_string_to_uint                          PORTABLE C      */
-/*                                                           6.1.3        */
+/*                                                           6.4.3        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Yuxin Zhou, Microsoft Corporation                                   */
@@ -204,7 +205,7 @@ UINT i;
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _nx_utility_uint_to_string                          PORTABLE C      */
-/*                                                           6.1.9        */
+/*                                                           6.4.3        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Yuxin Zhou, Microsoft Corporation                                   */
@@ -317,7 +318,7 @@ UINT size;
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _nx_utility_base64_encode                           PORTABLE C      */
-/*                                                           6.2.0        */
+/*                                                           6.4.3        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Yuxin Zhou, Microsoft Corporation                                   */

@@ -1,13 +1,13 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * Copyright (c) 2025-present Eclipse ThreadX Contributors
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 
 /**************************************************************************/
@@ -25,12 +25,12 @@
 /*                                                                        */
 /*  PORT SPECIFIC C INFORMATION                            RELEASE        */
 /*                                                                        */
-/*    nx_port.h                                          Cortex-M55/AC6   */
-/*                                                            6.1.7       */
+/*    nx_port.h                                         Cortex-M55/AC6    */
+/*                                                           6.4.3        */
 /*                                                                        */
 /*  AUTHOR                                                                */
 /*                                                                        */
-/*    Yuxin Zhou, Microsoft Corporation                                   */
+/*    Scott Larson, Microsoft Corporation                                 */
 /*                                                                        */
 /*  DESCRIPTION                                                           */
 /*                                                                        */
@@ -42,7 +42,7 @@
 /*                                                                        */
 /*    DATE              NAME                      DESCRIPTION             */
 /*                                                                        */
-/*  12-31-2020     Yuxin Zhou               Initial Version 6.1.3         */
+/*  03-08-2023      Scott Larson            Initial Version 6.2.1         */
 /*                                                                        */
 /**************************************************************************/
 
@@ -84,44 +84,23 @@
 
 /* Define macros that swap the endian for little endian ports.  */
 #ifdef NX_LITTLE_ENDIAN
-#define NX_CHANGE_ULONG_ENDIAN(arg)                         \
-    {                                                       \
-        ULONG i;                                            \
-        ULONG tmp;                                          \
-        i = (UINT)arg;                                      \
-        /* i = A, B, C, D */                                \
-        tmp = i ^ (((i) >> 16) | (i << 16));                \
-        /* tmp = i ^ (i ROR 16) = A^C, B^D, C^A, D^B */     \
-        tmp &= 0xff00ffff;                                  \
-        /* tmp = A^C, 0, C^A, D^B */                        \
-        i = ((i) >> 8) | (i<<24);                           \
-        /* i = D, A, B, C */                                \
-        i = i ^ ((tmp) >> 8);                               \
-        /* i = D, C, B, A */                                \
-        arg = i;                                            \
-    }
-#define NX_CHANGE_USHORT_ENDIAN(a)      a = (((a >> 8) | (a << 8)) & 0xFFFF)
-
-
-#define __SWAP32__(val) ((((val) & 0xFF000000) >> 24 ) | (((val) & 0x00FF0000) >> 8) \
-			 | (((val) & 0x0000FF00) << 8) | (((val) & 0x000000FF) << 24))
-
-#define __SWAP16__(val) ((((val) & 0xFF00) >> 8) | (((val) & 0x00FF) << 8))
+#define NX_CHANGE_ULONG_ENDIAN(arg)     (arg) = __builtin_bswap32(arg)
+#define NX_CHANGE_USHORT_ENDIAN(arg)    (arg) = __builtin_bswap16(arg)
 
 
 #ifndef htonl
-#define htonl(val)  __SWAP32__(val)
+#define htonl(val)  __builtin_bswap32(val)
 #endif /* htonl */
 #ifndef ntohl
-#define ntohl(val)  __SWAP32__(val)
+#define ntohl(val)  __builtin_bswap32(val)
 #endif /* htonl */
 
 #ifndef htons
-#define htons(val)  __SWAP16__(val)
+#define htons(val)  __builtin_bswap16(val)
 #endif /*htons */
 
 #ifndef ntohs
-#define ntohs(val)  __SWAP16__(val)
+#define ntohs(val)  __builtin_bswap16(val)
 #endif /*htons */
 
 
@@ -201,10 +180,9 @@
 
 #ifdef NX_SYSTEM_INIT
 CHAR                            _nx_version_id[] =
-                                    "Copyright (c) Microsoft Corporation. All rights reserved.  *  NetX Duo Cortex-M33/AC5 Version 6.1.7 *";
+                                    "Copyright (c) 2024 Microsoft Corporation.  *  NetX Duo Cortex-M55/AC6 Version 6.4.1 *";
 #else
 extern  CHAR                    _nx_version_id[];
 #endif
 
 #endif
-

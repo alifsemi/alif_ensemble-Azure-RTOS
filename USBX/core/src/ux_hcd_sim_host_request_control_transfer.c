@@ -1,13 +1,12 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 
 /**************************************************************************/
@@ -35,7 +34,7 @@
 /*  FUNCTION                                               RELEASE        */ 
 /*                                                                        */ 
 /*    _ux_hcd_sim_host_request_control_transfer           PORTABLE C      */ 
-/*                                                           6.1          */
+/*                                                           6.1.10       */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Chaoqiong Xiao, Microsoft Corporation                               */
@@ -77,6 +76,9 @@
 /*  09-30-2020     Chaoqiong Xiao           Modified comment(s),          */
 /*                                            prefixed UX to MS_TO_TICK,  */
 /*                                            resulting in version 6.1    */
+/*  01-31-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            added standalone support,   */
+/*                                            resulting in version 6.1.10 */
 /*                                                                        */
 /**************************************************************************/
 UINT  _ux_hcd_sim_host_request_control_transfer(UX_HCD_SIM_HOST *hcd_sim_host, UX_TRANSFER *transfer_request)
@@ -92,11 +94,13 @@ UX_HCD_SIM_HOST_TD      *tail_td;
 UX_HCD_SIM_HOST_TD      *status_td;
 UX_HCD_SIM_HOST_TD      *start_data_td;
 UX_HCD_SIM_HOST_TD      *next_data_td;
-UINT                    status;
 ULONG                   transfer_request_payload_length;
 ULONG                   control_packet_payload_length;
 UCHAR                   *data_pointer;
-    
+#if !defined(UX_HOST_STANDALONE)
+UINT                    status;
+#endif
+
 
     /* Get the pointer to the endpoint.  */
     endpoint =  (UX_ENDPOINT *) transfer_request -> ux_transfer_request_endpoint;
@@ -294,8 +298,12 @@ UCHAR                   *data_pointer;
     /* Now we can tell the scheduler to wake up.  */
     hcd_sim_host -> ux_hcd_sim_host_queue_empty =  UX_FALSE;
 
-   /* Wait for the completion of the transfer request.  */
-    status =  _ux_utility_semaphore_get(&transfer_request -> ux_transfer_request_semaphore, UX_MS_TO_TICK(UX_CONTROL_TRANSFER_TIMEOUT));
+#if defined(UX_HOST_STANDALONE)
+    /* Transfer started in background, fine.  */
+    return(UX_SUCCESS);
+#else
+    /* Wait for the completion of the transfer request.  */
+    status =  _ux_host_semaphore_get(&transfer_request -> ux_transfer_request_semaphore, UX_MS_TO_TICK(UX_CONTROL_TRANSFER_TIMEOUT));
 
     /* If the semaphore did not succeed we probably have a time out.  */
     if (status != UX_SUCCESS)
@@ -320,5 +328,5 @@ UCHAR                   *data_pointer;
 
     /* Return completion to caller.  */
     return(transfer_request -> ux_transfer_request_completion_code);           
+#endif
 }
-

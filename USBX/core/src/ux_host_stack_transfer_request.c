@@ -1,13 +1,12 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 
 /**************************************************************************/
@@ -34,7 +33,7 @@
 /*  FUNCTION                                               RELEASE        */ 
 /*                                                                        */ 
 /*    _ux_host_stack_transfer_request                     PORTABLE C      */ 
-/*                                                           6.1          */
+/*                                                           6.1.10       */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Chaoqiong Xiao, Microsoft Corporation                               */
@@ -85,11 +84,44 @@
 /*                                            instead of using them       */
 /*                                            directly,                   */
 /*                                            resulting in version 6.1    */
+/*  01-31-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            added standalone support,   */
+/*                                            resulting in version 6.1.10 */
 /*                                                                        */
 /**************************************************************************/
 UINT  _ux_host_stack_transfer_request(UX_TRANSFER *transfer_request)
 {
+#if defined(UX_HOST_STANDALONE)
+UINT        status;
 
+    UX_TRANSFER_STATE_RESET(transfer_request);
+    _ux_host_stack_transfer_run(transfer_request);
+    if ((transfer_request -> ux_transfer_request_flags & UX_TRANSFER_FLAG_AUTO_WAIT))
+    {
+        while(1)
+        {
+
+            /* Allow tasks running during waiting.  */
+            _ux_system_host_tasks_run();
+
+            if (transfer_request -> ux_transfer_request_state <= UX_STATE_NEXT)
+                break;
+        }
+        status = transfer_request -> ux_transfer_request_completion_code;
+    }
+    else
+    {
+
+        /* In this mode, transfer pending is a success started case.  */
+        if (transfer_request -> ux_transfer_request_completion_code == UX_TRANSFER_STATUS_PENDING)
+            status = UX_SUCCESS;
+        else
+            status = transfer_request -> ux_transfer_request_completion_code;
+    }
+
+    /* Return transfer completion status.  */
+    return(status);
+#else
 UX_INTERRUPT_SAVE_AREA
 
 UX_ENDPOINT     *endpoint;  
@@ -115,10 +147,11 @@ UINT            status;
 
         /* Set the transfer to pending.  */
         transfer_request -> ux_transfer_request_completion_code =  UX_TRANSFER_STATUS_PENDING;
-
+#if !defined(UX_HOST_STANDALONE)
         /* Save the thread making this transfer. If we're under interrupt, this
            will be null.  */
         transfer_request -> ux_transfer_request_thread_pending =  _ux_utility_thread_identify();
+#endif
     }
     else
     {
@@ -131,11 +164,11 @@ UINT            status;
         {
 
             /* Check if the class has already protected it.  */
-            if (device -> ux_device_protection_semaphore.tx_semaphore_count == 0)
+            if (!_ux_host_semaphore_waiting(&device -> ux_device_protection_semaphore))
             {
 
                 /* Class is using endpoint 0. Unprotect semaphore.  */
-                _ux_utility_semaphore_put(&device -> ux_device_protection_semaphore);
+                _ux_host_semaphore_put(&device -> ux_device_protection_semaphore);
             }
         }
 
@@ -156,11 +189,11 @@ UINT            status;
     {
 
         /* Check if the class has already protected it.  */
-        if (device -> ux_device_protection_semaphore.tx_semaphore_count != 0)        
+        if (_ux_host_semaphore_waiting(&device -> ux_device_protection_semaphore))        
         {
 
             /* We are using endpoint 0. Protect with semaphore.  */
-            status =  _ux_utility_semaphore_get(&device -> ux_device_protection_semaphore, UX_WAIT_FOREVER);
+            status =  _ux_host_semaphore_get(&device -> ux_device_protection_semaphore, UX_WAIT_FOREVER);
     
             /* Check for status.  */
             if (status != UX_SUCCESS)
@@ -177,8 +210,64 @@ UINT            status;
     if ((endpoint -> ux_endpoint_descriptor.bEndpointAddress & (UINT)~UX_ENDPOINT_DIRECTION) == 0)
 
         /* We are using endpoint 0. Unprotect with semaphore.  */
-        _ux_utility_semaphore_put(&device -> ux_device_protection_semaphore);
+        _ux_host_semaphore_put(&device -> ux_device_protection_semaphore);
 
     /* And return the status.  */
     return(status);
+#endif
+}
+
+
+/**************************************************************************/
+/*                                                                        */
+/*  FUNCTION                                               RELEASE        */
+/*                                                                        */
+/*    _uxe_host_stack_transfer_request                    PORTABLE C      */
+/*                                                           6.3.0        */
+/*  AUTHOR                                                                */
+/*                                                                        */
+/*    Chaoqiong Xiao, Microsoft Corporation                               */
+/*                                                                        */
+/*  DESCRIPTION                                                           */
+/*                                                                        */
+/*    This function checks errors in host stack transfer function call.   */
+/*                                                                        */
+/*  INPUT                                                                 */
+/*                                                                        */
+/*    transfer_request                      Pointer to transfer           */
+/*                                                                        */
+/*  OUTPUT                                                                */
+/*                                                                        */
+/*    None                                                                */
+/*                                                                        */
+/*  CALLS                                                                 */
+/*                                                                        */
+/*    _ux_host_stack_transfer_request       Issue a transfer request      */
+/*                                                                        */
+/*  CALLED BY                                                             */
+/*                                                                        */
+/*    Application                                                         */
+/*                                                                        */
+/*  RELEASE HISTORY                                                       */
+/*                                                                        */
+/*    DATE              NAME                      DESCRIPTION             */
+/*                                                                        */
+/*  10-31-2023     Chaoqiong Xiao           Initial Version 6.3.0         */
+/*                                                                        */
+/**************************************************************************/
+UINT  _uxe_host_stack_transfer_request(UX_TRANSFER *transfer_request)
+{
+
+    /* Sanity checks.  */
+    if (transfer_request == UX_NULL)
+        return(UX_INVALID_PARAMETER);
+    if (transfer_request -> ux_transfer_request_endpoint == UX_NULL)
+        return(UX_ENDPOINT_HANDLE_UNKNOWN);
+    if (transfer_request -> ux_transfer_request_endpoint -> ux_endpoint_device == UX_NULL)
+        return(UX_DEVICE_HANDLE_UNKNOWN);
+    if (UX_DEVICE_HCD_GET(transfer_request -> ux_transfer_request_endpoint -> ux_endpoint_device) == UX_NULL)
+        return(UX_INVALID_PARAMETER);
+
+    /* Invoke transfer request function.  */
+    return(_ux_host_stack_transfer_request(transfer_request));
 }

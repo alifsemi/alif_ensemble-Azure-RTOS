@@ -1,13 +1,13 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * Copyright (c) 2025-present Eclipse ThreadX Contributors
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 
 /**************************************************************************/
@@ -26,7 +26,7 @@
 /*  COMPONENT DEFINITION                                   RELEASE        */
 /*                                                                        */
 /*    nx_secure_x509.h                                    PORTABLE C      */
-/*                                                           6.1.7        */
+/*                                                           6.4.3        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Timothy Stapko, Microsoft Corporation                               */
@@ -51,6 +51,17 @@
 /*                                            supported hardware EC       */
 /*                                            private key,                */
 /*                                            resulting in version 6.1.7  */
+/*  01-31-2022     Timothy Stapko           Modified comment(s),          */
+/*                                            ignored public key in EC    */
+/*                                            private key,                */
+/*                                            resulting in version 6.1.10 */
+/*  07-29-2022     Yuxin Zhou               Modified comment(s),          */
+/*                                            checked expiration for all  */
+/*                                            the certs in the chain,     */
+/*                                            resulting in version 6.1.12 */
+/*  03-08-2023     Yanwu Cai                Modified comment(s),          */
+/*                                            included TLS port header,   */
+/*                                            resulting in version 6.2.1  */
 /*                                                                        */
 /**************************************************************************/
 
@@ -67,6 +78,10 @@ extern   "C" {
 #endif
 
 #include "nx_crypto.h"
+
+#ifndef NX_CRYPTO_STANDALONE_ENABLE
+#include "nx_secure_port.h"
+#endif
 
 /* Enable ECC by default. */
 #ifndef NX_SECURE_DISABLE_ECC_CIPHERSUITE
@@ -539,13 +554,6 @@ typedef struct NX_SECURE_EC_PRIVATE_KEY_STRUCT
     /* Size of the EC private key. */
     USHORT nx_secure_ec_private_key_length;
 
-    /* Public key for EC. */
-    /* This field is optional and it can be NX_NULL. */
-    const UCHAR *nx_secure_ec_public_key;
-
-    /* Size of the key used by the algorithm. */
-    USHORT nx_secure_ec_public_key_length;
-
     /* Named curve used. */
     UINT nx_secure_ec_named_curve;
 
@@ -939,7 +947,7 @@ UINT _nx_secure_x509_certificate_verify(NX_SECURE_X509_CERTIFICATE_STORE *store,
 
 /* Verify a given certificate chain to see if the end-entity certificate can be traced through the chain to a trust anchor. */
 UINT _nx_secure_x509_certificate_chain_verify(NX_SECURE_X509_CERTIFICATE_STORE *store,
-                                              NX_SECURE_X509_CERT *certificate);
+                                              NX_SECURE_X509_CERT *certificate, ULONG current_time);
 
 /* Parse an OID string, returning an internally-used constant (defined above) for use in other parsing. */
 VOID _nx_secure_x509_oid_parse(const UCHAR *oid, ULONG length, UINT *oid_value);

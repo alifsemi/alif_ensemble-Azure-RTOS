@@ -1,13 +1,12 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 
 /**************************************************************************/
@@ -34,7 +33,7 @@
 /*  FUNCTION                                               RELEASE        */ 
 /*                                                                        */ 
 /*    _ux_host_stack_new_device_get                       PORTABLE C      */ 
-/*                                                           6.1          */
+/*                                                           6.1.12       */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Chaoqiong Xiao, Microsoft Corporation                               */
@@ -69,6 +68,9 @@
 /*                                            definitions, verified       */
 /*                                            memset and memcpy cases,    */
 /*                                            resulting in version 6.1    */
+/*  07-29-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            fixed standalone enum init, */
+/*                                            resulting in version 6.1.12 */
 /*                                                                        */
 /**************************************************************************/
 UX_DEVICE  *_ux_host_stack_new_device_get(VOID)
@@ -78,7 +80,9 @@ UX_DEVICE  *_ux_host_stack_new_device_get(VOID)
 ULONG           container_index;
 #endif
 UX_DEVICE       *device;
-    
+#if defined(UX_HOST_STANDALONE)
+UX_DEVICE       *enum_next;
+#endif    
 
     /* Start with the first device.  */
     device =  _ux_system_host -> ux_system_host_device_array;    
@@ -96,8 +100,17 @@ UX_DEVICE       *device;
         if (device -> ux_device_handle == UX_UNUSED)
         {
 
+#if defined(UX_HOST_STANDALONE)
+
+            /* Reset the entire entry except enum link.  */
+            enum_next = device -> ux_device_enum_next;
+            _ux_utility_memory_set(device, 0, sizeof(UX_DEVICE)); /* Use case of memset is verified. */
+            device -> ux_device_enum_next = enum_next;
+#else
+
             /* Reset the entire entry.  */
             _ux_utility_memory_set(device, 0, sizeof(UX_DEVICE)); /* Use case of memset is verified. */
+#endif
 
             /* This entry is now used.  */
             device -> ux_device_handle =  UX_USED;

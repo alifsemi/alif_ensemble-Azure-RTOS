@@ -1,13 +1,12 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 
 /**************************************************************************/
@@ -34,7 +33,7 @@
 /*  FUNCTION                                               RELEASE        */ 
 /*                                                                        */ 
 /*    _ux_host_stack_transfer_request_abort               PORTABLE C      */ 
-/*                                                           6.1.7        */
+/*                                                           6.2.0        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Chaoqiong Xiao, Microsoft Corporation                               */
@@ -80,6 +79,11 @@
 /*  06-02-2021     Chaoqiong Xiao           Modified comment(s),          */
 /*                                            fixed trace enabled error,  */
 /*                                            resulting in version 6.1.7  */
+/*  01-31-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            added standalone support,   */
+/*                                            resulting in version 6.1.10 */
+/*  10-31-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            resulting in version 6.2.0  */
 /*                                                                        */
 /**************************************************************************/
 UINT  _ux_host_stack_transfer_request_abort(UX_TRANSFER *transfer_request)
@@ -101,14 +105,17 @@ ULONG           completion_code;
     /* Check pending transaction.  */
     if (transfer_request -> ux_transfer_request_completion_code == UX_TRANSFER_STATUS_PENDING)
     {
-    
+
         /* Send the abort command to the controller.  */    
         hcd -> ux_hcd_entry_function(hcd, UX_HCD_TRANSFER_ABORT, transfer_request);
 
         /* Save the completion code since we're about to set it to ABORT. The
            reason we can't just assume its value is PENDING is that in between
            the completion code check and this line, it's possible that the transfer
-           completed, which would've changed the completion code to SUCCESS.
+           completed (by HCD function call below, or ISR), which would've
+           changed the completion code to SUCCESS and put the semaphore.
+           Even it's recommended to keep completion code untouched to let things
+           changed later here.
            Such a case is valid, and we want to make sure we don't put() the
            transfer request's semaphore again.  */
         completion_code =  transfer_request -> ux_transfer_request_completion_code;
@@ -124,16 +131,73 @@ ULONG           completion_code;
         /* Is a thread waiting on the semaphore?  */
         if (/* Is the transfer pending?  */
             completion_code == UX_TRANSFER_STATUS_PENDING &&
+#if !defined(UX_HOST_STANDALONE)
             /* Is the thread waiting not this one? (clearly we're not waiting!)  */
             transfer_request -> ux_transfer_request_thread_pending != _ux_utility_thread_identify() && 
+#endif
             /* Does the transfer request not have a completion function?  */
             transfer_request -> ux_transfer_request_completion_function == UX_NULL)
 
             /* Wake up the semaphore for this request.  */
-            _ux_utility_semaphore_put(&transfer_request -> ux_transfer_request_semaphore);
+            _ux_host_semaphore_put(&transfer_request -> ux_transfer_request_semaphore);
     }
     
     /* This function never fails!  */
     return(UX_SUCCESS);       
 }
 
+
+/**************************************************************************/
+/*                                                                        */
+/*  FUNCTION                                               RELEASE        */
+/*                                                                        */
+/*    _uxe_host_stack_transfer_request_abort              PORTABLE C      */
+/*                                                           6.3.0        */
+/*  AUTHOR                                                                */
+/*                                                                        */
+/*    Chaoqiong Xiao, Microsoft Corporation                               */
+/*                                                                        */
+/*  DESCRIPTION                                                           */
+/*                                                                        */
+/*    This function checks errors in host stack transfer abort function   */
+/*    call.                                                               */
+/*                                                                        */
+/*  INPUT                                                                 */
+/*                                                                        */
+/*    transfer_request                      Pointer to transfer           */
+/*                                                                        */
+/*  OUTPUT                                                                */
+/*                                                                        */
+/*    None                                                                */
+/*                                                                        */
+/*  CALLS                                                                 */
+/*                                                                        */
+/*    _ux_host_stack_transfer_request_abort Transfer abort                */
+/*                                                                        */
+/*  CALLED BY                                                             */
+/*                                                                        */
+/*    Application                                                         */
+/*                                                                        */
+/*  RELEASE HISTORY                                                       */
+/*                                                                        */
+/*    DATE              NAME                      DESCRIPTION             */
+/*                                                                        */
+/*  10-31-2023     Chaoqiong Xiao           Initial Version 6.3.0         */
+/*                                                                        */
+/**************************************************************************/
+UINT  _uxe_host_stack_transfer_request_abort(UX_TRANSFER *transfer_request)
+{
+
+    /* Sanity checks.  */
+    if (transfer_request == UX_NULL)
+        return(UX_INVALID_PARAMETER);
+    if (transfer_request -> ux_transfer_request_endpoint == UX_NULL)
+        return(UX_ENDPOINT_HANDLE_UNKNOWN);
+    if (transfer_request -> ux_transfer_request_endpoint -> ux_endpoint_device == UX_NULL)
+        return(UX_DEVICE_HANDLE_UNKNOWN);
+    if (UX_DEVICE_HCD_GET(transfer_request -> ux_transfer_request_endpoint -> ux_endpoint_device) == UX_NULL)
+        return(UX_INVALID_PARAMETER);
+
+    /* Invoke transfer abort function.  */
+    return(_ux_host_stack_transfer_request_abort(transfer_request));
+}

@@ -10,9 +10,7 @@ UINT nx_azure_iot_adu_agent_start(NX_AZURE_IOT_ADU_AGENT *adu_agent_ptr,
                                   NX_AZURE_IOT_HUB_CLIENT *iothub_client_ptr,
                                   const UCHAR *manufacturer, UINT manufacturer_length,
                                   const UCHAR *model, UINT model_length,
-                                  const UCHAR *provider, UINT provider_length,
-                                  const UCHAR *name, UINT name_length,
-                                  const UCHAR *version, UINT version_length,
+                                  const UCHAR *installed_criteria, UINT installed_criteria_length,
                                   VOID (*adu_agent_update_notify)(NX_AZURE_IOT_ADU_AGENT *adu_agent_ptr,
                                                                   UCHAR *provider, UINT provider_length,
                                                                   UCHAR *name, UINT name_length,
@@ -21,7 +19,7 @@ UINT nx_azure_iot_adu_agent_start(NX_AZURE_IOT_ADU_AGENT *adu_agent_ptr,
 ```
 **Description**
 
-<p>This routine starts the ADU agent.</p>
+<p>This routine starts the ADU agent. Properties (manufacturer and model) of a device this update is compatible with. Installed criteria is used to determine if the update is installed or not, typically it is a version string (1.0.0). The installed criteria may be set into adu agent, then agent will check the update internally, otherwise, adu agent will set NX_AZURE_IOT_ADU_AGENT_DRIVER_UPDATE_CHECK command to let driver (adu_agent_driver) do the check.</p>
 
 **Parameters**
 
@@ -33,12 +31,8 @@ UINT nx_azure_iot_adu_agent_start(NX_AZURE_IOT_ADU_AGENT *adu_agent_ptr,
 | manufacturer_length [in] | Length of the manufacturer.  |
 | model [in]  | A pointer to the model. Must be NULL terminated string. |
 | model_length [in] | Length of the model. |
-| provider [in]  | A pointer to the update provider. Must be NULL terminated string. |
-| provider_length [in] | Length of the update provider. |
-| name [in]  | A pointer to the update name. Must be NULL terminated string. |
-| name_length [in] | Length of the update name. |
-| version [in]  | A pointer to the update version. Must be NULL terminated string. |
-| version_length [in] | Length of the update version. |
+| installed_criteria [in]  | A pointer to the installed criteria string, such as: version string. Must be NULL terminated string. |
+| installed_criteria_length [in] | Length of the installed_criteria. |
 | adu_agent_update_notify [in] | Pointer to a callback function invoked once update is received. |
 | adu_agent_driver [in] | User supplied driver for flash operation. |
 
@@ -65,26 +59,26 @@ Threads
 **Prototype**
 ```c
 UINT nx_azure_iot_adu_agent_proxy_update_add(NX_AZURE_IOT_ADU_AGENT *adu_agent_ptr,
-                                             const UCHAR *provider, UINT provider_length,
-                                             const UCHAR *name, UINT name_length,
-                                             const UCHAR *version, UINT version_length,
+                                             const UCHAR *manufacturer, UINT manufacturer_length,
+                                             const UCHAR *model, UINT model_length,
+                                             const UCHAR *installed_criteria, UINT installed_criteria_length,
                                              VOID (*adu_agent_driver)(NX_AZURE_IOT_ADU_AGENT_DRIVER *));
 ```
 **Description**
 
-<p>This routine adds the proxy update on device update agent. Provider, name and version is a string capturing the update id for a device. Combination of provider and name must be globally unique, when receiving the update, agent checks the provider and name for each device. If the version is provided, agent compares the version to see if the update is installed or not, otherwise, agent lets the driver to check if the update is installed or not. </p>
+<p>This routine adds the proxy update on device update agent. Properties (manufacturer and model) of a device this update is compatible with, installed criteria is used to check if the update is installed or not, the installed criteria may be version string. If the installed criteria is set into adu agent, the agent will check the update, otherwise, adu agent will call NX_AZURE_IOT_ADU_AGENT_DRIVER_UPDATE_CHECK to driver, then the adu_agent_driver must implement NX_AZURE_IOT_ADU_AGENT_DRIVER_UPDATE_CHECK command to check if the update is installed or not according to the installed criteria. </p>
 
 **Parameters**
 
 | Name | Description |
 | - |:-|
 | adu_agent_ptr [in] | A pointer to a `NX_AZURE_IOT_ADU_AGENT`. |
-| provider [in]  | A pointer to the update provider. Must be NULL terminated string. |
-| provider_length [in] | Length of the update provider. |
-| name [in]  | A pointer to the update name. Must be NULL terminated string. |
-| name_length [in] | Length of the update name. |
-| version [in]  | A pointer to the update version. Must be NULL terminated string. |
-| version_length [in] | Length of the update version. |
+| manufacturer [in] | A pointer to the manufacturer. Must be NULL terminated string. |
+| manufacturer_length [in] | Length of the manufacturer.  |
+| model [in]  | A pointer to the model. Must be NULL terminated string. |
+| model_length [in] | Length of the model. |
+| installed_criteria [in]  | A pointer to the installed criteria string, such as: version string. Must be NULL terminated string. |
+| installed_criteria_length [in] | Length of the installed_criteria. |
 | adu_agent_driver [in] | User supplied driver for flash operation. |
 
 **Return Values**
@@ -134,13 +128,13 @@ Threads
 
 <div style="page-break-after: always;"></div>
 
-**nx_azure_iot_adu_agent_update_download_install**
+**nx_azure_iot_adu_agent_update_download_and_install**
 ***
 <div style="text-align: right"> Start to download and install the new update. </div>
 
 **Prototype**
 ```c
-UINT nx_azure_iot_adu_agent_update_download_install(NX_AZURE_IOT_ADU_AGENT *adu_agent_ptr);
+UINT nx_azure_iot_adu_agent_update_download_and_install(NX_AZURE_IOT_ADU_AGENT *adu_agent_ptr);
 ```
 **Description**
 

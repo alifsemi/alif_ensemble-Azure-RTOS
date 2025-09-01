@@ -1,13 +1,12 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 
 /**************************************************************************/
@@ -34,7 +33,7 @@
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _ux_device_stack_set_feature                        PORTABLE C      */
-/*                                                           6.1          */
+/*                                                           6.1.12       */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Chaoqiong Xiao, Microsoft Corporation                               */
@@ -72,6 +71,10 @@
 /*                                            definitions, stalled on not */
 /*                                            supported device requests,  */
 /*                                            resulting in version 6.1    */
+/*  07-29-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            fixed parameter/variable    */
+/*                                            names conflict C++ keyword, */
+/*                                            resulting in version 6.1.12 */
 /*                                                                        */
 /**************************************************************************/
 UINT  _ux_device_stack_set_feature(ULONG request_type, ULONG request_value, ULONG request_index)
@@ -79,7 +82,7 @@ UINT  _ux_device_stack_set_feature(ULONG request_type, ULONG request_value, ULON
 
 UX_SLAVE_DCD            *dcd;
 UX_SLAVE_DEVICE         *device;
-UX_SLAVE_INTERFACE      *interface;
+UX_SLAVE_INTERFACE      *interface_ptr;
 UX_SLAVE_ENDPOINT       *endpoint;
 UX_SLAVE_ENDPOINT       *endpoint_target;
 
@@ -155,14 +158,14 @@ UX_SLAVE_ENDPOINT       *endpoint_target;
         /* The only set feature for endpoint is ENDPOINT_STALL. This forces
            the endpoint to the stall situation.
            We need to find the endpoint through the interface(s). */
-        interface =  device -> ux_slave_device_first_interface;
+        interface_ptr =  device -> ux_slave_device_first_interface;
 
 #if !defined(UX_DEVICE_INITIALIZE_FRAMEWORK_SCAN_DISABLE) || UX_MAX_DEVICE_INTERFACES > 1
-        while (interface != UX_NULL)
+        while (interface_ptr != UX_NULL)
         {
 #endif
             /* Get the first endpoint for this interface.  */
-            endpoint_target =  interface -> ux_slave_interface_first_endpoint;
+            endpoint_target =  interface_ptr -> ux_slave_interface_first_endpoint;
                 
             /* Parse all the endpoints.  */
             while (endpoint_target != UX_NULL)
@@ -185,7 +188,7 @@ UX_SLAVE_ENDPOINT       *endpoint_target;
 
 #if !defined(UX_DEVICE_INITIALIZE_FRAMEWORK_SCAN_DISABLE) || UX_MAX_DEVICE_INTERFACES > 1
             /* Next interface.  */
-            interface =  interface -> ux_slave_interface_next_interface;
+            interface_ptr =  interface_ptr -> ux_slave_interface_next_interface;
         }
 #endif
 

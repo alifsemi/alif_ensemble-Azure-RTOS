@@ -1,13 +1,12 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 
 /**************************************************************************/
@@ -32,7 +31,8 @@
 #if (UX_SLAVE_REQUEST_CONTROL_MAX_LENGTH < UX_DEVICE_DESCRIPTOR_LENGTH) || \
     (UX_SLAVE_REQUEST_CONTROL_MAX_LENGTH < UX_DEVICE_QUALIFIER_DESCRIPTOR_LENGTH) || \
     (UX_SLAVE_REQUEST_CONTROL_MAX_LENGTH < UX_OTG_DESCRIPTOR_LENGTH)
-#error UX_SLAVE_REQUEST_CONTROL_MAX_LENGTH too small, please check
+/* #error UX_SLAVE_REQUEST_CONTROL_MAX_LENGTH too small, please check  */
+/* Build option checked runtime by UX_ASSERT  */
 #endif
 
 /**************************************************************************/
@@ -40,7 +40,7 @@
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _ux_device_stack_descriptor_send                    PORTABLE C      */
-/*                                                           6.1.3        */
+/*                                                           6.3.0        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Chaoqiong Xiao, Microsoft Corporation                               */
@@ -85,6 +85,14 @@
 /*  12-31-2020     Chaoqiong Xiao           Modified comment(s),          */
 /*                                            added BOS support,          */
 /*                                            resulting in version 6.1.3  */
+/*  04-25-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            internal clean up,          */
+/*                                            resulting in version 6.1.11 */
+/*  10-31-2023     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            moved compile option check, */
+/*                                            added support for get string*/
+/*                                            requests with zero wIndex,  */
+/*                                            resulting in version 6.3.0  */
 /*                                                                        */
 /**************************************************************************/
 UINT  _ux_device_stack_descriptor_send(ULONG descriptor_type, ULONG request_index, ULONG host_length)
@@ -104,13 +112,19 @@ UCHAR                           *device_framework;
 UCHAR                           *device_framework_end;
 ULONG                           device_framework_length;
 ULONG                           descriptor_length;
-ULONG                           target_descriptor_length;
+ULONG                           target_descriptor_length = 0;
 UINT                            status =  UX_ERROR;
 ULONG                           length;
 UCHAR                           *string_memory;
 UCHAR                           *string_framework;
 ULONG                           string_framework_length;
 ULONG                           string_length;
+
+
+    /* Build option check.  */
+    UX_ASSERT((UX_SLAVE_REQUEST_CONTROL_MAX_LENGTH >= UX_DEVICE_DESCRIPTOR_LENGTH) &&
+              (UX_SLAVE_REQUEST_CONTROL_MAX_LENGTH >= UX_DEVICE_QUALIFIER_DESCRIPTOR_LENGTH) &&
+              (UX_SLAVE_REQUEST_CONTROL_MAX_LENGTH >= UX_OTG_DESCRIPTOR_LENGTH));
 
     /* If trace is enabled, insert this event into the trace buffer.  */
     UX_TRACE_IN_LINE_INSERT(UX_TRACE_DEVICE_STACK_DESCRIPTOR_SEND, descriptor_type, request_index, 0, 0, UX_TRACE_DEVICE_STACK_EVENTS, 0, 0)
@@ -386,6 +400,16 @@ ULONG                           string_length;
         }
         else
         {
+#ifdef UX_DEVICE_ENABLE_GET_STRING_WITH_ZERO_LANGUAGE_ID
+
+            /* Check if the language ID is zero.  */
+            if (request_index == 0)
+            {
+
+                /* Get the first language ID in the language ID framework.  */
+                request_index =  _ux_utility_short_get(_ux_system_slave -> ux_system_slave_language_id_framework);
+            }
+#endif
 
             /* The host wants a specific string index returned. Get the string framework pointer
                and length.  */
