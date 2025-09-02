@@ -33,14 +33,14 @@
 /* include for UART Driver */
 #include "Driver_USART.h"
 #include "RTE_Components.h"
-#if defined(RTE_Compiler_IO_STDOUT)
-#include "retarget_stdout.h"
-#endif  /* RTE_Compiler_IO_STDOUT */
-
-/* PINMUX Driver */
-#include "pinconf.h"
-
+#include "board_config.h"
 #include "RTE_Device.h"
+#include "app_utils.h"
+#if defined(RTE_CMSIS_Compiler_STDOUT)
+#include "retarget_stdout.h"
+#include "retarget_init.h"
+#endif  /* RTE_CMSIS_Compiler_STDOUT */
+
 /*
  * UART4 CLK SOURCE: Defines UART4 clock source.
  *    <0=> CLK_38.4MHz (CLKEN_HFOSC)
@@ -50,19 +50,16 @@
 #include "se_services_port.h"
 #endif
 
-/* UART Driver instance (UART0-UART7) */
-#define UART      4
-
 /* UART Driver */
-extern ARM_DRIVER_USART ARM_Driver_USART_(UART);
+extern ARM_DRIVER_USART ARM_Driver_USART_(BOARD_UARTB_UART_INSTANCE);
 
 /* UART Driver instance */
-static ARM_DRIVER_USART *USARTdrv = &ARM_Driver_USART_(UART);
+static ARM_DRIVER_USART *USARTdrv = &ARM_Driver_USART_(BOARD_UARTB_UART_INSTANCE);
 
 void myUART_Thread_entry(ULONG thread_input);
 
 /* Define the ThreadX object control blocks...  */
-#define DEMO_STACK_SIZE                        1024
+#define DEMO_STACK_SIZE                        2048
 #define DEMO_BYTE_POOL_SIZE                    9120
 
 #define UART_CB_TX_EVENT           (1U << 0)
@@ -78,24 +75,6 @@ TX_BYTE_POOL            byte_pool_0;
 UCHAR                   memory_area[DEMO_BYTE_POOL_SIZE];
 TX_EVENT_FLAGS_GROUP    event_flags_uart;
 
-
-/**
- * @function    int hardware_init(void)
- * @brief       UART hardware pin initialization using PIN-MUX driver
- * @note        none
- * @param       void
- * @retval      0:success, -1:failure
- */
-int hardware_init(void)
-{
-    /* UART4_RX_B */
-    pinconf_set( PORT_12, PIN_1, PINMUX_ALTERNATE_FUNCTION_2, PADCTRL_READ_ENABLE);
-
-    /* UART4_TX_B */
-    pinconf_set( PORT_12, PIN_2, PINMUX_ALTERNATE_FUNCTION_2, 0);
-
-    return 0;
-}
 
 /**
  * @function        void myUART_callback(UINT event)
@@ -190,10 +169,9 @@ void myUART_Thread_entry(ULONG thread_input)
     printf("\r\n UART version api:%X driver:%X...\r\n",version.api, version.drv);
 
     /* Initialize UART hardware pins using PinMux Driver. */
-    ret = hardware_init();
-    if(ret != 0)
-    {
-        printf("\r\n Error in UART hardware_init.\r\n");
+    ret = board_pins_config();
+    if(ret != ARM_DRIVER_OK) {
+        printf("ERROR: Pin configuration failed: %X\n", ret);
         return;
     }
 
@@ -365,7 +343,8 @@ error_uninitialize:
 /* Define main entry point.  */
 int main()
 {
-    #if defined(RTE_Compiler_IO_STDOUT_User)
+    #if defined(RTE_CMSIS_Compiler_STDOUT_Custom)
+    extern int stdout_init(void);
     int32_t ret;
     ret = stdout_init();
     if(ret != ARM_DRIVER_OK)
