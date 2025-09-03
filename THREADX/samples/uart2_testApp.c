@@ -33,13 +33,15 @@
 /* Project Includes */
 /* include for UART Driver */
 #include "Driver_USART.h"
+#include "board_config.h"
 
 /* PINMUX Driver */
 #include "pinconf.h"
 #include "RTE_Components.h"
-#if defined(RTE_Compiler_IO_STDOUT)
+#if defined(RTE_CMSIS_Compiler_STDOUT)
+#include "retarget_init.h"
 #include "retarget_stdout.h"
-#endif  /* RTE_Compiler_IO_STDOUT */
+#endif  /* RTE_CMSIS_Compiler_STDOUT */
 
 #include "RTE_Device.h"
 /*
@@ -51,14 +53,11 @@
 #include "se_services_port.h"
 #endif
 
-/* UART Driver instance (UART0-UART7) */
-#define UART      2
-
 /* UART Driver */
-extern ARM_DRIVER_USART ARM_Driver_USART_(UART);
+extern ARM_DRIVER_USART ARM_Driver_USART_(BOARD_UARTA_UART_INSTANCE);
 
 /* UART Driver instance */
-static ARM_DRIVER_USART *USARTdrv = &ARM_Driver_USART_(UART);
+static ARM_DRIVER_USART *USARTdrv = &ARM_Driver_USART_(BOARD_UARTA_UART_INSTANCE);
 
 void myUART_Thread_entry(ULONG thread_input);
 
@@ -78,26 +77,6 @@ TX_THREAD               UART_thread;
 TX_BYTE_POOL            byte_pool_0;
 UCHAR                   memory_area[DEMO_BYTE_POOL_SIZE];
 TX_EVENT_FLAGS_GROUP    event_flags_uart;
-
-
-/**
- * @function    int hardware_init(void)
- * @brief       UART hardware pin initialization using PIN-MUX driver
- * @note        none
- * @param       void
- * @retval      execution status
- */
-int hardware_init(void)
-{
-    /* UART2_RX_A */
-    pinconf_set( PORT_1, PIN_0, PINMUX_ALTERNATE_FUNCTION_1, PADCTRL_READ_ENABLE);
-
-    /* UART2_TX_A */
-    pinconf_set( PORT_1, PIN_1, PINMUX_ALTERNATE_FUNCTION_1, 0);
-
-    return 0;
-}
-
 /**
  * @function    void myUART_callback(UINT event)
  * @brief       UART isr callabck
@@ -105,46 +84,38 @@ int hardware_init(void)
  * @param       event: USART Event
  * @retval      none
  */
-void myUART_callback(UINT event)
-{
-    if (event & ARM_USART_EVENT_SEND_COMPLETE)
-    {
+void myUART_callback(UINT event) {
+    if (event & ARM_USART_EVENT_SEND_COMPLETE) {
         /* Send Success: Wake-up Thread. */
         tx_event_flags_set(&event_flags_uart, UART_CB_TX_EVENT, TX_OR);
     }
 
-    if (event & ARM_USART_EVENT_RECEIVE_COMPLETE)
-    {
+    if (event & ARM_USART_EVENT_RECEIVE_COMPLETE) {
         /* Receive Success: Wake-up Thread. */
         tx_event_flags_set(&event_flags_uart, UART_CB_RX_EVENT, TX_OR);
     }
 
-    if (event & ARM_USART_EVENT_RX_TIMEOUT)
-    {
+    if (event & ARM_USART_EVENT_RX_TIMEOUT) {
         /* Receive Success with rx timeout: Wake-up Thread. */
         tx_event_flags_set(&event_flags_uart, UART_CB_RX_TIMEOUT, TX_OR);
     }
 
-    if (event & ARM_USART_EVENT_RX_BREAK)
-    {
+    if (event & ARM_USART_EVENT_RX_BREAK) {
         /* Receive RX Break: Wake-up Thread. */
         tx_event_flags_set(&event_flags_uart, UART_CB_RX_BREAK, TX_OR);
     }
 
-    if (event & ARM_USART_EVENT_RX_FRAMING_ERROR)
-    {
+    if (event & ARM_USART_EVENT_RX_FRAMING_ERROR) {
         /* Receive RX Framing error: Wake-up Thread. */
         tx_event_flags_set(&event_flags_uart, UART_CB_RX_FRAMING_ERROR, TX_OR);
     }
 
-    if (event & ARM_USART_EVENT_RX_PARITY_ERROR)
-    {
+    if (event & ARM_USART_EVENT_RX_PARITY_ERROR) {
         /* Receive RX Parity error: Wake-up Thread. */
         tx_event_flags_set(&event_flags_uart, UART_CB_RX_PARITY_ERROR, TX_OR);
     }
 
-    if (event & ARM_USART_EVENT_RX_OVERFLOW)
-    {
+    if (event & ARM_USART_EVENT_RX_OVERFLOW) {
         /* Receive RX Overflow: Wake-up Thread. */
         tx_event_flags_set(&event_flags_uart, UART_CB_RX_OVERFLOW, TX_OR);
     }
@@ -162,10 +133,9 @@ void myUART_callback(UINT event)
  * @param       argument
  * @retval      none
  */
-void myUART_Thread_entry(ULONG thread_input)
-{
-    CHAR  cmd    = 0;
-    INT   ret    = 0;
+void myUART_Thread_entry(ULONG thread_input) {
+    CHAR cmd = 0;
+    INT ret = 0;
     ULONG events = 0;
     ULONG temp = 0;
     ARM_DRIVER_VERSION version;
@@ -179,65 +149,57 @@ void myUART_Thread_entry(ULONG thread_input)
 
     /* enable the HFOSC clock */
     error_code = SERVICES_clocks_enable_clock(se_services_s_handle,
-                           /*clock_enable_t*/ CLKEN_HFOSC,
-                           /*bool enable   */ true,
-                                              &service_error_code);
-    if(error_code)
+                                              /*clock_enable_t*/ CLKEN_HFOSC,
+                                              /*bool enable   */ true, &service_error_code);
+    if (error_code)
         printf("SE: clk enable = %d\n", error_code);
 #endif /* CLK_38.4MHz */
 
     printf("\r\n >>> UART testApp starting up!!!...<<< \r\n");
 
     version = USARTdrv->GetVersion();
-    printf("\r\n UART version api:%X driver:%X...\r\n",version.api, version.drv);
+    printf("\r\n UART version api:%X driver:%X...\r\n", version.api, version.drv);
 
-    /* Initialize UART hardware pins using PinMux Driver. */
-    ret = hardware_init();
-    if(ret != ARM_DRIVER_OK)
-    {
-        printf("\r\n Error in UART hardware_init.\r\n");
+    /* pin mux and configuration for all device IOs requested from pins.h*/
+    ret = board_pins_config();
+    if (ret != ARM_DRIVER_OK) {
+        printf("ERROR: Pin configuration failed: %X\n", ret);
         return;
     }
 
     /* Initialize UART driver */
     ret = USARTdrv->Initialize(myUART_callback);
-    if(ret != ARM_DRIVER_OK)
-    {
+    if (ret != ARM_DRIVER_OK) {
         printf("\r\n Error in UART Initialize.\r\n");
         return;
     }
 
     /* Power up UART peripheral */
     ret = USARTdrv->PowerControl(ARM_POWER_FULL);
-    if(ret != ARM_DRIVER_OK)
-    {
+    if (ret != ARM_DRIVER_OK) {
         printf("\r\n Error in UART Power Up.\r\n");
         goto error_uninitialize;
     }
 
     /* Configure UART to 115200 Bits/sec */
-    ret =  USARTdrv->Control(ARM_USART_MODE_ASYNCHRONOUS |
-                                ARM_USART_DATA_BITS_8 |
-                                ARM_USART_PARITY_NONE |
-                                ARM_USART_STOP_BITS_1 |
-                                ARM_USART_FLOW_CONTROL_NONE, 115200);
-    if(ret != ARM_DRIVER_OK)
-    {
+    ret = USARTdrv->Control(ARM_USART_MODE_ASYNCHRONOUS | ARM_USART_DATA_BITS_8 |
+                                ARM_USART_PARITY_NONE | ARM_USART_STOP_BITS_1 |
+                                ARM_USART_FLOW_CONTROL_NONE,
+                            115200);
+    if (ret != ARM_DRIVER_OK) {
         printf("\r\n Error in UART Control.\r\n");
         goto error_poweroff;
     }
 
     /* Enable Receiver and Transmitter lines */
-    ret =  USARTdrv->Control(ARM_USART_CONTROL_TX, 1);
-    if(ret != ARM_DRIVER_OK)
-    {
+    ret = USARTdrv->Control(ARM_USART_CONTROL_TX, 1);
+    if (ret != ARM_DRIVER_OK) {
         printf("\r\n Error in UART Control TX.\r\n");
         goto error_poweroff;
     }
 
-    ret =  USARTdrv->Control(ARM_USART_CONTROL_RX, 1);
-    if(ret != ARM_DRIVER_OK)
-    {
+    ret = USARTdrv->Control(ARM_USART_CONTROL_RX, 1);
+    if (ret != ARM_DRIVER_OK) {
         printf("\r\n Error in UART Control RX.\r\n");
         goto error_poweroff;
     }
@@ -246,88 +208,82 @@ void myUART_Thread_entry(ULONG thread_input)
     printf("\r\n Press Enter or any character on serial terminal to receive a message:\r\n");
 
     ret = USARTdrv->Send("\nPress Enter or any character to receive a message\n", 51);
-    if(ret != ARM_DRIVER_OK)
-    {
+    if (ret != ARM_DRIVER_OK) {
         printf("\r\n Error in UART Send.\r\n");
         goto error_poweroff;
     }
 
     /* wait till Send complete event comes in isr callback */
-    ret = tx_event_flags_get(&event_flags_uart, UART_CB_TX_EVENT, TX_OR_CLEAR, &events, TX_WAIT_FOREVER);
-    if (ret != TX_SUCCESS)
-    {
+    ret = tx_event_flags_get(&event_flags_uart, UART_CB_TX_EVENT, TX_OR_CLEAR, &events,
+                             TX_WAIT_FOREVER);
+    if (ret != TX_SUCCESS) {
         printf(" \r\n Error in tx_event_flags_get.\r\n");
         goto error_poweroff;
     }
 
-    while(1)
-    {
+    while (1) {
         /* clear event flag (if set) before UART call */
-        tx_event_flags_get(&event_flags_uart, (UART_CB_RX_EVENT | UART_CB_RX_TIMEOUT), \
-                           TX_OR_CLEAR, &temp, TX_NO_WAIT);
+        tx_event_flags_get(&event_flags_uart, (UART_CB_RX_EVENT | UART_CB_RX_TIMEOUT), TX_OR_CLEAR,
+                           &temp, TX_NO_WAIT);
 
         /* Get byte from UART */
         ret = USARTdrv->Receive(&cmd, 1);
-        if(ret != ARM_DRIVER_OK)
-        {
+        if (ret != ARM_DRIVER_OK) {
             printf("\r\n Error in UART Receive.\r\n");
             goto error_poweroff;
         }
 
         /* wait till Receive complete or Receive timeout event comes in isr callback */
-        ret = tx_event_flags_get(&event_flags_uart, (UART_CB_RX_EVENT | UART_CB_RX_TIMEOUT | UART_CB_RX_BREAK ), \
+        ret = tx_event_flags_get(&event_flags_uart,
+                                 (UART_CB_RX_EVENT | UART_CB_RX_TIMEOUT | UART_CB_RX_BREAK),
                                  TX_OR_CLEAR, &events, TX_WAIT_FOREVER);
-        if (ret != TX_SUCCESS)
-        {
+        if (ret != TX_SUCCESS) {
             printf(" \r\n Error in tx_event_flags_get.\r\n");
             goto error_poweroff;
         }
 
         /* check for any RX error. */
-        if (events & (UART_CB_RX_BREAK | UART_CB_RX_FRAMING_ERROR | \
-                      UART_CB_RX_PARITY_ERROR | UART_CB_RX_OVERFLOW))
-        {
+        if (events & (UART_CB_RX_BREAK | UART_CB_RX_FRAMING_ERROR | UART_CB_RX_PARITY_ERROR |
+                      UART_CB_RX_OVERFLOW)) {
             /* clear error flags. */
-            if (events & (UART_CB_RX_BREAK))
-            {
+            if (events & (UART_CB_RX_BREAK)) {
                 printf("\r\n RX Break sequence detected.\r\n");
-                tx_event_flags_get(&event_flags_uart, UART_CB_RX_BREAK, TX_OR_CLEAR, &temp, TX_NO_WAIT);
+                tx_event_flags_get(&event_flags_uart, UART_CB_RX_BREAK, TX_OR_CLEAR, &temp,
+                                   TX_NO_WAIT);
             }
 
-            if (events & (UART_CB_RX_FRAMING_ERROR))
-            {
+            if (events & (UART_CB_RX_FRAMING_ERROR)) {
                 printf("\r\n RX Framing Error.\r\n");
-                tx_event_flags_get(&event_flags_uart, UART_CB_RX_FRAMING_ERROR, TX_OR_CLEAR, &temp, TX_NO_WAIT);
+                tx_event_flags_get(&event_flags_uart, UART_CB_RX_FRAMING_ERROR, TX_OR_CLEAR, &temp,
+                                   TX_NO_WAIT);
             }
 
-            if (events & (UART_CB_RX_PARITY_ERROR))
-            {
+            if (events & (UART_CB_RX_PARITY_ERROR)) {
                 printf("\r\n RX Parity Error.\r\n");
-                tx_event_flags_get(&event_flags_uart, UART_CB_RX_PARITY_ERROR, TX_OR_CLEAR, &temp, TX_NO_WAIT);
+                tx_event_flags_get(&event_flags_uart, UART_CB_RX_PARITY_ERROR, TX_OR_CLEAR, &temp,
+                                   TX_NO_WAIT);
             }
 
-            if (events & (UART_CB_RX_OVERFLOW))
-            {
+            if (events & (UART_CB_RX_OVERFLOW)) {
                 printf("\r\n RX Overflow Error.\r\n");
-                tx_event_flags_get(&event_flags_uart, UART_CB_RX_OVERFLOW, TX_OR_CLEAR, &temp, TX_NO_WAIT);
+                tx_event_flags_get(&event_flags_uart, UART_CB_RX_OVERFLOW, TX_OR_CLEAR, &temp,
+                                   TX_NO_WAIT);
             }
         }
 
-        if (events & (UART_CB_RX_EVENT))
-        {
+        if (events & (UART_CB_RX_EVENT)) {
             if (cmd == 13) /* received 'Enter', send back "Hello World!". */
             {
                 ret = USARTdrv->Send("\nHello World!\n", 14);
-            }
-            else /* else send back received character. */
+            } else /* else send back received character. */
             {
                 ret = USARTdrv->Send(&cmd, 1);
             }
 
             /* wait till Send complete event comes in isr callback */
-            ret = tx_event_flags_get(&event_flags_uart, UART_CB_TX_EVENT, TX_OR_CLEAR, &events, TX_WAIT_FOREVER);
-            if (ret != TX_SUCCESS)
-            {
+            ret = tx_event_flags_get(&event_flags_uart, UART_CB_TX_EVENT, TX_OR_CLEAR, &events,
+                                     TX_WAIT_FOREVER);
+            if (ret != TX_SUCCESS) {
                 printf(" \r\n Error in tx_event_flags_get.\r\n");
                 goto error_poweroff;
             }
@@ -340,8 +296,7 @@ error_poweroff:
 
     /* Received error Power off UART peripheral */
     ret = USARTdrv->PowerControl(ARM_POWER_OFF);
-    if(ret != ARM_DRIVER_OK)
-    {
+    if (ret != ARM_DRIVER_OK) {
         printf("\r\n Error in UART Power OFF.\r\n");
     }
 
@@ -351,18 +306,16 @@ error_uninitialize:
 
     /* Received error Un-initialize UART driver */
     ret = USARTdrv->Uninitialize();
-    if(ret != ARM_DRIVER_OK)
-    {
+    if (ret != ARM_DRIVER_OK) {
         printf("\r\n Error in UART Uninitialize.\r\n");
     }
 
 #if (RTE_UART2_CLK_SOURCE == 0) /* CLK_38.4MHz */
     /* disable the HFOSC clock */
     error_code = SERVICES_clocks_enable_clock(se_services_s_handle,
-                       /*clock_enable_t*/ CLKEN_HFOSC,
-                       /*bool enable   */ false,
-                                          &service_error_code);
-    if(error_code)
+                                              /*clock_enable_t*/ CLKEN_HFOSC,
+                                              /*bool enable   */ false, &service_error_code);
+    if (error_code)
         printf("SE: clk enable = %d\n", error_code);
 #endif
 
@@ -370,66 +323,57 @@ error_uninitialize:
 }
 
 /* Define main entry point.  */
-int main()
-{
-    #if defined(RTE_Compiler_IO_STDOUT_User)
+int main() {
+#if defined(RTE_CMSIS_Compiler_STDOUT_Custom)
+    extern int stdout_init(void);
     int32_t ret;
     ret = stdout_init();
-    if(ret != ARM_DRIVER_OK)
-    {
-        while(1)
-        {
+    if (ret != ARM_DRIVER_OK) {
+        while (1) {
         }
     }
-    #endif
+#endif
 
     /* Enter the ThreadX kernel.  */
     tx_kernel_enter();
 }
 
-
 /* Define what the initial system looks like.  */
-void tx_application_define(void *first_unused_memory)
-{
-    CHAR    *pointer = TX_NULL;
-    INT      status  = 0;
+void tx_application_define(void *first_unused_memory) {
+    CHAR *pointer = TX_NULL;
+    INT status = 0;
 
     /* Create a byte memory pool from which to allocate the thread stacks.  */
     status = tx_byte_pool_create(&byte_pool_0, "byte pool 0", memory_area, DEMO_BYTE_POOL_SIZE);
-    if (status != TX_SUCCESS)
-    {
+    if (status != TX_SUCCESS) {
         printf("Could not create byte pool\n");
         return;
     }
 
-    /* Put system definition stuff in here, e.g. thread creates and other assorted create information.  */
+    /* Put system definition stuff in here, e.g. thread creates and other assorted create
+     * information.  */
 
     /* Create the event flags group used by UART thread */
     status = tx_event_flags_create(&event_flags_uart, "event flags UART");
-    if (status != TX_SUCCESS)
-    {
+    if (status != TX_SUCCESS) {
         printf("Could not create event flags\n");
         return;
     }
 
     /* Allocate the stack for thread.  */
-    status = tx_byte_allocate(&byte_pool_0, (VOID **) &pointer, DEMO_STACK_SIZE, TX_NO_WAIT);
-    if (status != TX_SUCCESS)
-    {
+    status = tx_byte_allocate(&byte_pool_0, (VOID **)&pointer, DEMO_STACK_SIZE, TX_NO_WAIT);
+    if (status != TX_SUCCESS) {
         printf("Could not create byte allocate\n");
         return;
     }
 
     /* Create the main thread.  */
-    status = tx_thread_create(&UART_thread, "UART_thread", myUART_Thread_entry, 0,
-            pointer, DEMO_STACK_SIZE,
-            1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
-    if (status != TX_SUCCESS)
-    {
+    status = tx_thread_create(&UART_thread, "UART_thread", myUART_Thread_entry, 0, pointer,
+                              DEMO_STACK_SIZE, 1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
+    if (status != TX_SUCCESS) {
         printf("Could not create thread1 \n");
         return;
     }
-
 }
 
 /************************ (C) COPYRIGHT ALIF SEMICONDUCTOR *****END OF FILE****/
