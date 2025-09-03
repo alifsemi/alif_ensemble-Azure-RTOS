@@ -32,10 +32,11 @@
 /* Project Includes */
 /* include for MRAM Driver */
 #include "Driver_MRAM.h"
-#if defined(RTE_Compiler_IO_STDOUT)
+#if defined(RTE_CMSIS_Compiler_STDOUT)
+#include "retarget_init.h"
 #include "retarget_stdout.h"
-#endif  /* RTE_Compiler_IO_STDOUT */
-
+#endif  /* RTE_CMSIS_Compiler_STDOUT */
+#include "app_utils.h"
 
 /* for Unused Arguments. */
 #ifndef ARG_UNUSED
@@ -59,6 +60,9 @@ UCHAR                             memory_area[DEMO_BYTE_POOL_SIZE];
 
 /* Valid MRAM address-offset. */
 #define MRAM_ADDR_OFFSET           (0x100000)
+
+#define MRAM_TEST_SIZE            (512*1024)                     /* 512KB size. */
+#define MRAM_TEST_LOOPS           (MRAM_TEST_SIZE / BUFFER_SIZE) /* 512KB/64KB = 8 loops. */
 
 /* Buffer size and value which needs to write to MRAM. */
 #define BUFFER_SIZE   0x10000 /* any random size.(for demo purpose size taken as 64KB) */
@@ -114,8 +118,8 @@ void MRAM_Thread_entry(ULONG thread_input)
         goto error_uninitialize;
     }
 
-    /* write data to MRAM (for demo purpose write 1MB data (64KB x 16) ) */
-    for(int i = 0; i < 16; i++)
+    /* write data to MRAM (for demo purpose write 512KB data (64KB x 8) ) */
+    for(int i = 0; i < MRAM_TEST_LOOPS; i++)
     {
         ret = MRAM_drv->ProgramData(addr, buff_TX, BUFFER_SIZE);
         if(ret != BUFFER_SIZE)
@@ -130,7 +134,7 @@ void MRAM_Thread_entry(ULONG thread_input)
     /* read back and compare wrote data from MRAM. */
     addr = MRAM_ADDR_OFFSET;
 
-    for(int i = 0; i < 16; i++)
+    for(int i = 0; i < MRAM_TEST_LOOPS; i++)
     {
         ret = MRAM_drv->ReadData(addr, buff_RX, BUFFER_SIZE);
         if(ret != BUFFER_SIZE)
@@ -184,7 +188,8 @@ error_uninitialize:
 /* Define main entry point.  */
 int main()
 {
-    #if defined(RTE_Compiler_IO_STDOUT_User)
+    #if defined(RTE_CMSIS_Compiler_STDOUT_Custom)
+    extern int stdout_init(void);
     int32_t ret;
     ret = stdout_init();
     if(ret != ARM_DRIVER_OK)
