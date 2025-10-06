@@ -9,7 +9,7 @@
  */
 
 /**************************************************************************//**
- * @file     LPTIMER_app.c
+ * @file     demo_lptimer_azurertos.c
  * @author   Girish BN
  * @email    girish.bn@alifsemi.com
  * @version  V1.0.0
@@ -23,11 +23,14 @@
 #include "tx_api.h"
 #include "Driver_LPTIMER.h"
 #include <stdio.h>
+#include <inttypes.h>
 #include "RTE_Components.h"
-#if defined(RTE_Compiler_IO_STDOUT)
+#if defined(RTE_CMSIS_Compiler_STDOUT)
+#include "retarget_init.h"
 #include "retarget_stdout.h"
-#endif  /* RTE_Compiler_IO_STDOUT */
+#endif /* RTE_CMSIS_Compiler_STDOUT */
 
+#include "app_utils.h"
 
 #define LPTIMER_THREAD_STACK_SIZE  (1024U)
 #define LPTIMER_CALLBACK_EVENT     0x1
@@ -48,7 +51,7 @@ static void lptimer_cb_fun (uint8_t event)
 static void lptimer_app (ULONG thread_input)
 {
     extern ARM_DRIVER_LPTIMER Driver_LPTIMER0;
-    ARM_DRIVER_LPTIMER *ptrDrv = &Driver_LPTIMER0;
+    ARM_DRIVER_LPTIMER       *ptrDrv = &Driver_LPTIMER0;
 
     /* Configuring the lptimer channel 0 for 5 seconds
      *Clock Source is depends on RTE_LPTIMER_CHANNEL_CLK_SRC in RTE_Device.h
@@ -75,28 +78,28 @@ static void lptimer_app (ULONG thread_input)
 
     ret = ptrDrv->Initialize (channel, lptimer_cb_fun);
     if (ret != ARM_DRIVER_OK) {
-        printf("ERROR: channel '%d'failed to initialize\r\n", channel);
+        printf("ERROR: channel '%" PRIu8 "'failed to initialize\r\n", channel);
         return;
     }
 
     ret = ptrDrv->PowerControl (channel, ARM_POWER_FULL);
     if (ret != ARM_DRIVER_OK) {
-        printf("ERROR: channel '%d'failed to power up\r\n", channel);
+        printf("ERROR: channel '%" PRIu8 "'failed to power up\r\n", channel);
         goto error_uninstall;
     }
 
     /**< Loading the counter value >*/
     ret = ptrDrv->Control (channel, ARM_LPTIMER_SET_COUNT1, &count);
     if (ret != ARM_DRIVER_OK) {
-        printf("ERROR: channel '%d'failed to load count\r\n", channel);
+        printf("ERROR: channel '%" PRIu8 "'failed to load count\r\n", channel);
         goto error_poweroff;
     }
 
-    printf("demo application: lptimer channel '%d'configured for 5 sec \r\n\n", channel);
+    printf("demo application: lptimer channel '%" PRIu8 "'configured for 5 sec \r\n\n", channel);
 
     ret = ptrDrv->Start (channel);
     if (ret != ARM_DRIVER_OK) {
-        printf("ERROR: failed to start channel '%d' timer\n", channel);
+        printf("ERROR: failed to start channel '%" PRIu8 "' timer\n", channel);
         goto error_poweroff;
     } else {
         printf("timer started\r\n");
@@ -112,7 +115,7 @@ static void lptimer_app (ULONG thread_input)
 
     ret = ptrDrv->Stop(channel);
     if(ret != ARM_DRIVER_OK) {
-        printf("ERROR: failed to stop channel %d\n", channel);
+        printf("ERROR: failed to stop channel %" PRIu8 "\n", channel);
     } else {
         printf("timer stopped\r\n\n");
     }
@@ -121,14 +124,14 @@ error_poweroff:
 
     ret = ptrDrv->PowerControl(channel, ARM_POWER_OFF);
     if (ret != ARM_DRIVER_OK) {
-        printf("ERROR: failed to power off channel '%d'\n", channel);
+        printf("ERROR: failed to power off channel '%" PRIu8 "'\n", channel);
     }
 
 error_uninstall:
 
     ret = ptrDrv->Uninitialize(channel);
     if (ret != ARM_DRIVER_OK) {
-        printf("ERROR: failed to un-initialize channel %d\n", channel);
+        printf("ERROR: failed to un-initialize channel %" PRIu8 "\n", channel);
     }
 
     printf("demo application: completed \r\n");
@@ -137,16 +140,14 @@ error_uninstall:
 /* Define main entry point.  */
 int main ()
 {
-    #if defined(RTE_Compiler_IO_STDOUT_User)
-    int32_t ret;
+#if defined(RTE_CMSIS_Compiler_STDOUT_Custom)
+    extern int stdout_init(void);
+    int32_t    ret;
     ret = stdout_init();
-    if(ret != ARM_DRIVER_OK)
-    {
-        while(1)
-        {
-        }
+    if (ret != ARM_DRIVER_OK) {
+        WAIT_FOREVER_LOOP
     }
-    #endif
+#endif
 
     /* Enter the ThreadX kernel.  */
     tx_kernel_enter();

@@ -9,7 +9,7 @@
  */
 
 /**************************************************************************//**
- * @file     rtc_testApp.c
+ * @file     demo_rtc_azurertos.c
  * @author   Tanay Rami
  * @email    tanay@alifsemi.com
  * @version  V1.0.0
@@ -23,16 +23,19 @@
 
 /* System Includes */
 #include <stdio.h>
+#include <inttypes.h>
 #include "tx_api.h"
 
 /* Project Includes */
 /* include for RTC Driver */
 #include "Driver_RTC.h"
 #include "RTE_Components.h"
-#if defined(RTE_Compiler_IO_STDOUT)
+#if defined(RTE_CMSIS_Compiler_STDOUT)
+#include "retarget_init.h"
 #include "retarget_stdout.h"
-#endif  /* RTE_Compiler_IO_STDOUT */
+#endif /* RTE_CMSIS_Compiler_STDOUT */
 
+#include "app_utils.h"
 
 /* RTC Driver instance 0 */
 extern ARM_DRIVER_RTC Driver_RTC0;
@@ -55,8 +58,7 @@ TX_EVENT_FLAGS_GROUP    event_flags_rtc;
 */
 static void alarm_callback(uint32_t event)
 {
-    if (event & ARM_RTC_EVENT_ALARM_TRIGGER)
-    {
+    if (event & ARM_RTC_EVENT_ALARM_TRIGGER) {
         /* Received RTC Alarm: Wake-up Thread. */
         tx_event_flags_set(&event_flags_rtc, TX_RTC_ALARM_EVENT, TX_OR);
     }
@@ -88,37 +90,35 @@ void rtc_demo_Thread_entry(ULONG thread_input)
     printf("\r\n RTC version api:%X driver:%X...\r\n",version.api, version.drv);
 
     capabilities = RTCdrv->GetCapabilities();
-    if(!capabilities.alarm)
-    {
+    if(!capabilities.alarm) {
         printf("\r\n Error: RTC alarm capability is not available.\n");
         return;
     }
 
     /* Initialize RTC driver */
     ret = RTCdrv->Initialize(alarm_callback);
-    if(ret != ARM_DRIVER_OK){
+    if(ret != ARM_DRIVER_OK) {
         printf("\r\n Error: RTC init failed\n");
         return;
     }
 
     /* Enable the power for RTC */
     ret = RTCdrv->PowerControl(ARM_POWER_FULL);
-    if(ret != ARM_DRIVER_OK){
+    if(ret != ARM_DRIVER_OK) {
         printf("\r\n Error: RTC Power up failed\n");
         goto error_uninitialize;
     }
 
-    while (iter--)
-    {
+    while (iter--) {
         ret = RTCdrv->ReadCounter(&val);
-        if(ret != ARM_DRIVER_OK){
+        if(ret != ARM_DRIVER_OK) {
             printf("\r\n Error: RTC read failed\n");
             goto error_poweroff;
         }
 
-        printf("\r\n Setting alarm after %d counts into the future: \r\n", timeout);
+        printf("\r\n Setting alarm after %" PRIu32 " counts into the future: \r\n", timeout);
         ret = RTCdrv->Control(ARM_RTC_SET_ALARM, val + timeout);
-        if(ret != ARM_DRIVER_OK){
+        if(ret != ARM_DRIVER_OK) {
             printf("\r\n Error: RTC Could not set alarm\n");
             goto error_poweroff;
         }
@@ -136,21 +136,19 @@ void rtc_demo_Thread_entry(ULONG thread_input)
 
 error_poweroff:
 
-        /* Power off RTC peripheral */
-        ret = RTCdrv->PowerControl(ARM_POWER_OFF);
-        if(ret != ARM_DRIVER_OK)
-        {
-            printf("\r\n Error: RTC Power OFF failed.\r\n");
-        }
+    /* Power off RTC peripheral */
+    ret = RTCdrv->PowerControl(ARM_POWER_OFF);
+    if(ret != ARM_DRIVER_OK) {
+        printf("\r\n Error: RTC Power OFF failed.\r\n");
+    }
 
 error_uninitialize:
 
-        /* Un-initialize RTC driver */
-        ret = RTCdrv->Uninitialize();
-        if(ret != ARM_DRIVER_OK)
-        {
-            printf("\r\n Error: RTC Uninitialize failed.\r\n");
-        }
+    /* Un-initialize RTC driver */
+    ret = RTCdrv->Uninitialize();
+    if(ret != ARM_DRIVER_OK) {
+        printf("\r\n Error: RTC Uninitialize failed.\r\n");
+    }
 
     printf("\r\n XXX RTC demo thread exiting XXX...\r\n");
 }
@@ -159,16 +157,14 @@ error_uninitialize:
 /* Define main entry point.  */
 int main()
 {
-    #if defined(RTE_Compiler_IO_STDOUT_User)
-    int32_t ret;
+#if defined(RTE_CMSIS_Compiler_STDOUT_Custom)
+    extern int stdout_init(void);
+    int32_t    ret;
     ret = stdout_init();
-    if(ret != ARM_DRIVER_OK)
-    {
-        while(1)
-        {
-        }
+    if (ret != ARM_DRIVER_OK) {
+        WAIT_FOREVER_LOOP
     }
-    #endif
+#endif
 
     /* Enter the ThreadX kernel.  */
     tx_kernel_enter();
@@ -186,8 +182,7 @@ void tx_application_define(void *first_unused_memory)
 
     /* Create the event flags group used by RTC thread */
     status = tx_event_flags_create(&event_flags_rtc, "event flags RTC");
-    if (status != TX_SUCCESS)
-    {
+    if (status != TX_SUCCESS) {
         printf("Could not create event flags\n");
         return;
     }
@@ -196,8 +191,7 @@ void tx_application_define(void *first_unused_memory)
     status = tx_thread_create(&rtc_thread, "rtc_thread", rtc_demo_Thread_entry, 0,
             first_unused_memory, DEMO_STACK_SIZE,
             1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
-    if (status != TX_SUCCESS)
-    {
+    if (status != TX_SUCCESS) {
         printf("Could not create thread\n");
         return;
     }
