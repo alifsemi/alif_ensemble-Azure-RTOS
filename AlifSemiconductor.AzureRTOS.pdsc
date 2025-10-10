@@ -116,6 +116,15 @@
       <require Cclass="RTOS" Cgroup="Kernel"/>
     </condition>
 
+    <condition id="E8">
+      <description>Alif Semiconductor E8 device</description>
+      <require Dvendor="Alif Semiconductor:165"/>
+      <accept Pname="M55_HE" Dname="AE822FA0*"/>
+      <accept Pname="M55_HP" Dname="AE822FA0*"/>
+      <accept Pname="M55_HE" Dname="AE402FA0*"/>
+      <accept Pname="M55_HP" Dname="AE402FA0*"/>
+    </condition>
+
   </conditions>
 
 
@@ -379,7 +388,7 @@
 	<file category="source"       name="THREADX/samples/wdt_testApp.c"            attr="template" select="AzureRTOS Watchdog App"/>
 	<file category="source"       name="THREADX/samples/i2s_testapp.c"            attr="template" select="AzureRTOS I2S test App"/>
 	<file category="header"       name="THREADX/samples/Include/i2s_samples.h"    attr="template" select="AzureRTOS I2S test App"/>
-	<file category="source"       name="THREADX/samples/i2c_using_i3c_testApp.c"  attr="template" select="AzureRTOS I2Con I3C test App"/>
+	<file category="source"       name="THREADX/samples/demo_i3c_i2cbusproxy_threadx.c"  attr="template" select="AzureRTOS I2Con I3C test App"/>
 	<file category="source"       name="THREADX/samples/MT9M114_Camera_Sensor_testApp.c"        attr="template" select="AzureRTOS Camera test App"/>
 	<file category="source"       name="THREADX/samples/bayer.c"			  attr="template" select="AzureRTOS Camera test App"/>
 	<file category="source"       name="THREADX/samples/bayer2rgb.c"		  attr="template" select="AzureRTOS Camera test App"/>
@@ -394,11 +403,12 @@
 	<file category="source"       name="THREADX/samples/bayer2rgb.c"		  attr="template" select="AzureRTOS MIPI CSI2 Image capture App"/>
 	<file category="header"		  name="THREADX/samples/Include/bayer.h"          attr="template" select="AzureRTOS MIPI CSI2 Image capture App"/>
 	<file category="source"       name="THREADX/samples/CRC_testapp.c"		  attr="template" select="AzureRTOS CRC testApp"/>
-	<file category="source"       name="THREADX/samples/mix_bus_i2c_i3c_testApp.c"    attr="template" select="AzureRTOS I3C/I2C Mix bus testApp"/>
+	<file category="source"       name="THREADX/samples/demo_i3c_i2cmixbus_threadx.c"    attr="template" select="AzureRTOS I3C/I2C Mix bus testApp"/>
 	<file category="source"       name="THREADX/samples/CMP_testapp.c"	  attr="template" select="AzureRTOS Comparator testApp"/>
 	<file category="source"       name="THREADX/samples/MRAM_Threadx.c"    attr="template" select="AzureRTOS MRAM flash testApp"/>
 	<file category="source"       name="THREADX/samples/MW_testapp.c"		  attr="template" select="AzureRTOS SPI Microwire test App"/>
-	<file category="source"       name="THREADX/samples/HWSEM_Threadx.c"    attr="template" select="AzureRTOS HWSEM testApp"/>
+	<file category="source"       name="THREADX/samples/demo_hwsem_threadx.c"    attr="template" select="AzureRTOS HWSEM testApp"/>
+	<file category="source"       name="THREADX/samples/MIPI_Interface_Video_ISP_testApp.c"    attr="template" select="AzureRTOS Viewfinder testApp" condition="E8"/>
 	<file category="source"       name="THREADX/samples/MIPI_Interface_Video_testApp.c"    attr="template" select="AzureRTOS Viewfinder testApp"/>
 	<file category="source"       name="THREADX/samples/image_processing.c"    attr="template" select="AzureRTOS Viewfinder testApp"/>
 	<file category="source"       name="THREADX/samples/bayer.c"			  attr="template" select="AzureRTOS Viewfinder testApp"/>
@@ -414,13 +424,14 @@
     <file category="header"       name="THREADX/samples/temperature.h"		  attr="template" select="AzureRTOS TSENS App"/>
 	<file category="source"       name="THREADX/samples/SPI0_SPI1_testapp.c"		  attr="template" select="AzureRTOS SPI testApp"/>
 	<file category="source"       name="THREADX/samples/LPSPI_SPI_testapp.c"		  attr="template" select="AzureRTOS LPSPI testApp"/>
-	<file category="source"       name="THREADX/samples/i3c_master_loopback_testapp.c"		  attr="template" select="AzureRTOS I3C Master Loopback testApp"/>
-	<file category="source"       name="THREADX/samples/i3c_slave_loopback_testapp.c"		  attr="template" select="AzureRTOS I3C Slave Loopback testApp"/>
-        <file category="source"       name="THREADX/samples/i2c_testapp.c"		  attr="template" select="AzureRTOS I2C testApp"/>
-        <file category="source" name="THREADX/samples/CANFD_Bus_Monitor.c" attr="template" select="AzureRTOS CANFD Bus Monitor testApp"/>
-        <file category="source" name="THREADX/samples/CANFD_Ext_Loopback.c" attr="template" select="AzureRTOS CANFD External Loopback testApp"/>
-        <file category="source" name="THREADX/samples/CANFD_Int_Loopback.c" attr="template" select="AzureRTOS CANFD internal Loopback testApp"/>
-        <file category="source" name="THREADX/samples/CANFD_NormalMode.c" attr="template" select="AzureRTOS CANFD data transfer testApp"/>
+	<file category="source"       name="THREADX/samples/demo_i3c_master_threadx.c"		  attr="template" select="AzureRTOS I3C Master Loopback testApp"/>
+	<file category="source"       name="THREADX/samples/demo_i3c_slave_threadx.c"		  attr="template" select="AzureRTOS I3C Slave Loopback testApp"/>
+        <file category="source"       name="THREADX/samples/demo_i2c_threadx.c"		  attr="template" select="AzureRTOS I2C testApp"/>
+        <file category="source"       name="THREADX/samples/demo_lpi2c0_threadx.c"		  attr="template" select="AzureRTOS LPI2C testApp"/>
+        <file category="source" name="THREADX/samples/demo_canfd_busmonitor_threadx.c" attr="template" select="AzureRTOS CANFD Bus Monitor testApp"/>
+        <file category="source" name="THREADX/samples/demo_canfd_extloopback_threadx.c" attr="template" select="AzureRTOS CANFD External Loopback testApp"/>
+        <file category="source" name="THREADX/samples/demo_canfd_intloopback_threadx.c" attr="template" select="AzureRTOS CANFD internal Loopback testApp"/>
+        <file category="source" name="THREADX/samples/demo_canfd_normalmode_threadx.c" attr="template" select="AzureRTOS CANFD data transfer testApp"/>
 	</files>
     </component>
 
@@ -753,7 +764,7 @@
 	<file category="header" name="FILEX/driver/inc/fx_sd_driver_private.h"/>
 	<file category="source" name="FILEX/driver/src/fx_sd_driver.c"/>
 	<!-- Templates -->
-	<file category="source"       name="FILEX/samples/Demo_SD_FileX.c"    attr="template" select="AzureRTOS SD card Test App"/>
+	<file category="source"       name="FILEX/samples/demo_sd_filex.c"    attr="template" select="AzureRTOS SD card Test App"/>
     </files>
     </component>
 
