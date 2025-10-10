@@ -128,6 +128,19 @@
       <accept Pname="M55_HE" Dname="AE402FA0*"/>
       <accept Pname="M55_HP" Dname="AE402FA0*"/>
     </condition>
+    
+    <condition id="E7">
+    <description>Alif Semiconductor E7 and other device</description>
+      <require Dvendor="Alif Semiconductor:165"/>
+      <accept Pname="M55_HE" Dname="AE722F80*"/>
+      <accept Pname="M55_HP" Dname="AE722F80*"/>
+      <accept Pname="M55_HE" Dname="AE512F80*"/>
+      <accept Pname="M55_HP" Dname="AE512F80*"/>
+      <accept Pname="M55_HE" Dname="AE302F*"/>
+      <accept Pname="M55_HP" Dname="AE302F*"/>
+      <accept Pname="M55_HE" Dname="AE101F*"/>
+      <accept Pname="M55_HE" Dname="AE1C1F*"/>
+    </condition>
 
   </conditions>
 
@@ -413,11 +426,11 @@
 	<file category="source"       name="THREADX/samples/MW_testapp.c"		  attr="template" select="AzureRTOS SPI Microwire test App"/>
 	<file category="source"       name="THREADX/samples/demo_hwsem_threadx.c"    attr="template" select="AzureRTOS HWSEM testApp"/>
 	<file category="source"       name="THREADX/samples/MIPI_Interface_Video_ISP_testApp.c"    attr="template" select="AzureRTOS Viewfinder testApp" condition="E8"/>
-	<file category="source"       name="THREADX/samples/MIPI_Interface_Video_testApp.c"    attr="template" select="AzureRTOS Viewfinder testApp"/>
-	<file category="source"       name="THREADX/samples/image_processing.c"    attr="template" select="AzureRTOS Viewfinder testApp"/>
-	<file category="source"       name="THREADX/samples/bayer.c"			  attr="template" select="AzureRTOS Viewfinder testApp"/>
-	<file category="source"       name="THREADX/samples/bayer2rgb.c"		  attr="template" select="AzureRTOS Viewfinder testApp"/>
-	<file category="header"		  name="THREADX/samples/Include/bayer.h"          attr="template" select="AzureRTOS Viewfinder testApp"/>
+	<file category="source"       name="THREADX/samples/MIPI_Interface_Video_testApp.c"    attr="template" select="AzureRTOS Viewfinder testApp" condition="E7"/>
+	<file category="source"       name="THREADX/samples/image_processing.c"    attr="template" select="AzureRTOS Viewfinder testApp" condition="E7"/>
+	<file category="source"       name="THREADX/samples/bayer.c"			  attr="template" select="AzureRTOS Viewfinder testApp" condition="E7"/>
+	<file category="source"       name="THREADX/samples/bayer2rgb.c"		  attr="template" select="AzureRTOS Viewfinder testApp" condition="E7"/>
+	<file category="header"		  name="THREADX/samples/Include/bayer.h"          attr="template" select="AzureRTOS Viewfinder testApp" condition="E7"/>
 	<file category="source"       name="THREADX/samples/Flash_ISSI_Threadx_app.c"		  attr="template" select="AzureRTOS (OSPI)ISSI Flash testApp"/>
 <!--	<file category="source"       name="THREADX/samples/QEC_app.c"		  attr="template" select="AzureRTOS QEC testApp"/>-->
 	<file category="source"       name="THREADX/samples/PDM_testApp.c"		  attr="template" select="AzureRTOS PDM testApp"/>
