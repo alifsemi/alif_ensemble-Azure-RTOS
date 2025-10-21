@@ -74,6 +74,22 @@ void video_demo_thread_entry(ULONG thread_input);
 TX_THREAD                           Video_thread;
 TX_EVENT_FLAGS_GROUP                event_flags;
 
+#define USE_MT9M114    1
+#define USE_ARX3A0     0
+
+#if USE_MT9M114
+/* @Note: MT9M114 Camera Sensor configurations
+ *        are directly borrowed from MT9M114 Camera Sensor drivers,
+ *        for detail refer MT9M114 driver.
+ *
+ * Selected MT9M114 Camera Sensor configurations:
+ *   - Interface     : MIPI CSI2
+ *   - Resolution    : 1280X720
+ *   - Output Format : RAW Bayer8
+ */
+#define CAM_FRAME_WIDTH        (1280)
+#define CAM_FRAME_HEIGHT       (720)
+#elif USE_ARX3A0
 /* @Note: ARX3A0 Camera Sensor configurations
  *        are directly borrowed from ARX3A0 Camera Sensor drivers,
  *        for detail refer ARX3A0 driver.
@@ -83,10 +99,11 @@ TX_EVENT_FLAGS_GROUP                event_flags;
  *   - Resolution    : 560X560
  *   - Output Format : RAW Bayer10
  */
-
-/* ARX3A0 Camera Sensor Resolution. */
 #define CAM_FRAME_WIDTH        (560)
 #define CAM_FRAME_HEIGHT       (560)
+#else
+#error "No camera sensor selected!"
+#endif
 
 /* Allocate Camera frame buffer memory using memory pool section in
  *  Linker script (sct scatter) file.
