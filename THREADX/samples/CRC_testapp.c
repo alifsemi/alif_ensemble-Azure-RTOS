@@ -29,14 +29,11 @@
 /* include for CRC Driver */
 #include "Driver_CRC.h"
 #include "RTE_Components.h"
-#if defined(RTE_Compiler_IO_STDOUT)
+#if defined(RTE_CMSIS_Compiler_STDOUT)
 #include "retarget_stdout.h"
-#endif  /* RTE_Compiler_IO_STDOUT */
+#endif  /* RTE_CMSIS_Compiler_STDOUT */
 
-
-
-#define ENABLE   1
-#define DISABLE  0
+#include "app_utils.h"
 
 /* Select the CRC algorithm */
 #define CRC_8_BIT           1
@@ -325,16 +322,15 @@ void crc_demo_Thread_entry(ULONG thread_input)
 /* Define main entry point.  */
 int main()
 {
-    #if defined(RTE_Compiler_IO_STDOUT_User)
-    int32_t ret;
+#if defined(RTE_CMSIS_Compiler_STDOUT_Custom)
+    extern int stdout_init(void);
+    int32_t    ret;
+
     ret = stdout_init();
-    if(ret != ARM_DRIVER_OK)
-    {
-        while(1)
-        {
-        }
+    if (ret != ARM_DRIVER_OK) {
+        WAIT_FOREVER_LOOP
     }
-    #endif
+#endif
 
     /* Enter the ThreadX kernel.  */
     tx_kernel_enter();
