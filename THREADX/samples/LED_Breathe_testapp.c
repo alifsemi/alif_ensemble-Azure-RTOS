@@ -67,8 +67,8 @@ TX_THREAD                               led_ctrl_thread;
 #define UT_CHANNEL_BLUE_LED           8U
 
 /* UTIMER0 Driver instance */
-extern ARM_DRIVER_UTIMER DRIVER_UTIMER0;
-ARM_DRIVER_UTIMER *ptrUTIMER = &DRIVER_UTIMER0;
+extern ARM_DRIVER_UTIMER Driver_UTIMER0;
+ARM_DRIVER_UTIMER *ptrUTIMER = &Driver_UTIMER0;
 
 /**
  * @function    void utimer_led_cb_func (event)

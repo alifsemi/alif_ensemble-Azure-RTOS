@@ -78,8 +78,8 @@ TX_EVENT_FLAGS_GROUP                             pwm_mode_event_flag;
 ULONG                                            events;
 
 /* UTIMER0 Driver instance */
-extern ARM_DRIVER_UTIMER DRIVER_UTIMER0;
-ARM_DRIVER_UTIMER *ptrUTIMER = &DRIVER_UTIMER0;
+extern ARM_DRIVER_UTIMER Driver_UTIMER0;
+ARM_DRIVER_UTIMER *ptrUTIMER = &Driver_UTIMER0;
 
 /* GPIO3 Driver instance */
 extern ARM_DRIVER_GPIO ARM_Driver_GPIO_(GPIO3);

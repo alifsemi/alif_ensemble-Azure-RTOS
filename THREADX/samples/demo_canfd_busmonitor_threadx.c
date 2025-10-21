@@ -9,7 +9,7 @@
  */
 
 /******************************************************************************
- * @file     CANFD_Bus_Monitor.c
+ * @file     demo_canfd_busmonitor_threadx.c
  * @author   Shreehari H K
  * @email    shreehari.hk@alifsemi.com
  * @version  V1.0.0
@@ -26,13 +26,18 @@
 #include <RTE_Components.h>
 #include CMSIS_device_header
 #include "pinconf.h"
+#include "board_config.h"
 #include "Driver_CAN.h"
+#include "app_utils.h"
 
-#if defined(RTE_Compiler_IO_STDOUT)
+#if defined(RTE_CMSIS_Compiler_STDOUT)
+#include "retarget_init.h"
 #include "retarget_stdout.h"
-#endif  /* RTE_Compiler_IO_STDOUT */
+#endif /* RTE_CMSIS_Compiler_STDOUT */
 
-#include "se_services_port.h"
+// Set to 0: Use application-defined CANFD pin configuration (via board_canfd_pins_config()).
+// Set to 1: Use Conductor-generated pin configuration (from pins.h).
+#define USE_CONDUCTOR_TOOL_PINS_CONFIG 0
 
 /* It is recommended to use the bit rate and bit segments
  * as specified in the Hardware reference manual for proper communication.
@@ -79,8 +84,8 @@ static TX_THREAD               canfd_thread;
 static TX_EVENT_FLAGS_GROUP    event_flags_canfd;
 
 /* CANFD instance object */
-extern ARM_DRIVER_CAN  Driver_CANFD;
-static ARM_DRIVER_CAN* CANFD_instance           = &Driver_CANFD;
+extern ARM_DRIVER_CAN  Driver_CANFD0;
+static ARM_DRIVER_CAN* CANFD_instance           = &Driver_CANFD0;
 
 /* File Global variables */
 static volatile bool is_msg_read                = false;
@@ -101,45 +106,49 @@ static const uint8_t canfd_len_dlc_map[0x10U] =
 static void canfd_process_rx_message(void);
 static void canfd_check_error(void);
 
+#if (!USE_CONDUCTOR_TOOL_PINS_CONFIG)
 /**
- * @fn      static int32_t pinmux_config(void)
+ * @fn      static int32_t board_canfd_pins_config(void)
  * @brief   CANFD Rx and Tx pinmux configuration.
  * @note    none
  * @param   none
  * @retval  execution status.
  */
-static int32_t pinmux_config(void)
+static int32_t board_canfd_pins_config(void)
 {
     int32_t ret_val = 0;
 
     /* pinmux configurations for CANFD pins */
-    ret_val = pinconf_set(PORT_7, PIN_0, PINMUX_ALTERNATE_FUNCTION_7,
-                         (PADCTRL_READ_ENABLE |
-                          PADCTRL_OUTPUT_DRIVE_STRENGTH_2MA));
-    if(ret_val)
-    {
+    ret_val = pinconf_set(PORT_(BOARD_CAN_RXD_GPIO_PORT),
+                          BOARD_CAN_RXD_GPIO_PIN,
+                          BOARD_CAN_RXD_ALTERNATE_FUNCTION,
+                          (PADCTRL_READ_ENABLE | PADCTRL_OUTPUT_DRIVE_STRENGTH_2MA));
+    if (ret_val) {
         printf("ERROR: Failed to configure PINMUX for CANFD Rx \r\n");
         return ret_val;
     }
 
-    ret_val = pinconf_set(PORT_7, PIN_1, PINMUX_ALTERNATE_FUNCTION_7,
+    ret_val = pinconf_set(PORT_(BOARD_CAN_TXD_GPIO_PORT),
+                          BOARD_CAN_TXD_GPIO_PIN,
+                          BOARD_CAN_TXD_ALTERNATE_FUNCTION,
                           PADCTRL_OUTPUT_DRIVE_STRENGTH_2MA);
-    if(ret_val)
-    {
+    if (ret_val) {
         printf("ERROR: Failed to configure PINMUX for CANFD Tx \r\n");
         return ret_val;
     }
 
-    ret_val = pinconf_set(PORT_7, PIN_3, PINMUX_ALTERNATE_FUNCTION_7,
+    ret_val = pinconf_set(PORT_(BOARD_CAN_STBY_GPIO_PORT),
+                          BOARD_CAN_STBY_GPIO_PIN,
+                          BOARD_CAN_STBY_ALTERNATE_FUNCTION,
                           PADCTRL_OUTPUT_DRIVE_STRENGTH_2MA);
-    if(ret_val)
-    {
+    if (ret_val) {
         printf("ERROR: Failed to configure PINMUX for CANFD Standby \r\n");
         return ret_val;
     }
 
     return ret_val;
 }
+#endif
 
 /**
  * @fn      static void cb_unit_event(uint32_t event)
@@ -150,28 +159,20 @@ static int32_t pinmux_config(void)
  */
 static void cb_unit_event(uint32_t event)
 {
-    if(event == ARM_CAN_EVENT_UNIT_ACTIVE)
-    {
+    if (event == ARM_CAN_EVENT_UNIT_ACTIVE) {
         passive_mode = false;
-    }
-    else if(event == ARM_CAN_EVENT_UNIT_BUS_OFF)
-    {
+    } else if (event == ARM_CAN_EVENT_UNIT_BUS_OFF) {
         /* Set bus off flag when bus is OFF */
         bus_off = true;
-    }
-    else if(event == ARM_CAN_EVENT_UNIT_WARNING)
-    {
+    } else if (event == ARM_CAN_EVENT_UNIT_WARNING) {
         /* Set bus error flag when bus warning occurred */
         bus_error = true;
-    }
-    else if(event == ARM_CAN_EVENT_UNIT_PASSIVE)
-    {
+    } else if (event == ARM_CAN_EVENT_UNIT_PASSIVE) {
         /* Set passive mode flag when bus passive error occurred */
         passive_mode = true;
     }
 
-    if(bus_error || passive_mode || bus_off)
-    {
+    if (bus_error || passive_mode || bus_off) {
         /* Communication error occurred - Notify the task */
         tx_event_flags_set(&event_flags_canfd, CANFD_ERROR, TX_OR);
     }
@@ -187,12 +188,10 @@ static void cb_unit_event(uint32_t event)
  */
 static void cb_object_event(uint32_t obj_idx, uint32_t event)
 {
-    if((event & ARM_CAN_EVENT_RECEIVE) ||
-       (event & ARM_CAN_EVENT_RECEIVE_OVERRUN))
-    {
+    if ((event & ARM_CAN_EVENT_RECEIVE) ||
+       (event & ARM_CAN_EVENT_RECEIVE_OVERRUN)) {
         /* Sets msg_rx_complete if the Receive Object matches */
-        if(obj_idx == rx_obj_id)
-        {
+        if (obj_idx == rx_obj_id) {
             /* Sets the flag to indicate that the received msg is not read */
             is_msg_read = false;
 
@@ -230,8 +229,7 @@ static void canfd_lom_demo_task(ULONG thread_input)
                                               CLKEN_HFOSC,
                                               true,
                                               &service_error_code);
-    if(error_code)
-    {
+    if (error_code) {
         printf("SE Error: HFOSC clk enable = %d\n", (int)error_code);
         return;
     }
@@ -242,8 +240,7 @@ static void canfd_lom_demo_task(ULONG thread_input)
                                               CLKEN_CLK_160M,
                                               true,
                                               &service_error_code);
-    if(error_code)
-    {
+    if (error_code) {
         printf("SE Error: 160 MHz clk enable = %d\n", (int)error_code);
         return;
     }
@@ -251,12 +248,25 @@ static void canfd_lom_demo_task(ULONG thread_input)
 
     printf("*** CANFD Listen only mode Demo app is starting ***\n");
 
-    ret_val = pinmux_config();
-    if(ret_val != ARM_DRIVER_OK)
-    {
-        printf("Error in pin-mux configuration\n");
+#if USE_CONDUCTOR_TOOL_PINS_CONFIG
+    /* pin mux and configuration for all device IOs requested from pins.h*/
+    ret_val = board_pins_config();
+    if (ret_val != 0) {
+        printf("Error in pin-mux configuration: %d\n", ret_val);
         return;
     }
+
+#else
+    /*
+     * NOTE: The CANFD pins used in this test application are not configured
+     * in the board support library. Therefore, it is being configured manually here.
+     */
+    ret_val = board_canfd_pins_config();
+    if (ret_val != 0) {
+        printf("Error in pin-mux configuration: %d\n", ret_val);
+        return;
+    }
+#endif
 
     /* Get CANFD capabilities */
     can_capabilities = CANFD_instance->GetCapabilities();
@@ -264,26 +274,22 @@ static void canfd_lom_demo_task(ULONG thread_input)
 
     /* Initializing CANFD Access struct */
     ret_val = CANFD_instance->Initialize(cb_unit_event, cb_object_event);
-    if(ret_val != ARM_DRIVER_OK)
-    {
+    if (ret_val != ARM_DRIVER_OK) {
         printf("ERROR: Failed to initialize the CANFD \n");
         return;
     }
 
     /* Powering up CANFD */
     ret_val = CANFD_instance->PowerControl(ARM_POWER_FULL);
-    if(ret_val != ARM_DRIVER_OK)
-    {
+    if (ret_val != ARM_DRIVER_OK) {
         printf("ERROR: Failed to Power up the CANFD \n");
         goto uninitialise_canfd;
     }
 
     /* Setting CANFD to FD mode */
-    if(can_capabilities.fd_mode == 1U)
-    {
+    if (can_capabilities.fd_mode == 1U) {
         CANFD_instance->Control(ARM_CAN_SET_FD_MODE, ENABLE);
-        if(ret_val != ARM_DRIVER_OK)
-        {
+        if (ret_val != ARM_DRIVER_OK) {
            printf("ERROR: CANFD Enabling FD mode failed\r\n");
            goto power_off_canfd;
         }
@@ -291,8 +297,7 @@ static void canfd_lom_demo_task(ULONG thread_input)
 
     /* Initializing up CANFD module */
     ret_val = CANFD_instance->SetMode(ARM_CAN_MODE_INITIALIZATION);
-    if(ret_val != ARM_DRIVER_OK)
-    {
+    if (ret_val != ARM_DRIVER_OK) {
         printf("ERROR: Failed to set CANFD to INIT mode \r\n");
         goto power_off_canfd;
     }
@@ -300,37 +305,31 @@ static void canfd_lom_demo_task(ULONG thread_input)
     ret_val = CANFD_instance->SetBitrate(ARM_CAN_BITRATE_NOMINAL,
                                          CANFD_NOMINAL_BITRATE,
                                          CANFD_NOMINAL_BITTIME_SEGMENTS);
-    if(ret_val != ARM_DRIVER_OK)
-    {
+    if (ret_val != ARM_DRIVER_OK) {
        printf("ERROR: Failed to set CANFD Nominal Bitrate\r\n");
        goto power_off_canfd;
     }
     /* Setting bit rate for CANFD */
-    if(can_capabilities.fd_mode == 1U)
-    {
+    if (can_capabilities.fd_mode == 1U) {
         ret_val = CANFD_instance->SetBitrate(ARM_CAN_BITRATE_FD_DATA,
                                              CANFD_FAST_BITRATE,
                                              CANFD_FAST_BITTIME_SEGMENTS);
-        if(ret_val != ARM_DRIVER_OK)
-        {
+        if (ret_val != ARM_DRIVER_OK) {
            printf("ERROR: Failed to set CANFD Fast Bitrate\r\n");
            goto power_off_canfd;
         }
     }
 
     /* Assign IDs to Rx object*/
-    for(iter = 0U; iter < can_capabilities.num_objects; iter++)
-    {
+    for (iter = 0U; iter < can_capabilities.num_objects; iter++) {
         can_obj_capabilities = CANFD_instance->ObjectGetCapabilities(iter);
-        if((can_obj_capabilities.rx == 1U) && (rx_obj_id == 255U))
-        {
+        if ((can_obj_capabilities.rx == 1U) && (rx_obj_id == 255U)) {
             rx_obj_id = iter;
         }
     }
 
     ret_val = CANFD_instance->ObjectConfigure(rx_obj_id, ARM_CAN_OBJ_RX);
-    if(ret_val != ARM_DRIVER_OK)
-    {
+    if (ret_val != ARM_DRIVER_OK) {
        printf("ERROR: Object Rx configuration failed\r\n");
        goto power_off_canfd;
     }
@@ -339,20 +338,16 @@ static void canfd_lom_demo_task(ULONG thread_input)
                                               ARM_CAN_FILTER_ID_EXACT_ADD,
                                               CANFD_OBJECT_FILTER_CODE,
                                               CANFD_OBJECT_FILTER_MASK);
-    if(ret_val == ARM_DRIVER_ERROR_SPECIFIC)
-    {
+    if (ret_val == ARM_DRIVER_ERROR_SPECIFIC) {
        printf("ERROR: No free Filter available\r\n");
-    }
-    else if(ret_val != ARM_DRIVER_OK)
-    {
+    } else if (ret_val != ARM_DRIVER_OK) {
        printf("ERROR: Failed to set CANFD Object filter\r\n");
        goto power_off_canfd;
     }
 
     /* Setting CANFD to Bus Monitor mode */
     ret_val = CANFD_instance->SetMode(ARM_CAN_MODE_MONITOR);
-    if(ret_val != ARM_DRIVER_OK)
-    {
+    if (ret_val != ARM_DRIVER_OK) {
        printf("ERROR: Failed to set CANFD to Listen only mode\r\n");
        goto power_off_canfd;
     }
@@ -361,35 +356,29 @@ static void canfd_lom_demo_task(ULONG thread_input)
     event_ret = tx_event_flags_get(&event_flags_canfd,
                                    CANFD_ALL_NOTIFICATIONS, TX_OR_CLEAR,
                                    &task_notified_value, TX_WAIT_FOREVER);
-    if(event_ret != TX_SUCCESS)
-    {
+    if (event_ret != TX_SUCCESS) {
         printf("Error: CANFD event flags\n");
         goto power_off_canfd;
     }
 
     /* Checks if both callbacks are successful */
-    if(task_notified_value & CANFD_RX_SUCCESS)
-    {
+    if (task_notified_value & CANFD_RX_SUCCESS) {
         /* Invokes received message process function */
         canfd_process_rx_message();
-    }
-    else if(task_notified_value & CANFD_ERROR)
-    {
+    } else if (task_notified_value & CANFD_ERROR) {
         /* Invoke the below function to check on errors */
         canfd_check_error();
     }
 
 power_off_canfd:
 /* Powering OFF CANFD module */
-    if(CANFD_instance->PowerControl(ARM_POWER_OFF) != ARM_DRIVER_OK)
-    {
+    if (CANFD_instance->PowerControl(ARM_POWER_OFF) != ARM_DRIVER_OK) {
        printf("ERROR in CANFD power off\r\n");
     }
 
 uninitialise_canfd:
     /*  Un-initialising CANFD module */
-    if(CANFD_instance->Uninitialize() != ARM_DRIVER_OK)
-    {
+    if (CANFD_instance->Uninitialize() != ARM_DRIVER_OK) {
         printf("ERROR in CANFD un-initialization\r\n");
     }
 
@@ -398,8 +387,7 @@ uninitialise_canfd:
                                               CLKEN_HFOSC,
                                               false,
                                               &service_error_code);
-    if(error_code)
-    {
+    if (error_code) {
         printf("SE Error: HFOSC clk disable = %d\n", (int)error_code);
         return;
     }
@@ -409,8 +397,7 @@ uninitialise_canfd:
                                               CLKEN_CLK_160M,
                                               false,
                                               &service_error_code);
-    if(error_code)
-    {
+    if (error_code) {
         printf("SE Error: 160 MHz clk disable = %d\n", (int)error_code);
         return;
     }
@@ -430,14 +417,12 @@ int main()
     /* System Initialization */
    SystemCoreClockUpdate();
 
-#if defined(RTE_Compiler_IO_STDOUT_User)
-    int32_t ret;
+#if defined(RTE_CMSIS_Compiler_STDOUT_Custom)
+    extern int stdout_init(void);
+    int32_t    ret;
     ret = stdout_init();
-    if(ret != ARM_DRIVER_OK)
-    {
-        while(1)
-        {
-        }
+    if (ret != ARM_DRIVER_OK) {
+        WAIT_FOREVER_LOOP
     }
 #endif
 
@@ -463,8 +448,7 @@ void tx_application_define(void *first_unused_memory)
 
     /* Create the event flags group used by CANFD thread */
     status = tx_event_flags_create(&event_flags_canfd, "CANFD Events");
-    if(status != TX_SUCCESS)
-    {
+    if (status != TX_SUCCESS) {
         printf("Could not create event flags\n");
         return;
     }
@@ -473,8 +457,7 @@ void tx_application_define(void *first_unused_memory)
     status = tx_thread_create(&canfd_thread, "CANFD_LOM", canfd_lom_demo_task,
                               0U, first_unused_memory, THREAD_STACK_SIZE,
                               1U, 1U, TX_NO_TIME_SLICE, TX_AUTO_START);
-    if(status != TX_SUCCESS)
-    {
+    if (status != TX_SUCCESS) {
         printf("Unable to Create LOM Task\n");
         return;
     }
@@ -490,43 +473,34 @@ static void canfd_check_error(void)
 {
     ARM_CAN_STATUS cur_sts;
 
-    if(bus_error)
-    {
+    if (bus_error) {
         /* Getting the current CANFD status */
         cur_sts = CANFD_instance->GetStatus();
         /* In LOM if an ACK error occurs  */
-        if(cur_sts.last_error_code == ARM_CAN_LEC_ACK_ERROR)
-        {
+        if (cur_sts.last_error_code == ARM_CAN_LEC_ACK_ERROR) {
             /*  Reading arrived CANFD Message */
-            if(CANFD_instance->MessageRead(rx_obj_id, &rx_msg_header,
+            if (CANFD_instance->MessageRead(rx_obj_id, &rx_msg_header,
                                            rx_data,
-                                           rx_msg_size) != ARM_DRIVER_OK)
-            {
+                                           rx_msg_size) != ARM_DRIVER_OK) {
                 printf("Error: Message reception failed\r\n");
-            }
-            else
-            {
+            } else {
                 /* Sets the below to process the received message */
                 is_msg_read = true;
                 canfd_process_rx_message();
             }
-        }
-        else
-        {
+        } else {
             printf("Error in CANFD-->Error code: %d\r\n",
                     cur_sts.last_error_code);
         }
         bus_error = false;
     }
     /* If bus is off then raise an error */
-    if(bus_off)
-    {
+    if (bus_off) {
         printf("Error: CAN Bus if Off\r\n");
         bus_off = false;
     }
     /* If canfd is in passive mode then raise an error */
-    if(passive_mode)
-    {
+    if (passive_mode) {
         printf("Error: CANFD In Error Passive mode:\r\n");
     }
 }
@@ -542,45 +516,36 @@ static void canfd_process_rx_message(void)
 {
     uint8_t iter = 0U;
 
-    if(!is_msg_read)
-    {
+    if (!is_msg_read) {
         /*  Reading arrived CANFD Message */
-        if(CANFD_instance->MessageRead(rx_obj_id, &rx_msg_header,
-                                       rx_data, rx_msg_size) != ARM_DRIVER_OK)
-        {
+        if (CANFD_instance->MessageRead(rx_obj_id, &rx_msg_header,
+                                       rx_data, rx_msg_size) != ARM_DRIVER_OK) {
             printf("Error: Message reception failed\r\n");
             return;
         }
     }
     /* Checking if a new message is received. If yes
      * performs the below operations */
-    if(rx_msg_header.rtr == 1U)
-    {
+    if (rx_msg_header.rtr == 1U) {
         printf("Rx msg:\r\n    Type:Remote frame, Id:%lu",
                (rx_msg_header.id & (~ARM_CAN_ID_IDE_Msk)));
     }
-    else
-    {
+    else {
         printf("Rx msg:\r\n    Type:Data frame, ");
 
         /* Checks if expected Rx msg length is equal to actual length */
-        if(rx_msg_size == canfd_len_dlc_map[rx_msg_header.dlc])
-        {
+        if (rx_msg_size == canfd_len_dlc_map[rx_msg_header.dlc]) {
             /* If any error is present in the Rx message */
-            if(rx_msg_header.esi)
-            {
+            if (rx_msg_header.esi) {
                 printf("\r\n    Error Occurred in Rx message \r\n");
                 return;
             }
             printf("Id:%lu, Len:%d:\r\n    Data:",
                    (rx_msg_header.id & (~ARM_CAN_ID_IDE_Msk)), rx_msg_size);
-            for(iter = 0; iter < rx_msg_size; iter++)
-            {
+            for (iter = 0; iter < rx_msg_size; iter++) {
                 printf("%c", rx_data[iter]);
             }
-        }
-        else
-        {
+        } else {
             printf("Error: Rx msg length is not as expected");
         }
     }

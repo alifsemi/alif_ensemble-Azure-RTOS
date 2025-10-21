@@ -9,7 +9,7 @@
  */
 
 /**************************************************************************//**
- * @file     Demo_SD_FileX.c
+ * @file     demo_sd_filex.c
  * @author   Deepak Kumar
  * @email    deepak@alifsemi.com
  * @version  V0.0.1
@@ -35,6 +35,9 @@
 #include "retarget_stdout.h"
 #include "Driver_Common.h"
 #endif  /* RTE_Compiler_IO_STDOUT */
+#include "board_config.h"
+#include "Driver_IO.h"
+#include "sys_utils.h"
 
 #define SDC_A 1
 #define SDC_B 2
@@ -69,6 +72,59 @@ UCHAR filebuffer[SD_BLK_SIZE*NUM_BLK_TEST] __attribute__((section("sd_dma_buf"))
 FX_MEDIA sd_card;
 FX_FILE test_file;
 
+#ifdef BOARD_SD_RESET_GPIO_PORT
+extern  ARM_DRIVER_GPIO ARM_Driver_GPIO_(BOARD_SD_RESET_GPIO_PORT);
+
+/**
+  \fn           sd_reset(void)
+  \brief        Perform SD reset sequence
+  \return       none
+  */
+int sd_reset(void) {
+    int status;
+    ARM_DRIVER_GPIO *gpioSD_RST = &ARM_Driver_GPIO_(BOARD_SD_RESET_GPIO_PORT);
+
+    pinconf_set(PORT_(BOARD_SD_RESET_GPIO_PORT), BOARD_SD_RESET_GPIO_PIN, 0, 0); //SD reset
+
+    status = gpioSD_RST->Initialize(BOARD_SD_RESET_GPIO_PIN, NULL);
+    if (status != ARM_DRIVER_OK) {
+        printf("ERROR: Failed to initialize SD RST GPIO\n");
+        return 1;
+    }
+    status = gpioSD_RST->PowerControl(BOARD_SD_RESET_GPIO_PIN, ARM_POWER_FULL);
+    if (status != ARM_DRIVER_OK) {
+        printf("ERROR: Failed to powered full\n");
+        return 1;
+    }
+    status = gpioSD_RST->SetDirection(BOARD_SD_RESET_GPIO_PIN, GPIO_PIN_DIRECTION_OUTPUT);
+    if (status != ARM_DRIVER_OK) {
+        printf("ERROR: Failed to configure\n");
+        return 1;
+    }
+
+    status = gpioSD_RST->SetValue(BOARD_SD_RESET_GPIO_PIN, GPIO_PIN_OUTPUT_STATE_HIGH);
+    if (status != ARM_DRIVER_OK) {
+        printf("ERROR: Failed to toggle LEDs\n");
+        return 1;
+    }
+    sys_busy_loop_us(100);
+    status = gpioSD_RST->SetValue(BOARD_SD_RESET_GPIO_PIN, GPIO_PIN_OUTPUT_STATE_LOW);
+    if (status != ARM_DRIVER_OK) {
+        printf("ERROR: Failed to toggle LEDs\n");
+        return 1;
+    }
+    sys_busy_loop_us(100);
+    status = gpioSD_RST->SetValue(BOARD_SD_RESET_GPIO_PIN, GPIO_PIN_OUTPUT_STATE_HIGH);
+    if (status != ARM_DRIVER_OK) {
+        printf("ERROR: Failed to toggle LEDs\n");
+        return 1;
+    }
+
+    return 0;
+}
+#endif
+
+
 /**
   \fn           mySD_Thread_entry(ULONG args)
   \brief        ThreadX and FileX integrated SD driver Test Function
@@ -81,22 +137,29 @@ void mySD_Thread_entry(ULONG args)
     ULONG       actual;
     ULONG       startCnt, EndCnt;
 
-#if (SDC_PINS == SDC_A)
-    pinconf_set(PORT_7, PIN_0, PINMUX_ALTERNATE_FUNCTION_6, PADCTRL_READ_ENABLE); //cmd
-    pinconf_set(PORT_7, PIN_1, PINMUX_ALTERNATE_FUNCTION_6, PADCTRL_READ_ENABLE); //clk
-    pinconf_set(PORT_5, PIN_0, PINMUX_ALTERNATE_FUNCTION_7, PADCTRL_READ_ENABLE); //d0
+#ifdef BOARD_SD_RESET_GPIO_PORT
+    if (sd_reset()) {
+        printf("Error reseting SD interface..\n");
+        return;
+    }
+#endif
 
-#if RTE_SDC_BUS_WIDTH == SDMMC_4_BIT_MODE
-    pinconf_set(PORT_5, PIN_1, PINMUX_ALTERNATE_FUNCTION_7, PADCTRL_READ_ENABLE); //d1
-    pinconf_set(PORT_5, PIN_2, PINMUX_ALTERNATE_FUNCTION_7, PADCTRL_READ_ENABLE); //d2
-    pinconf_set(PORT_5, PIN_3, PINMUX_ALTERNATE_FUNCTION_6, PADCTRL_READ_ENABLE); //d3
+#if (SDC_PINS == SDC_A)
+    pinconf_set(PORT_(BOARD_SD_CMD_A_GPIO_PORT), BOARD_SD_CMD_A_GPIO_PIN, BOARD_SD_CMD_ALTERNATE_FUNCTION, PADCTRL_READ_ENABLE | PADCTRL_OUTPUT_DRIVE_STRENGTH_8MA); //cmd
+    pinconf_set(PORT_(BOARD_SD_CLK_A_GPIO_PORT), BOARD_SD_CLK_A_GPIO_PIN, BOARD_SD_CLK_ALTERNATE_FUNCTION, PADCTRL_READ_ENABLE | PADCTRL_OUTPUT_DRIVE_STRENGTH_8MA); //clk
+    pinconf_set(PORT_(BOARD_SD_D0_A_GPIO_PORT), BOARD_SD_D0_A_GPIO_PIN, BOARD_SD_D0_ALTERNATE_FUNCTION, PADCTRL_READ_ENABLE | PADCTRL_OUTPUT_DRIVE_STRENGTH_8MA); //d0
+
+#if (RTE_SDC_BUS_WIDTH == SDMMC_4_BIT_MODE) || (RTE_SDC_BUS_WIDTH == SDMMC_8_BIT_MODE)
+    pinconf_set(PORT_(BOARD_SD_D1_A_GPIO_PORT), BOARD_SD_D1_A_GPIO_PIN, BOARD_SD_D1_ALTERNATE_FUNCTION, PADCTRL_READ_ENABLE | PADCTRL_OUTPUT_DRIVE_STRENGTH_8MA); //d1
+    pinconf_set(PORT_(BOARD_SD_D2_A_GPIO_PORT), BOARD_SD_D2_A_GPIO_PIN, BOARD_SD_D2_ALTERNATE_FUNCTION, PADCTRL_READ_ENABLE | PADCTRL_OUTPUT_DRIVE_STRENGTH_8MA); //d2
+    pinconf_set(PORT_(BOARD_SD_D3_A_GPIO_PORT), BOARD_SD_D3_A_GPIO_PIN, BOARD_SD_D3_ALTERNATE_FUNCTION, PADCTRL_READ_ENABLE | PADCTRL_OUTPUT_DRIVE_STRENGTH_8MA); //d3
 #endif
 
 #if RTE_SDC_BUS_WIDTH == SDMMC_8_BIT_MODE
-    pinconf_set(PORT_5, PIN_4, PINMUX_ALTERNATE_FUNCTION_6, PADCTRL_READ_ENABLE); //d4
-    pinconf_set(PORT_5, PIN_5, PINMUX_ALTERNATE_FUNCTION_5, PADCTRL_READ_ENABLE); //d5
-    pinconf_set(PORT_5, PIN_6, PINMUX_ALTERNATE_FUNCTION_5, PADCTRL_READ_ENABLE); //d6
-    pinconf_set(PORT_5, PIN_7, PINMUX_ALTERNATE_FUNCTION_5, PADCTRL_READ_ENABLE); //d7
+    pinconf_set(PORT_(BOARD_SD_D1_A_GPIO_PORT), BOARD_SD_D4_A_GPIO_PIN, BOARD_SD_D1_ALTERNATE_FUNCTION, PADCTRL_READ_ENABLE | PADCTRL_OUTPUT_DRIVE_STRENGTH_8MA); //d1
+    pinconf_set(PORT_(BOARD_SD_D2_A_GPIO_PORT), BOARD_SD_D5_A_GPIO_PIN, BOARD_SD_D2_ALTERNATE_FUNCTION, PADCTRL_READ_ENABLE | PADCTRL_OUTPUT_DRIVE_STRENGTH_8MA); //d2
+    pinconf_set(PORT_(BOARD_SD_D3_A_GPIO_PORT), BOARD_SD_D6_A_GPIO_PIN, BOARD_SD_D3_ALTERNATE_FUNCTION, PADCTRL_READ_ENABLE | PADCTRL_OUTPUT_DRIVE_STRENGTH_8MA); //d3
+    pinconf_set(PORT_(BOARD_SD_D3_A_GPIO_PORT), BOARD_SD_D7_A_GPIO_PIN, BOARD_SD_D3_ALTERNATE_FUNCTION, PADCTRL_READ_ENABLE | PADCTRL_OUTPUT_DRIVE_STRENGTH_8MA); //d3
 #endif
 
 #elif (SDC_PINS == SDC_B)

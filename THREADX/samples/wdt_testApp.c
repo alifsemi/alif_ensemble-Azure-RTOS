@@ -1,4 +1,4 @@
-/* Copyright (C) 2022 Alif Semiconductor - All Rights Reserved.
+/* Copyright (C) 2023 Alif Semiconductor - All Rights Reserved.
  * Use, distribution and modification of this code is permitted under the
  * terms stated in the Alif Semiconductor Software License Agreement
  *
@@ -27,10 +27,12 @@
 /* Project Includes */
 /* include for watchdog Driver */
 #include "Driver_WDT.h"
+#include "app_utils.h"
 #include "RTE_Components.h"
-#if defined(RTE_Compiler_IO_STDOUT)
+#if defined(RTE_CMSIS_Compiler_STDOUT)
+#include "retarget_init.h"
 #include "retarget_stdout.h"
-#endif  /* RTE_Compiler_IO_STDOUT */
+#endif  /* RTE_CMSIS_Compiler_STDOUT */
 
 
 /* watchdog Driver instance 0 */
@@ -51,7 +53,7 @@ UCHAR                   memory_area[DEMO_BYTE_POOL_SIZE];
 void NMI_Handler(void)
 {
     printf("\r\n NMI_Handler: Received Interrupt from Watchdog! \r\n");
-    while(1);
+    WAIT_FOREVER_LOOP
 }
 
 /**
@@ -131,7 +133,7 @@ void watchdog_demo_thread_entry(ULONG thread_input)
     }
 
     printf("\r\n now stop feeding to the watchdog, system will RESET on timeout. \r\n");
-    while(1);
+    WAIT_FOREVER_LOOP
 
 
 error_stop:
@@ -168,14 +170,12 @@ error_uninitialize:
 /* Define main entry point.  */
 int main()
 {
-    #if defined(RTE_Compiler_IO_STDOUT_User)
+    #if defined(RTE_CMSIS_Compiler_STDOUT_Custom)
+    extern int stdout_init(void);
     int32_t ret;
     ret = stdout_init();
-    if(ret != ARM_DRIVER_OK)
-    {
-        while(1)
-        {
-        }
+    if(ret != ARM_DRIVER_OK) {
+        WAIT_FOREVER_LOOP
     }
     #endif
 

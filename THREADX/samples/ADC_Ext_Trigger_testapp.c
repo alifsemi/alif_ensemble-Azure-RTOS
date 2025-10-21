@@ -43,6 +43,7 @@
 #include "pinconf.h"
 
 #include "se_services_port.h"
+#include "RTE_Components.h"
 #if defined(RTE_Compiler_IO_STDOUT)
 #include "retarget_stdout.h"
 #endif  /* RTE_Compiler_IO_STDOUT */
