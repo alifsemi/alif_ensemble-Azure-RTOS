@@ -29,7 +29,7 @@
 #include "mac_hw.h"
 
 #include "sys_ctrl_eth.h"
-#include "system_utils.h"
+#include "sys_utils.h"
 #include "pinconf.h"
 
 #define NX_LINK_MTU         1514 /**< The link MTU. Adds the size for physical header to the IP MTU. */
