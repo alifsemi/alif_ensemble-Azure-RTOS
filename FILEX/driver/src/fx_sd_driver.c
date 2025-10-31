@@ -42,7 +42,7 @@ VOID sd_fx_cb(uint16_t cmd_status, uint16_t xfer_status)
 {
     (void)cmd_status; /* command evt status handled in sd low level driver */
 
-    if (xfer_status == SDMMC_XFER_DONE_EVENT)
+    if (xfer_status)
         tx_event_flags_set(&sd_event, SDMMC_XFER_DONE_EVENT, TX_OR);
 }
 #endif
@@ -376,9 +376,9 @@ VOID  _fx_sd_driver(FX_MEDIA *media_ptr)
 #endif
                         status = FX_IO_ERROR;
                     }
-                    
+
 					if (status == FX_IO_ERROR) {
-                        
+
                         media_ptr -> fx_media_driver_status =  FX_IO_ERROR;
 						break;
 					}

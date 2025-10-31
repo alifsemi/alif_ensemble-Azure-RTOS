@@ -67,8 +67,8 @@ uint32_t  service_error_code;
 uint32_t  error_code = SERVICES_REQ_SUCCESS;
 
 /* Buffer for FileX FX_MEDIA sector cache. This must be large enough for at least one sector , which are typically 512 bytes in size. */
-UCHAR media_memory[SD_BLK_SIZE*NUM_BLK_TEST] __attribute__((section("sd_dma_buf"))) __attribute__((aligned(32)));
-UCHAR filebuffer[SD_BLK_SIZE*NUM_BLK_TEST] __attribute__((section("sd_dma_buf"))) __attribute__((aligned(32)));
+UCHAR media_memory[SD_BLK_SIZE*NUM_BLK_TEST] __attribute__((section("sd_dma_buf"))) __attribute__((aligned(512)));
+UCHAR filebuffer[SD_BLK_SIZE*NUM_BLK_TEST] __attribute__((section("sd_dma_buf"))) __attribute__((aligned(512)));
 FX_MEDIA sd_card;
 FX_FILE test_file;
 
@@ -272,7 +272,7 @@ void mySD_Thread_entry(ULONG args)
     memset(filebuffer, '\0', sizeof(filebuffer));
     for(int i = 0; i<SD_TEST_ITTR_CNT; i++){
 
-        memset(filebuffer, 'D', (SD_BLK_SIZE * NUM_BLK_TEST));
+        memset(filebuffer, 'D', (SD_BLK_SIZE * NUM_BLK_TEST) - 1);
 
         /* Write a string to the test file.  */
         status =  fx_file_write(&test_file, (void *)filebuffer, (SD_BLK_SIZE * NUM_BLK_TEST));
