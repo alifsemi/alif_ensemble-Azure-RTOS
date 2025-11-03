@@ -9,7 +9,7 @@
  */
 
 /**************************************************************************//**
- * @file     wdt_testApp.c
+ * @file     demo_wdt_threadx.c
  * @author   Tanay Rami
  * @email    tanay@alifsemi.com
  * @version  V1.0.0

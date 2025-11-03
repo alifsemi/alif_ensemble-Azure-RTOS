@@ -9,7 +9,7 @@
  */
 
 /**************************************************************************//**
- * @file     CMP_testapp.c
+ * @file     demo_cmp_threadx.c
  * @author   Nisarga A M
  * @email    nisarga.am@alifsemi.com
  * @version  V1.0.0

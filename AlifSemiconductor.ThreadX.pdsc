@@ -399,55 +399,55 @@
 	<file category="source" name="THREADX/common/src/txe_timer_delete.c"/>
 	<file category="source" name="THREADX/common/src/txe_timer_info_get.c"/>
     <!-- Templates -->
-	<file category="source"       name="THREADX/samples/demo_threadx.c"    attr="template" select="ThreadX THREADX Sample App"/>
+	<file category="source"       name="THREADX/samples/demo_threadx.c"    attr="template" select="ThreadX Sample App"/>
     <!--  ThreadX templates -->
-	<file category="source"       name="THREADX/samples/LED_blink_app.c"          attr="template" select="ThreadX LED Blinky"/>
-	<file category="source"       name="THREADX/samples/LED_Breathe_testapp.c"    attr="template" select="ThreadX LED PWM"/>
-	<file category="source"       name="THREADX/samples/LPTIMER_app.c"            attr="template" select="ThreadX LPTIMER App"/>
-	<file category="source"       name="THREADX/samples/rtc_testApp.c"            attr="template" select="ThreadX Real Time Counter App"/>
-	<file category="source"       name="THREADX/samples/uart2_testApp.c"          attr="template" select="ThreadX UART2 App"/>
-	<file category="source"       name="THREADX/samples/uart4_testApp.c"          attr="template" select="ThreadX UART4 App"/>
-	<file category="source"       name="THREADX/samples/LPUART_testApp.c"          attr="template" select="ThreadX LPUART App"/>
-	<file category="source"       name="THREADX/samples/UTIMER_app.c"             attr="template" select="ThreadX UTIMER App"/>
-	<file category="source"       name="THREADX/samples/wdt_testApp.c"            attr="template" select="ThreadX Watchdog App"/>
-	<file category="source"       name="THREADX/samples/i2s_testapp.c"            attr="template" select="ThreadX I2S test App"/>
+	<file category="source"       name="THREADX/samples/demo_led_blinky_threadx.c"          attr="template" select="ThreadX LED Blinky"/>
+	<file category="source"       name="THREADX/samples/demo_led_breathe_threadx.c"    attr="template" select="ThreadX LED PWM"/>
+	<file category="source"       name="THREADX/samples/demo_lptimer_threadx.c"            attr="template" select="ThreadX LPTIMER App"/>
+	<file category="source"       name="THREADX/samples/demo_rtc_threadx.c"            attr="template" select="ThreadX Real Time Counter App"/>
+	<file category="source"       name="THREADX/samples/demo_uart2_threadx.c"          attr="template" select="ThreadX UART2 App"/>
+	<file category="source"       name="THREADX/samples/demo_uart4_threadx.c"          attr="template" select="ThreadX UART4 App"/>
+	<file category="source"       name="THREADX/samples/demo_lpuart_threadx.c"          attr="template" select="ThreadX LPUART App"/>
+	<file category="source"       name="THREADX/samples/demo_utimer_threadx.c"             attr="template" select="ThreadX UTIMER App"/>
+	<file category="source"       name="THREADX/samples/demo_wdt_threadx.c"            attr="template" select="ThreadX Watchdog App"/>
+	<file category="source"       name="THREADX/samples/demo_i2s_threadx.c"            attr="template" select="ThreadX I2S test App"/>
 	<file category="header"       name="THREADX/samples/Include/i2s_samples.h"    attr="template" select="ThreadX I2S test App"/>
 	<file category="source"       name="THREADX/samples/demo_i3c_i2cbusproxy_threadx.c"  attr="template" select="ThreadX I2Con I3C test App"/>
-	<file category="source"       name="THREADX/samples/MT9M114_Camera_Sensor_testApp.c"        attr="template" select="ThreadX Camera test App"/>
+	<file category="source"       name="THREADX/samples/demo_mt9m114_threadx.c"        attr="template" select="ThreadX Camera test App"/>
 	<file category="source"       name="THREADX/samples/bayer.c"			  attr="template" select="ThreadX Camera test App"/>
 	<file category="source"       name="THREADX/samples/bayer2rgb.c"		  attr="template" select="ThreadX Camera test App"/>
 	<file category="header"		  name="THREADX/samples/Include/bayer.h"          attr="template" select="ThreadX Camera test App"/>
-	<file category="source"       name="THREADX/samples/adc_testapp.c"		  attr="template" select="ThreadX ADC test App"/>
-	<file category="source"       name="THREADX/samples/ADC_Click_Board_testapp.c"		  attr="template" select="ThreadX ADC Click Board test App"/>
-	<file category="source"       name="THREADX/samples/ADC_Potentiometer_testapp.c"		  attr="template" select="ThreadX ADC Potentiometer test App"/>
-	<file category="source"       name="THREADX/samples/ADC_Ext_Trigger_testapp.c"		  attr="template" select="ThreadX ADC Extenal Trigger test App"/>
-	<file category="source"       name="THREADX/samples/dac_testapp.c"		  attr="template" select="ThreadX DAC test App"/>
-	<file category="source"       name="THREADX/samples/ARX3A0_Camera_Sensor_testApp.c"        attr="template" select="ThreadX MIPI CSI2 Image capture App"/>
+	<file category="source"       name="THREADX/samples/demo_adc_threadx.c"		  attr="template" select="ThreadX ADC test App"/>
+	<file category="source"       name="THREADX/samples/demo_adc_click_board_threadx.c"		  attr="template" select="ThreadX ADC Click Board test App"/>
+	<file category="source"       name="THREADX/samples/demo_adc_potentiometer_threadx.c"		  attr="template" select="ThreadX ADC Potentiometer test App"/>
+	<file category="source"       name="THREADX/samples/demo_adc_ext_trigger_threadx.c"		  attr="template" select="ThreadX ADC Extenal Trigger test App"/>
+	<file category="source"       name="THREADX/samples/demo_dac_threadx.c"		  attr="template" select="ThreadX DAC test App"/>
+	<file category="source"       name="THREADX/samples/demo_arx3a0_threadx.c"        attr="template" select="ThreadX MIPI CSI2 Image capture App"/>
 	<file category="source"       name="THREADX/samples/bayer.c"			  attr="template" select="ThreadX MIPI CSI2 Image capture App"/>
 	<file category="source"       name="THREADX/samples/bayer2rgb.c"		  attr="template" select="ThreadX MIPI CSI2 Image capture App"/>
 	<file category="header"		  name="THREADX/samples/Include/bayer.h"          attr="template" select="ThreadX MIPI CSI2 Image capture App"/>
-	<file category="source"       name="THREADX/samples/CRC_testapp.c"		  attr="template" select="ThreadX CRC testApp"/>
+	<file category="source"       name="THREADX/samples/demo_crc_threadx.c"		  attr="template" select="ThreadX CRC testApp"/>
 	<file category="source"       name="THREADX/samples/demo_i3c_i2cmixbus_threadx.c"    attr="template" select="ThreadX I3C/I2C Mix bus testApp"/>
-	<file category="source"       name="THREADX/samples/CMP_testapp.c"	  attr="template" select="ThreadX Comparator testApp"/>
-	<file category="source"       name="THREADX/samples/MRAM_Threadx.c"    attr="template" select="ThreadX MRAM flash testApp"/>
-	<file category="source"       name="THREADX/samples/MW_testapp.c"		  attr="template" select="ThreadX SPI Microwire test App"/>
+	<file category="source"       name="THREADX/samples/demo_cmp_threadx.c"	  attr="template" select="ThreadX Comparator testApp"/>
+	<file category="source"       name="THREADX/samples/demo_mram_threadx.c"    attr="template" select="ThreadX MRAM flash testApp"/>
+	<file category="source"       name="THREADX/samples/demo_spi_microwire_threadx.c"		  attr="template" select="ThreadX SPI Microwire test App"/>
 	<file category="source"       name="THREADX/samples/demo_hwsem_threadx.c"    attr="template" select="ThreadX HWSEM testApp"/>
-	<file category="source"       name="THREADX/samples/MIPI_Interface_Video_ISP_testApp.c"    attr="template" select="ThreadX Viewfinder testApp" condition="E8"/>
-	<file category="source"       name="THREADX/samples/MIPI_Interface_Video_testApp.c"    attr="template" select="ThreadX Viewfinder testApp" condition="E7"/>
+	<file category="source"       name="THREADX/samples/demo_mipi_Interface_video_isp_threadx.c"    attr="template" select="ThreadX Viewfinder testApp" condition="E8"/>
+	<file category="source"       name="THREADX/samples/demo_mipi_Interface_video_threadx.c"    attr="template" select="ThreadX Viewfinder testApp" condition="E7"/>
 	<file category="source"       name="THREADX/samples/image_processing.c"    attr="template" select="ThreadX Viewfinder testApp" condition="E7"/>
 	<file category="source"       name="THREADX/samples/bayer.c"			  attr="template" select="ThreadX Viewfinder testApp" condition="E7"/>
 	<file category="source"       name="THREADX/samples/bayer2rgb.c"		  attr="template" select="ThreadX Viewfinder testApp" condition="E7"/>
 	<file category="header"		  name="THREADX/samples/Include/bayer.h"          attr="template" select="ThreadX Viewfinder testApp" condition="E7"/>
-	<file category="source"       name="THREADX/samples/Flash_ISSI_Threadx_app.c"		  attr="template" select="ThreadX (OSPI)ISSI Flash testApp"/>
-<!--	<file category="source"       name="THREADX/samples/QEC_app.c"		  attr="template" select="ThreadX QEC testApp"/>-->
-	<file category="source"       name="THREADX/samples/PDM_testApp.c"		  attr="template" select="ThreadX PDM testApp"/>
-	<file category="source"       name="THREADX/samples/LPPDM_testApp.c"		  attr="template" select="ThreadX LPPDM testApp"/>
-	<file category="source"       name="THREADX/samples/dma_testmemcpy.c"		  attr="template" select="ThreadX DMA Testmemcpy testApp"/>
-	<file category="source"       name="THREADX/samples/GT911_TestApp.c"		  attr="template" select="ThreadX Touch Screen testApp"/>
-	<file category="source"       name="THREADX/samples/TSENS_testapp.c"		  attr="template" select="ThreadX TSENS App"/>
+	<file category="source"       name="THREADX/samples/demo_flash_issi_threadx.c"		  attr="template" select="ThreadX (OSPI)ISSI Flash testApp"/>
+    <file category="source"       name="THREADX/samples/demo_qec_threadx.c"		  attr="template" select="ThreadX QEC testApp"/>
+	<file category="source"       name="THREADX/samples/demo_pdm_threadx.c"		  attr="template" select="ThreadX PDM testApp"/>
+	<file category="source"       name="THREADX/samples/demo_lppdm_threadx.c"		  attr="template" select="ThreadX LPPDM testApp"/>
+	<file category="source"       name="THREADX/samples/demo_dma_testmemcpy_threadx.c"		  attr="template" select="ThreadX DMA Testmemcpy testApp"/>
+	<file category="source"       name="THREADX/samples/demo_gt911_threadx.c"		  attr="template" select="ThreadX Touch Screen testApp"/>
+	<file category="source"       name="THREADX/samples/demo_adc_tsens_threadx.c"		  attr="template" select="ThreadX TSENS App"/>
     <file category="header"       name="THREADX/samples/temperature.h"		  attr="template" select="ThreadX TSENS App"/>
-	<file category="source"       name="THREADX/samples/SPI0_SPI1_testapp.c"		  attr="template" select="ThreadX SPI testApp"/>
-	<file category="source"       name="THREADX/samples/LPSPI_SPI_testapp.c"		  attr="template" select="ThreadX LPSPI testApp"/>
+	<file category="source"       name="THREADX/samples/demo_spi_loopback_threadx.c"		  attr="template" select="ThreadX SPI testApp"/>
+	<file category="source"       name="THREADX/samples/demo_lpspi_threadx.c"		  attr="template" select="ThreadX LPSPI testApp"/>
 	<file category="source"       name="THREADX/samples/demo_i3c_master_threadx.c"		  attr="template" select="ThreadX I3C Master Loopback testApp"/>
 	<file category="source"       name="THREADX/samples/demo_i3c_slave_threadx.c"		  attr="template" select="ThreadX I3C Slave Loopback testApp"/>
         <file category="source"       name="THREADX/samples/demo_i2c_threadx.c"		  attr="template" select="ThreadX I2C testApp"/>
@@ -750,7 +750,7 @@
     </component>
 
     <!-- ====================== FILEX SD Driver Description ====================== -->
-    <component Cgroup="FILEX" Csub="SD Driver" Cversion="1.0.0" condition="ThreadX FILEX SD DRIVER">
+    <component Cgroup="FILEX" Csub="SD Driver" Cversion="2.0.0" condition="ThreadX FILEX SD DRIVER">
       <description>SD card driver for Alif Semiconductor Soc</description>
       <files>
 	<file category="header" name="FILEX/driver/fx_sd_driver.h"/>
@@ -1305,7 +1305,7 @@
       </files>
     </component>
 
-    <component Cgroup="Netx Duo" Csub="Ethernet Driver" Cversion="1.0.0" condition="ThreadX NETX">
+    <component Cgroup="Netx Duo" Csub="Ethernet Driver" Cversion="2.0.0" condition="ThreadX NETX">
       <description>Alif Semiconductor Ethernet Driver</description>
       <RTE_Components_h>  <!-- the following content goes into file 'RTE_Components.h' -->
         #define RTE_Drivers_ETH   1
@@ -1322,7 +1322,7 @@
       </files>
     </component>
 
- <component Cgroup="Netx Duo" Csub="IoT" Cversion="1.0.0" condition="ThreadX NETX">
+ <component Cgroup="Netx Duo" Csub="IoT" Cversion="2.0.0" condition="ThreadX NETX">
       <description>Alif Semiconductor IoT Support</description>
       <Pre_Include_Global_h>
         // enabling global pre include
@@ -2522,6 +2522,9 @@
         <file category="source" name="USBX/core/src/ux_utility_timer_delete.c"/>
         <file category="source" name="USBX/core/src/ux_utility_unicode_to_string.c"/>
         <file category="source" name="USBX/core/src/ux_utility_virtual_address.c"/>
+        <!-- Templates -->
+	<file category="source"     name="USBX/samples/demo_usbx_device_cdc_acm_app.c" attr="template" select="ThreadX USBX Device Class CDC ACM demo App"/>
+	<file category="source"     name="USBX/samples/demo_usbx_device_cdc_ecm_app.c" attr="template" select="ThreadX USBX Device Class CDC ECM demo App"/>
     </files>
     </component>
     <component Cgroup="USBX" Csub="CDC ACM Device Class" Cversion="6.4.2" condition="USBX Host Device" >
@@ -2767,38 +2770,22 @@
     </files>
     </component>
 
-    <component Cgroup="USBX" Csub="Device Class Driver" Cversion="6.4.2" condition="ThreadX USBX" >
+    <component Cgroup="USBX" Csub="USBX Device Controller" Cversion="6.4.2" condition="ThreadX USBX" >
       <description>High-performance, USB Stack for embedded device</description>
       <files>
-        <file category="source" name="USBX/device_class_driver/sys_ctrl_usb.h"/>
-        <file category="source" name="USBX/device_class_driver/ux_dcd_dwc3_address_set.c"/>
-        <file category="source" name="USBX/device_class_driver/ux_dcd_dwc3_bulk_transfer_callback.c"/>
-        <file category="source" name="USBX/device_class_driver/ux_dcd_dwc3_clock_set.c"/>
-        <file category="source" name="USBX/device_class_driver/ux_dcd_dwc3_controller_config_set.c"/>
-        <file category="source" name="USBX/device_class_driver/ux_dcd_dwc3_delay.c"/>
-        <file category="source" name="USBX/device_class_driver/ux_dcd_dwc3_depcmd_check.c"/>
-        <file category="source" name="USBX/device_class_driver/ux_dcd_dwc3_depevt_check.c"/>
-        <file category="source" name="USBX/device_class_driver/ux_dcd_dwc3_devt_check.c"/>
-        <file category="source" name="USBX/device_class_driver/ux_dcd_dwc3_endpoint_create.c"/>
-        <file category="source" name="USBX/device_class_driver/ux_dcd_dwc3_endpoint_numb.c"/>
-        <file category="source" name="USBX/device_class_driver/ux_dcd_dwc3_fifo_read.c"/>
-        <file category="source" name="USBX/device_class_driver/ux_dcd_dwc3_function.c"/>
-        <file category="header" name="USBX/device_class_driver/ux_dcd_dwc3.h"/>
-        <file category="source" name="USBX/device_class_driver/ux_dcd_dwc3_initialize.c"/>
-        <file category="source" name="USBX/device_class_driver/ux_dcd_dwc3_initialize_complete.c"/>
-        <file category="source" name="USBX/device_class_driver/ux_dcd_dwc3_interrupt_handler.c"/>
-        <file category="source" name="USBX/device_class_driver/ux_dcd_dwc3_prepare_trb.c"/>
-        <file category="header" name="USBX/device_class_driver/ux_dcd_dwc3_private.h"/>
-        <file category="source" name="USBX/device_class_driver/ux_dcd_dwc3_register_clear.c"/>
-        <file category="source" name="USBX/device_class_driver/ux_dcd_dwc3_register_read.c"/>
-        <file category="source" name="USBX/device_class_driver/ux_dcd_dwc3_register_set.c"/>
-        <file category="source" name="USBX/device_class_driver/ux_dcd_dwc3_rxfifo_nump.c"/>
-        <file category="source" name="USBX/device_class_driver/ux_dcd_dwc3_set_configuration.c"/>
-        <file category="source" name="USBX/device_class_driver/ux_dcd_dwc3_transfer_callback.c"/>
-        <file category="source" name="USBX/device_class_driver/ux_dcd_dwc3_transfer_request.c"/>
-
-	<!-- Templates -->
-	<file category="source"       name="USBX/samples/demo_usbx_device_cdc_acm_app.c"    attr="template" select="ThreadX USBX Device Class CDC ACM demo App"/>
+        <file category="header" name="USBX/usbx_device_controller/ux_dcd.h"/>
+        <file category="source" name="USBX/usbx_device_controller/usbd_bulk_transfer.c"/>
+        <file category="source" name="USBX/usbx_device_controller/usbd_control_transfer.c"/>
+        <file category="source" name="USBX/usbx_device_controller/usbd_endpoint_create.c"/>
+        <file category="source" name="USBX/usbx_device_controller/usbd_initialize.c"/>
+        <file category="source" name="USBX/usbx_device_controller/usbd_interrupt_handler.c"/>
+        <file category="source" name="USBX/usbx_device_controller/usbd_isoc_transfer.c"/>
+        <file category="source" name="USBX/usbx_device_controller/usbd_spec.h"/>
+        <file category="source" name="USBX/usbx_device_controller/ux_dcd_function.c"/>
+        <file category="source" name="USBX/usbx_device_controller/ux_dcd.h"/>
+        <file category="source" name="USBX/usbx_device_controller/ux_dcd_initialize.c"/>
+        <file category="source" name="USBX/usbx_device_controller/ux_dcd_transfer_callback.c"/>
+        <file category="source" name="USBX/usbx_device_controller/ux_dcd_transfer_request.c"/>
     </files>
     </component>
 

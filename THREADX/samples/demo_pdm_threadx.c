@@ -9,7 +9,7 @@
  */
 
 /******************************************************************************
- * @file     PDM_testApp.c
+ * @file     demo_pdm_threadx.c
  * @author   Nisarga A M
  * @email    nisarga.am@alifsemi.com
  * @version  V1.0.0

@@ -9,7 +9,7 @@
  */
 
 /**************************************************************************//**
- * @file     ARX3A0_Camera_Sensor_testApp.c
+ * @file     demo_arx3a0_threadx.c
  * @author   Prasanna Ravi and Chandra Bhushan Singh
  * @email    prasanna.ravi@alifsemi.com and chandrabhushan.singh@alifsemi.com
  * @version  V1.0.0

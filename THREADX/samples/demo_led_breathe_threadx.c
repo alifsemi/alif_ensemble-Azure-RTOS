@@ -9,7 +9,7 @@
  */
 
 /**************************************************************************//**
- * @file     demo_led_breathe_azurertos.c
+ * @file     demo_led_breathe_threadx.c
  * @author   Manoj A Murudi
  * @email    manoj.murudi@alifsemi.com
  * @version  V1.0.0

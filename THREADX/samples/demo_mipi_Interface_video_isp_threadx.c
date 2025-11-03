@@ -8,7 +8,7 @@
  *
  */
 /**************************************************************************//**
- * @file     MIPI_interface_Video_ISP_testApp.c
+ * @file     demo_mipi_Interface_video_isp_threadx.c
  * @author   Yogender Kumar Arya  and Shivakumar Malke
  * @email    yogender.kumar@alifsemi.com and shivakumar.malke@alifsemi.com
  * @version  V1.0.0

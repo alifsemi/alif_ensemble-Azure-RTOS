@@ -8,7 +8,7 @@
  *
  */
 /**************************************************************************//**
- * @file     MIPI_interface_Video_testApp.c
+ * @file     demo_mipi_Interface_video_threadx.c
  * @author   Prasanna Ravi and Chandra Bhushan Singh
  * @email    prasanna.ravi@alifsemi.com and chandrabhushan.singh@alifsemi.com
  * @version  V1.0.0

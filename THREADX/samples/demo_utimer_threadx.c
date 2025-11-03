@@ -9,7 +9,7 @@
  */
 
 /**************************************************************************//**
- * @file     demo_utimer_azurertos.c
+ * @file     demo_utimer_threadx.c
  * @author   Girish BN, Manoj A Murudi
  * @email    girish.bn@alifsemi.com, manoj.murudi@alifsemi.com
  * @version  V1.0.0

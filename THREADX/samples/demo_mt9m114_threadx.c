@@ -9,7 +9,7 @@
  */
 
 /**************************************************************************//**
- * @file     MT9M114_Camera_Sensor_testApp.c
+ * @file     demo_mt9m114_threadx.c
  * @author   Tanay Rami and Chandra Bhushan Singh
  * @email    tanay@alifsemi.com and chandrabhushan.singh@alifsemi.com
  * @version  V1.0.0

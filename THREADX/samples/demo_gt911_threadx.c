@@ -9,7 +9,7 @@
  */
 
 /**************************************************************************//**
- * @file     GT911_TestApp.c
+ * @file     demo_gt911_threadx.c
  * @author   Chandra Bhushan Singh
  * @email    chandrabhushan.singh@alifsemi.com
  * @version  V1.0.0

@@ -9,7 +9,7 @@
  */
 
 /**************************************************************************//**
- * @file     demo_lpspi_azurertos.c
+ * @file     demo_lpspi_threadx.c
  * @author   Manoj A Murudi
  * @email    manoj.murudi@alifsemi.com
  * @version  V1.0.0

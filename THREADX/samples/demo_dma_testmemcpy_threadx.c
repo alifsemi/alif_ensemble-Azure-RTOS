@@ -9,7 +9,7 @@
  */
 
 /**************************************************************************//**
- * @file     dma_testmemcpy.c
+ * @file     demo_dma_testmemcpy_threadx.c
  * @author   Sudhir Sreedharan
  * @email    sudhir@alifsemi.com
  * @version  V1.0.0

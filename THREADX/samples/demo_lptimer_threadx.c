@@ -9,7 +9,7 @@
  */
 
 /**************************************************************************//**
- * @file     demo_lptimer_azurertos.c
+ * @file     demo_lptimer_threadx.c
  * @author   Girish BN
  * @email    girish.bn@alifsemi.com
  * @version  V1.0.0

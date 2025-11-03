@@ -9,7 +9,7 @@
  */
 
 /**************************************************************************//**
- * @file     CRC_testapp.c
+ * @file     demo_crc_threadx.c
  * @author   Nisarga A M
  * @email    nisarga.am@alifsemi.com
  * @version  V1.0.0

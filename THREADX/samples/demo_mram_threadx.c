@@ -9,7 +9,7 @@
  */
 
 /******************************************************************************
- * @file     MRAM_Threadx.c
+ * @file     demo_mram_threadx.c
  * @author   Tanay Rami
  * @email    tanay@alifsemi.com
  * @version  V1.0.0

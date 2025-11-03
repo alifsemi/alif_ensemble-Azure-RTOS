@@ -9,7 +9,7 @@
  */
 
 /****************************************************************************
- * @file     i2s_testapp.c
+ * @file     demo_i2s_threadx.c
  * @author   Sudhir Sreedharan | Sudarshan Iyengar
  * @email    sudhir@alifsemi.com | sudarshan.iyengar@alifsemi.com
  * @version  V3.0.0

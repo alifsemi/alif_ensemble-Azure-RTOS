@@ -9,7 +9,7 @@
  */
 
 /**************************************************************************//**
- * @file     dac_testapp.c
+ * @file     demo_dac_threadx.c
  * @author   Nisarga A M
  * @email    nisarga.am@alifsemi.com
  * @version  V1.0.0

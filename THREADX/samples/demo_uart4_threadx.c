@@ -9,7 +9,7 @@
  */
 
 /**************************************************************************//**
- * @file     uart4_testApp.c
+ * @file     demo_uart4_threadx.c
  * @author   Tanay Rami
  * @email    tanay@alifsemi.com
  * @version  V1.0.0

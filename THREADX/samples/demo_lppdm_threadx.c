@@ -9,7 +9,7 @@
  */
 
 /******************************************************************************
- * @file     LPPDM_testApp.c
+ * @file     demo_lppdm_threadx.c
  * @author   Nisarga A M
  * @email    nisarga.am@alifsemi.com
  * @version  V1.0.0

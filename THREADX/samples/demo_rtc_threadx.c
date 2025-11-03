@@ -9,7 +9,7 @@
  */
 
 /**************************************************************************//**
- * @file     demo_rtc_azurertos.c
+ * @file     demo_rtc_threadx.c
  * @author   Tanay Rami
  * @email    tanay@alifsemi.com
  * @version  V1.0.0
