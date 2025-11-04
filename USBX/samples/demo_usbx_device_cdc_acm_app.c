@@ -18,6 +18,7 @@
  * @Note     None.
  *******************************************************************************/
 
+#include "ux_api.h"
 #include "ux_device_class_cdc_acm.h"
 #include "se_services_port.h"
 #include "app_utils.h"
