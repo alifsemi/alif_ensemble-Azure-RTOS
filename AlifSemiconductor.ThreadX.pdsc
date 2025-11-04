@@ -13,9 +13,10 @@
   -->
 
   <releases>
-     <release version="2.0.0-alpha" tag="v2.0.0-alpha" url="https://github.com/alifsemi/alif_ensemble-Azure-RTOS/releases/download/v2.0.0-alpha-AlifSemiconductor.ThreadX.2.0.0-alpha.pack" date="2025-10-10">
+     <release version="2.0.0" tag="v2.0.0" url="https://github.com/alifsemi/alif_ensemble-Azure-RTOS/releases/download/v2.0.0/AlifSemiconductor.ThreadX.2.0.0.pack" date="2025-11-04">
+      - Rename and update testapps
+      - Update THREADX to version 6.4.2
       - Add sample app for ISP
-      - Update sample apps
     </release>
     <release version="1.3.0" tag="v1.3.0" url="https://github.com/alifsemi/alif_ensemble-Azure-RTOS/releases/download/v1.3.0/AlifSemiconductor.AzureRTOS.1.3.0.pack" date="2024-10-04">
       - update sample apps
