@@ -1,13 +1,12 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 
 /**************************************************************************/
@@ -34,7 +33,7 @@
 /*  FUNCTION                                               RELEASE        */ 
 /*                                                                        */ 
 /*    _ux_host_stack_hcd_thread_entry                     PORTABLE C      */ 
-/*                                                           6.1.2        */
+/*                                                           6.1.10       */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Chaoqiong Xiao, Microsoft Corporation                               */
@@ -45,6 +44,8 @@
 /*    The HCD thread is initialized at the system level and the thread    */ 
 /*    entry routine is invoked right away. This thread suspends until     */ 
 /*    one of the HCD resumes it due to HCD activities.                    */
+/*                                                                        */
+/*    It's for RTOS mode.                                                 */
 /*                                                                        */ 
 /*  INPUT                                                                 */ 
 /*                                                                        */ 
@@ -75,6 +76,9 @@
 /*  11-09-2020     Chaoqiong Xiao           Modified comment(s),          */
 /*                                            fixed registered HCD scan,  */
 /*                                            resulting in version 6.1.2  */
+/*  01-31-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            refined macros names,       */
+/*                                            resulting in version 6.1.10 */
 /*                                                                        */
 /**************************************************************************/
 VOID  _ux_host_stack_hcd_thread_entry(ULONG input)
@@ -93,7 +97,7 @@ UX_INTERRUPT_SAVE_AREA
 
         /* Get the semaphore that signals something is available for this
            thread to process.  */
-        _ux_utility_semaphore_get(&_ux_system_host -> ux_system_host_hcd_semaphore, UX_WAIT_FOREVER);
+        _ux_host_semaphore_get_norc(&_ux_system_host -> ux_system_host_hcd_semaphore, UX_WAIT_FOREVER);
 
 #if UX_MAX_HCD > 1
         /* This thread was awaken by one or more HCD controllers. Check each of the HCDs 

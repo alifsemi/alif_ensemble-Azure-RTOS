@@ -1,13 +1,13 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * Copyright (c) 2025-present Eclipse ThreadX Contributors
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 
 /**************************************************************************/
@@ -34,7 +34,7 @@ static UCHAR decrypted_signature[512]; /* This needs to hold the entire decrypte
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _nx_secure_x509_certificate_verify                  PORTABLE C      */
-/*                                                           6.1.6        */
+/*                                                           6.1.11       */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Timothy Stapko, Microsoft Corporation                               */
@@ -81,6 +81,9 @@ static UCHAR decrypted_signature[512]; /* This needs to hold the entire decrypte
 /*  04-02-2021     Timothy Stapko           Modified comment(s),          */
 /*                                            removed dependency on TLS,  */
 /*                                            resulting in version 6.1.6  */
+/*  04-25-2022     Yuxin Zhou               Modified comment(s),          */
+/*                                            removed unnecessary code,   */
+/*                                            resulting in version 6.1.11 */
 /*                                                                        */
 /**************************************************************************/
 UINT _nx_secure_x509_certificate_verify(NX_SECURE_X509_CERTIFICATE_STORE *store,
@@ -344,12 +347,6 @@ const NX_CRYPTO_METHOD  *curve_method;
         if(status != NX_SECURE_X509_SUCCESS)
         {
             return(status);
-        }
-
-        if (curve_method == NX_CRYPTO_NULL)
-        {
-            /* The issuer certificate is using an unsupported curve. */
-            return(NX_SECURE_X509_UNSUPPORTED_PUBLIC_CIPHER);
         }
 
         if (public_cipher_method -> nx_crypto_init != NX_CRYPTO_NULL)

@@ -1,5 +1,6 @@
 /***************************************************************************
  * Copyright (c) 2024 Microsoft Corporation 
+ * Copyright (c) 2025-present Eclipse ThreadX Contributors
  * 
  * This program and the accompanying materials are made available under the
  * terms of the MIT License which is available at
@@ -15,8 +16,8 @@
 #include "nx_azure_iot_provisioning_client.h"
 
 /* These are sample files, user can build their own certificate and ciphersuites.  */
-#include "cert/nx_azure_iot_cert.h"
-#include "cert/nx_azure_iot_ciphersuites.h"
+#include "nx_azure_iot_cert.h"
+#include "nx_azure_iot_ciphersuites.h"
 #include "sample_config.h"
 
 /* Define Azure RTOS TLS info.  */

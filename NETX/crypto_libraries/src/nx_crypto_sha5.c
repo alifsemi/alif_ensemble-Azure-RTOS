@@ -1,5 +1,6 @@
 /***************************************************************************
  * Copyright (c) 2024 Microsoft Corporation 
+ * Copyright (c) 2025-present Eclipse ThreadX Contributors
  * 
  * This program and the accompanying materials are made available under the
  * terms of the MIT License which is available at
@@ -77,7 +78,7 @@ const UCHAR   _nx_crypto_sha512_padding[] =
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _nx_crypto_sha512_initialize                        PORTABLE C      */
-/*                                                           6.1          */
+/*                                                           6.4.3        */
 /*                                                                        */
 /*  AUTHOR                                                                */
 /*                                                                        */
@@ -192,7 +193,7 @@ NX_CRYPTO_KEEP UINT  _nx_crypto_sha512_initialize(NX_CRYPTO_SHA512 *context, UIN
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _nx_crypto_sha512_update                            PORTABLE C      */
-/*                                                           6.1          */
+/*                                                           6.4.3        */
 /*                                                                        */
 /*  AUTHOR                                                                */
 /*                                                                        */
@@ -321,7 +322,7 @@ ULONG64 needed_fill_bytes;
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _nx_crypto_sha512_digest_calculate                  PORTABLE C      */
-/*                                                           6.1          */
+/*                                                           6.4.3        */
 /*                                                                        */
 /*  AUTHOR                                                                */
 /*                                                                        */
@@ -459,7 +460,7 @@ UINT  loop;
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _nx_crypto_sha512_process_buffer                    PORTABLE C      */
-/*                                                           6.1          */
+/*                                                           6.4.3        */
 /*                                                                        */
 /*  AUTHOR                                                                */
 /*                                                                        */
@@ -579,7 +580,7 @@ ULONG64  a, b, c, d, e, f, g, h;
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _nx_crypto_method_sha512_init                       PORTABLE C      */
-/*                                                           6.3.0        */
+/*                                                           6.4.3        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Timothy Stapko, Microsoft Corporation                               */
@@ -659,7 +660,7 @@ NX_CRYPTO_KEEP UINT  _nx_crypto_method_sha512_init(struct  NX_CRYPTO_METHOD_STRU
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _nx_crypto_method_sha512_cleanup                    PORTABLE C      */
-/*                                                           6.1          */
+/*                                                           6.4.3        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Timothy Stapko, Microsoft Corporation                               */
@@ -717,7 +718,7 @@ NX_CRYPTO_KEEP UINT  _nx_crypto_method_sha512_cleanup(VOID *crypto_metadata)
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _nx_crypto_method_sha512_operation                 PORTABLE C       */
-/*                                                           6.3.0        */
+/*                                                           6.4.3        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Timothy Stapko, Microsoft Corporation                               */

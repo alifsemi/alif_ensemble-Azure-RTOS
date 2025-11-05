@@ -67,63 +67,10 @@ uint32_t  service_error_code;
 uint32_t  error_code = SERVICES_REQ_SUCCESS;
 
 /* Buffer for FileX FX_MEDIA sector cache. This must be large enough for at least one sector , which are typically 512 bytes in size. */
-UCHAR media_memory[SD_BLK_SIZE*NUM_BLK_TEST] __attribute__((section("sd_dma_buf"))) __attribute__((aligned(32)));
-UCHAR filebuffer[SD_BLK_SIZE*NUM_BLK_TEST] __attribute__((section("sd_dma_buf"))) __attribute__((aligned(32)));
+UCHAR media_memory[SD_BLK_SIZE*NUM_BLK_TEST] __attribute__((section("sd_dma_buf"))) __attribute__((aligned(512)));
+UCHAR filebuffer[SD_BLK_SIZE*NUM_BLK_TEST] __attribute__((section("sd_dma_buf"))) __attribute__((aligned(512)));
 FX_MEDIA sd_card;
 FX_FILE test_file;
-
-#ifdef BOARD_SD_RESET_GPIO_PORT
-extern  ARM_DRIVER_GPIO ARM_Driver_GPIO_(BOARD_SD_RESET_GPIO_PORT);
-
-/**
-  \fn           sd_reset(void)
-  \brief        Perform SD reset sequence
-  \return       none
-  */
-int sd_reset(void) {
-    int status;
-    ARM_DRIVER_GPIO *gpioSD_RST = &ARM_Driver_GPIO_(BOARD_SD_RESET_GPIO_PORT);
-
-    pinconf_set(PORT_(BOARD_SD_RESET_GPIO_PORT), BOARD_SD_RESET_GPIO_PIN, 0, 0); //SD reset
-
-    status = gpioSD_RST->Initialize(BOARD_SD_RESET_GPIO_PIN, NULL);
-    if (status != ARM_DRIVER_OK) {
-        printf("ERROR: Failed to initialize SD RST GPIO\n");
-        return 1;
-    }
-    status = gpioSD_RST->PowerControl(BOARD_SD_RESET_GPIO_PIN, ARM_POWER_FULL);
-    if (status != ARM_DRIVER_OK) {
-        printf("ERROR: Failed to powered full\n");
-        return 1;
-    }
-    status = gpioSD_RST->SetDirection(BOARD_SD_RESET_GPIO_PIN, GPIO_PIN_DIRECTION_OUTPUT);
-    if (status != ARM_DRIVER_OK) {
-        printf("ERROR: Failed to configure\n");
-        return 1;
-    }
-
-    status = gpioSD_RST->SetValue(BOARD_SD_RESET_GPIO_PIN, GPIO_PIN_OUTPUT_STATE_HIGH);
-    if (status != ARM_DRIVER_OK) {
-        printf("ERROR: Failed to toggle LEDs\n");
-        return 1;
-    }
-    sys_busy_loop_us(100);
-    status = gpioSD_RST->SetValue(BOARD_SD_RESET_GPIO_PIN, GPIO_PIN_OUTPUT_STATE_LOW);
-    if (status != ARM_DRIVER_OK) {
-        printf("ERROR: Failed to toggle LEDs\n");
-        return 1;
-    }
-    sys_busy_loop_us(100);
-    status = gpioSD_RST->SetValue(BOARD_SD_RESET_GPIO_PIN, GPIO_PIN_OUTPUT_STATE_HIGH);
-    if (status != ARM_DRIVER_OK) {
-        printf("ERROR: Failed to toggle LEDs\n");
-        return 1;
-    }
-
-    return 0;
-}
-#endif
-
 
 /**
   \fn           mySD_Thread_entry(ULONG args)
@@ -137,55 +84,53 @@ void mySD_Thread_entry(ULONG args)
     ULONG       actual;
     ULONG       startCnt, EndCnt;
 
-#ifdef BOARD_SD_RESET_GPIO_PORT
-    if (sd_reset()) {
-        printf("Error reseting SD interface..\n");
+#if USE_CONDUCTOR_TOOL_PINS_CONFIG
+    int32_t ret;
+    /* pin mux and configuration for all device IOs requested from pins.h*/
+    ret = board_pins_config();
+    if (ret != 0) {
+        printf("Error in pin-mux configuration: %" PRId32 "\n", ret);
         return;
     }
-#endif
-
-#if (SDC_PINS == SDC_A)
-    pinconf_set(PORT_(BOARD_SD_CMD_A_GPIO_PORT), BOARD_SD_CMD_A_GPIO_PIN, BOARD_SD_CMD_ALTERNATE_FUNCTION, PADCTRL_READ_ENABLE | PADCTRL_OUTPUT_DRIVE_STRENGTH_8MA); //cmd
-    pinconf_set(PORT_(BOARD_SD_CLK_A_GPIO_PORT), BOARD_SD_CLK_A_GPIO_PIN, BOARD_SD_CLK_ALTERNATE_FUNCTION, PADCTRL_READ_ENABLE | PADCTRL_OUTPUT_DRIVE_STRENGTH_8MA); //clk
-    pinconf_set(PORT_(BOARD_SD_D0_A_GPIO_PORT), BOARD_SD_D0_A_GPIO_PIN, BOARD_SD_D0_ALTERNATE_FUNCTION, PADCTRL_READ_ENABLE | PADCTRL_OUTPUT_DRIVE_STRENGTH_8MA); //d0
-
-#if (RTE_SDC_BUS_WIDTH == SDMMC_4_BIT_MODE) || (RTE_SDC_BUS_WIDTH == SDMMC_8_BIT_MODE)
-    pinconf_set(PORT_(BOARD_SD_D1_A_GPIO_PORT), BOARD_SD_D1_A_GPIO_PIN, BOARD_SD_D1_ALTERNATE_FUNCTION, PADCTRL_READ_ENABLE | PADCTRL_OUTPUT_DRIVE_STRENGTH_8MA); //d1
-    pinconf_set(PORT_(BOARD_SD_D2_A_GPIO_PORT), BOARD_SD_D2_A_GPIO_PIN, BOARD_SD_D2_ALTERNATE_FUNCTION, PADCTRL_READ_ENABLE | PADCTRL_OUTPUT_DRIVE_STRENGTH_8MA); //d2
-    pinconf_set(PORT_(BOARD_SD_D3_A_GPIO_PORT), BOARD_SD_D3_A_GPIO_PIN, BOARD_SD_D3_ALTERNATE_FUNCTION, PADCTRL_READ_ENABLE | PADCTRL_OUTPUT_DRIVE_STRENGTH_8MA); //d3
-#endif
-
-#if RTE_SDC_BUS_WIDTH == SDMMC_8_BIT_MODE
-    pinconf_set(PORT_(BOARD_SD_D1_A_GPIO_PORT), BOARD_SD_D4_A_GPIO_PIN, BOARD_SD_D1_ALTERNATE_FUNCTION, PADCTRL_READ_ENABLE | PADCTRL_OUTPUT_DRIVE_STRENGTH_8MA); //d1
-    pinconf_set(PORT_(BOARD_SD_D2_A_GPIO_PORT), BOARD_SD_D5_A_GPIO_PIN, BOARD_SD_D2_ALTERNATE_FUNCTION, PADCTRL_READ_ENABLE | PADCTRL_OUTPUT_DRIVE_STRENGTH_8MA); //d2
-    pinconf_set(PORT_(BOARD_SD_D3_A_GPIO_PORT), BOARD_SD_D6_A_GPIO_PIN, BOARD_SD_D3_ALTERNATE_FUNCTION, PADCTRL_READ_ENABLE | PADCTRL_OUTPUT_DRIVE_STRENGTH_8MA); //d3
-    pinconf_set(PORT_(BOARD_SD_D3_A_GPIO_PORT), BOARD_SD_D7_A_GPIO_PIN, BOARD_SD_D3_ALTERNATE_FUNCTION, PADCTRL_READ_ENABLE | PADCTRL_OUTPUT_DRIVE_STRENGTH_8MA); //d3
-#endif
-
-#elif (SDC_PINS == SDC_B)
-    pinconf_set(PORT_14, PIN_0, PINMUX_ALTERNATE_FUNCTION_4, PADCTRL_READ_ENABLE); //cmd
-    pinconf_set(PORT_14, PIN_1, PINMUX_ALTERNATE_FUNCTION_5, PADCTRL_READ_ENABLE); //clk
-    pinconf_set(PORT_14, PIN_2, PINMUX_ALTERNATE_FUNCTION_5, PADCTRL_READ_ENABLE); //rst
-    pinconf_set(PORT_13, PIN_0, PINMUX_ALTERNATE_FUNCTION_5, PADCTRL_READ_ENABLE); //d0
-#if RTE_SDC_BUS_WIDTH == SDMMC_4_BIT_MODE
-    pinconf_set(PORT_13, PIN_1, PINMUX_ALTERNATE_FUNCTION_4, PADCTRL_READ_ENABLE); //d1
-    pinconf_set(PORT_13, PIN_2, PINMUX_ALTERNATE_FUNCTION_4, PADCTRL_READ_ENABLE); //d2
-    pinconf_set(PORT_13, PIN_3, PINMUX_ALTERNATE_FUNCTION_4, PADCTRL_READ_ENABLE); //d3
-#endif
-
-#elif (SDC_PINS == SDC_C)
-    pinconf_set(PORT_9, PIN_0, PINMUX_ALTERNATE_FUNCTION_4, PADCTRL_READ_ENABLE | PADCTRL_OUTPUT_DRIVE_STRENGTH_8MA); //cmd
-    pinconf_set(PORT_9, PIN_1, PINMUX_ALTERNATE_FUNCTION_4, PADCTRL_READ_ENABLE | PADCTRL_OUTPUT_DRIVE_STRENGTH_8MA); //clk
-    pinconf_set(PORT_8, PIN_0, PINMUX_ALTERNATE_FUNCTION_5, PADCTRL_READ_ENABLE | PADCTRL_OUTPUT_DRIVE_STRENGTH_8MA); //d0
-#if RTE_SDC_BUS_WIDTH == SDMMC_4_BIT_MODE
-    pinconf_set(PORT_8, PIN_1, PINMUX_ALTERNATE_FUNCTION_4, PADCTRL_READ_ENABLE | PADCTRL_OUTPUT_DRIVE_STRENGTH_8MA); //d1
-    pinconf_set(PORT_8, PIN_2, PINMUX_ALTERNATE_FUNCTION_5, PADCTRL_READ_ENABLE | PADCTRL_OUTPUT_DRIVE_STRENGTH_8MA); //d2
-    pinconf_set(PORT_8, PIN_3, PINMUX_ALTERNATE_FUNCTION_5, PADCTRL_READ_ENABLE | PADCTRL_OUTPUT_DRIVE_STRENGTH_8MA); //d3
-#endif
 
 #else
-    #error "Invalid SDMMC Pins defined...\n"
+    /*
+     * NOTE: The SDC A revision pins used in this test application are not configured
+     * in the board support library. Therefore, pins are configured manually here.
+     */
 
+#ifdef BOARD_SD_RESET_GPIO_PORT
+
+    pinconf_set(PORT_(BOARD_SD_RESET_GPIO_PORT), BOARD_SD_RESET_GPIO_PIN, 0, 0); //SD reset
+
+#endif
+
+    pinconf_set(PORT_(BOARD_SD_CMD_A_GPIO_PORT),
+                BOARD_SD_CMD_A_GPIO_PIN,
+                BOARD_SD_CMD_ALTERNATE_FUNCTION,
+                PADCTRL_READ_ENABLE | PADCTRL_OUTPUT_DRIVE_STRENGTH_8MA);  // cmd
+    pinconf_set(PORT_(BOARD_SD_CLK_A_GPIO_PORT),
+                BOARD_SD_CLK_A_GPIO_PIN,
+                BOARD_SD_CLK_ALTERNATE_FUNCTION,
+                PADCTRL_READ_ENABLE | PADCTRL_OUTPUT_DRIVE_STRENGTH_8MA);  // clk
+    pinconf_set(PORT_(BOARD_SD_D0_A_GPIO_PORT),
+                BOARD_SD_D0_A_GPIO_PIN,
+                BOARD_SD_D0_ALTERNATE_FUNCTION,
+                PADCTRL_READ_ENABLE | PADCTRL_OUTPUT_DRIVE_STRENGTH_8MA);  // d0
+#if RTE_SDC_BUS_WIDTH == SDMMC_4_BIT_MODE
+    pinconf_set(PORT_(BOARD_SD_D1_A_GPIO_PORT),
+                BOARD_SD_D1_A_GPIO_PIN,
+                BOARD_SD_D1_ALTERNATE_FUNCTION,
+                PADCTRL_READ_ENABLE | PADCTRL_OUTPUT_DRIVE_STRENGTH_8MA);  // d1
+    pinconf_set(PORT_(BOARD_SD_D2_A_GPIO_PORT),
+                BOARD_SD_D2_A_GPIO_PIN,
+                BOARD_SD_D2_ALTERNATE_FUNCTION,
+                PADCTRL_READ_ENABLE | PADCTRL_OUTPUT_DRIVE_STRENGTH_8MA);  // d2
+    pinconf_set(PORT_(BOARD_SD_D3_A_GPIO_PORT),
+                BOARD_SD_D3_A_GPIO_PIN,
+                BOARD_SD_D3_ALTERNATE_FUNCTION,
+                PADCTRL_READ_ENABLE | PADCTRL_OUTPUT_DRIVE_STRENGTH_8MA);  // d3
+#endif
 #endif
 
     /* Open the SD disk. and initialize SD controller */
@@ -327,7 +272,7 @@ void mySD_Thread_entry(ULONG args)
     memset(filebuffer, '\0', sizeof(filebuffer));
     for(int i = 0; i<SD_TEST_ITTR_CNT; i++){
 
-        memset(filebuffer, 'D', (SD_BLK_SIZE * NUM_BLK_TEST));
+        memset(filebuffer, 'D', (SD_BLK_SIZE * NUM_BLK_TEST) - 1);
 
         /* Write a string to the test file.  */
         status =  fx_file_write(&test_file, (void *)filebuffer, (SD_BLK_SIZE * NUM_BLK_TEST));
@@ -382,7 +327,7 @@ void mySD_Thread_entry(ULONG args)
         return;
     }
 
-    error_code = SERVICES_clocks_enable_clock(se_services_s_handle, CLKEN_USB, false, &service_error_code);
+    error_code = SERVICES_clocks_enable_clock(se_services_s_handle, CLKEN_CLK_20M, false, &service_error_code);
     if(error_code){
         printf("SE: SDMMC 20MHz clock disable = %d\n", error_code);
         return;
@@ -427,7 +372,7 @@ int main()
         return 0;
     }
 
-    error_code = SERVICES_clocks_enable_clock(se_services_s_handle, CLKEN_USB, true, &service_error_code);
+    error_code = SERVICES_clocks_enable_clock(se_services_s_handle, CLKEN_CLK_20M, true, &service_error_code);
     if(error_code){
         printf("SE: SDMMC 20MHz clock enable = %d\n", error_code);
         return 0;

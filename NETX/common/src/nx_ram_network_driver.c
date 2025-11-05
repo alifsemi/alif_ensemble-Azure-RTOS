@@ -1,5 +1,6 @@
 /***************************************************************************
  * Copyright (c) 2024 Microsoft Corporation 
+ * Copyright (c) 2025-present Eclipse ThreadX Contributors
  * 
  * This program and the accompanying materials are made available under the
  * terms of the MIT License which is available at
@@ -110,7 +111,7 @@ static _nx_ram_network_driver_instance_type nx_ram_driver[NX_MAX_RAM_INTERFACES]
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _nx_ram_network_driver                              PORTABLE C      */
-/*                                                           6.4.0        */
+/*                                                           6.4.3        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Yuxin Zhou, Microsoft Corporation                                   */
@@ -666,7 +667,7 @@ ULONG        *ethernet_frame_ptr;
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _nx_ram_network_driver_output                       PORTABLE C      */
-/*                                                           6.4.0        */
+/*                                                           6.4.3        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Yuxin Zhou, Microsoft Corporation                                   */
@@ -877,7 +878,7 @@ UINT   j;
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _nx_ram_network_driver_receive                      PORTABLE C      */
-/*                                                           6.4.0        */
+/*                                                           6.4.3        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Yuxin Zhou, Microsoft Corporation                                   */

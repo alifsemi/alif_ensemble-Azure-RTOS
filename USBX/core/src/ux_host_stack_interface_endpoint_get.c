@@ -1,13 +1,12 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 
 /**************************************************************************/
@@ -34,7 +33,7 @@
 /*  FUNCTION                                               RELEASE        */ 
 /*                                                                        */ 
 /*    _ux_host_stack_interface_endpoint_get               PORTABLE C      */ 
-/*                                                           6.1          */
+/*                                                           6.1.12       */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Chaoqiong Xiao, Microsoft Corporation                               */
@@ -70,32 +69,36 @@
 /*  05-19-2020     Chaoqiong Xiao           Initial Version 6.0           */
 /*  09-30-2020     Chaoqiong Xiao           Modified comment(s),          */
 /*                                            resulting in version 6.1    */
+/*  07-29-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            fixed parameter/variable    */
+/*                                            names conflict C++ keyword, */
+/*                                            resulting in version 6.1.12 */
 /*                                                                        */
 /**************************************************************************/
-UINT  _ux_host_stack_interface_endpoint_get(UX_INTERFACE *interface, UINT endpoint_index, UX_ENDPOINT **endpoint)
+UINT  _ux_host_stack_interface_endpoint_get(UX_INTERFACE *interface_ptr, UINT endpoint_index, UX_ENDPOINT **endpoint)
 {
 
 UINT            current_endpoint_index;
 UX_ENDPOINT     *current_endpoint;
 
     /* If trace is enabled, insert this event into the trace buffer.  */
-    UX_TRACE_IN_LINE_INSERT(UX_TRACE_HOST_STACK_INTERFACE_ENDPOINT_GET, interface, endpoint_index, 0, 0, UX_TRACE_HOST_STACK_EVENTS, 0, 0)
+    UX_TRACE_IN_LINE_INSERT(UX_TRACE_HOST_STACK_INTERFACE_ENDPOINT_GET, interface_ptr, endpoint_index, 0, 0, UX_TRACE_HOST_STACK_EVENTS, 0, 0)
 
     /* Do a sanity check on the interface handle.  */
-    if (interface -> ux_interface_handle != (ULONG) (ALIGN_TYPE) interface)
+    if (interface_ptr -> ux_interface_handle != (ULONG) (ALIGN_TYPE) interface_ptr)
     {
 
         /* Error trap. */
         _ux_system_error_handler(UX_SYSTEM_LEVEL_THREAD, UX_SYSTEM_CONTEXT_ENUMERATOR, UX_INTERFACE_HANDLE_UNKNOWN);
 
         /* If trace is enabled, insert this event into the trace buffer.  */
-        UX_TRACE_IN_LINE_INSERT(UX_TRACE_ERROR, UX_INTERFACE_HANDLE_UNKNOWN, interface, 0, 0, UX_TRACE_ERRORS, 0, 0)
+        UX_TRACE_IN_LINE_INSERT(UX_TRACE_ERROR, UX_INTERFACE_HANDLE_UNKNOWN, interface_ptr, 0, 0, UX_TRACE_ERRORS, 0, 0)
 
         return(UX_INTERFACE_HANDLE_UNKNOWN);
     }
             
     /* Start with the endpoint attached to the interface.  */
-    current_endpoint =  interface -> ux_interface_first_endpoint;
+    current_endpoint =  interface_ptr -> ux_interface_first_endpoint;
 
     /* The first endpoint has the index 0.  */    
     current_endpoint_index =  0;
@@ -132,3 +135,54 @@ UX_ENDPOINT     *current_endpoint;
     return(UX_ENDPOINT_HANDLE_UNKNOWN);
 }
 
+
+/**************************************************************************/
+/*                                                                        */
+/*  FUNCTION                                               RELEASE        */
+/*                                                                        */
+/*    _uxe_host_stack_interface_endpoint_get              PORTABLE C      */
+/*                                                           6.3.0        */
+/*  AUTHOR                                                                */
+/*                                                                        */
+/*    Chaoqiong Xiao, Microsoft Corporation                               */
+/*                                                                        */
+/*  DESCRIPTION                                                           */
+/*                                                                        */
+/*    This function checks errors in host stack endpoint get function     */
+/*    call.                                                               */
+/*                                                                        */
+/*  INPUT                                                                 */
+/*                                                                        */
+/*    interface_ptr                         Pointer to interface          */ 
+/*    endpoint_index                        Index of endpoint to get      */ 
+/*    endpoint                              Destination for endpoint      */ 
+/*                                                                        */
+/*  OUTPUT                                                                */
+/*                                                                        */
+/*    None                                                                */
+/*                                                                        */
+/*  CALLS                                                                 */
+/*                                                                        */
+/*    _ux_host_stack_interface_endpoint_get Endpoint get                  */
+/*                                                                        */
+/*  CALLED BY                                                             */
+/*                                                                        */
+/*    Application                                                         */
+/*                                                                        */
+/*  RELEASE HISTORY                                                       */
+/*                                                                        */
+/*    DATE              NAME                      DESCRIPTION             */
+/*                                                                        */
+/*  10-31-2023     Chaoqiong Xiao           Initial Version 6.3.0         */
+/*                                                                        */
+/**************************************************************************/
+UINT  _uxe_host_stack_interface_endpoint_get(UX_INTERFACE *interface_ptr, UINT endpoint_index, UX_ENDPOINT **endpoint)
+{
+
+    /* Sanity checks.  */
+    if ((interface_ptr == UX_NULL) || (endpoint == UX_NULL))
+        return(UX_INVALID_PARAMETER);
+
+    /* Invoke endpoint get function.  */
+    return(_ux_host_stack_interface_endpoint_get(interface_ptr, endpoint_index, endpoint));
+}

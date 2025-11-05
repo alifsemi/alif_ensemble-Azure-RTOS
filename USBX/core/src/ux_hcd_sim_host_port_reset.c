@@ -1,13 +1,12 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 
 /**************************************************************************/
@@ -36,7 +35,7 @@
 /*  FUNCTION                                               RELEASE        */ 
 /*                                                                        */ 
 /*    _ux_hcd_sim_host_port_reset                         PORTABLE C      */ 
-/*                                                           6.1.8        */
+/*                                                           6.1.10       */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Chaoqiong Xiao, Microsoft Corporation                               */
@@ -73,12 +72,19 @@
 /*  08-02-2021     Wen Wang                 Modified comment(s),          */
 /*                                            fixed spelling error,       */
 /*                                            resulting in version 6.1.8  */
+/*  01-31-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            added standalone support,   */
+/*                                            resulting in version 6.1.10 */
 /*                                                                        */
 /**************************************************************************/
 UINT  _ux_hcd_sim_host_port_reset(UX_HCD_SIM_HOST *hcd_sim_host, ULONG port_index)
 {
 
 UX_SLAVE_DEVICE     *device; 
+
+#if defined(UX_HOST_STANDALONE)
+    /* No port reset wait simulated, return _STATE_NEXT later to move state.  */
+#endif
 
     UX_PARAMETER_NOT_USED(hcd_sim_host);
     UX_PARAMETER_NOT_USED(port_index);
@@ -108,6 +114,10 @@ UX_SLAVE_DEVICE     *device;
     device -> ux_slave_device_state =  UX_DEVICE_ATTACHED;
 
     /* This function should never fail.  */
+#if defined(UX_HOST_STANDALONE)
+    return(UX_STATE_NEXT);
+#else
     return(UX_SUCCESS);
+#endif
 }
 

@@ -24,9 +24,6 @@
 #include "tx_user.h"
 #endif
 
-SYSTEM_CLOCK        =     6000000
-SYSTICK_CYCLES      =     ((SYSTEM_CLOCK / 100) -1)
-
 /* Setup the stack and heap areas.  */
 
 STACK_SIZE          =     0x00000400

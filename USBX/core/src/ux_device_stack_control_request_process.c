@@ -1,13 +1,12 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 
 /**************************************************************************/
@@ -33,7 +32,7 @@
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _ux_device_stack_control_request_process            PORTABLE C      */
-/*                                                           6.1.9        */
+/*                                                           6.3.0        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Chaoqiong Xiao, Microsoft Corporation                               */
@@ -84,6 +83,20 @@
 /*                                            fixed possible buffer issue */
 /*                                            for control vendor request, */
 /*                                            resulting in version 6.1.9  */
+/*  01-31-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            added printer support,      */
+/*                                            resulting in version 6.1.10 */
+/*  07-29-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            fixed parameter/variable    */
+/*                                            names conflict C++ keyword, */
+/*                                            resulting in version 6.1.12 */
+/*  03-08-2023     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            fixed vendor request issue, */
+/*                                            resulting in version 6.2.1  */
+/*  10-31-2023     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            improved interface request  */
+/*                                            process with print class,   */
+/*                                            resulting in version 6.3.0  */
 /*                                                                        */
 /**************************************************************************/
 UINT  _ux_device_stack_control_request_process(UX_SLAVE_TRANSFER *transfer_request)
@@ -91,7 +104,7 @@ UINT  _ux_device_stack_control_request_process(UX_SLAVE_TRANSFER *transfer_reque
 
 UX_SLAVE_DCD                *dcd;
 UX_SLAVE_DEVICE             *device;
-UX_SLAVE_CLASS              *class;
+UX_SLAVE_CLASS              *class_ptr;
 UX_SLAVE_CLASS_COMMAND      class_command;
 ULONG                       request_type;
 ULONG                       request;
@@ -137,7 +150,8 @@ ULONG                       application_data_length;
         {
 
             /* Check the request demanded and compare it to the application registered one.  */
-            if (request == _ux_system_slave -> ux_system_slave_device_vendor_request)
+            if (_ux_system_slave -> ux_system_slave_device_vendor_request_function != UX_NULL &&
+                request == _ux_system_slave -> ux_system_slave_device_vendor_request)
             {
 
                 /* This is a Microsoft extended function. It happens before the device is configured. 
@@ -192,6 +206,13 @@ ULONG                       application_data_length;
             for (class_index = 0; class_index < UX_MAX_SLAVE_INTERFACES; class_index ++)
             {
 
+                /* Get the class for the interface.  */
+                class_ptr =  _ux_system_slave -> ux_system_slave_interface_class_array[class_index];
+
+                /* If class is not ready, try next.  */
+                if (class_ptr == UX_NULL)
+                    continue;
+
                 /* Is the request target to an interface?  */
                 if ((request_type & UX_REQUEST_TARGET) == UX_REQUEST_TARGET_INTERFACE)
                 {
@@ -199,22 +220,32 @@ ULONG                       application_data_length;
                     /* Yes, so the request index contains the index of the interface 
                        the request is for. So if the current index does not match 
                        the request index, we should go to the next one.  */
-                    if ((request_index & 0xFF) != class_index)
-                    continue;
+                    /* For printer class (0x07) GET_DEVICE_ID (0x00) the high byte of 
+                       wIndex is interface index (for recommended index sequence the interface
+                       number is same as interface index inside configuration).
+                     */
+                    if ((request_type == 0xA1) && (request == 0x00) &&
+                        (class_ptr -> ux_slave_class_interface -> ux_slave_interface_descriptor.bInterfaceClass == 0x07))
+                    {
+
+                        /* Check wIndex high byte.  */
+                        if(*(transfer_request -> ux_slave_transfer_request_setup + UX_SETUP_INDEX + 1) != class_index)
+                            continue;
+                    }
+                    else
+                    {
+
+                        /* Check wIndex low.  */
+                        if ((request_index & 0xFF) != class_index)
+                            continue;
+                    }
                 }
 
-                /* Get the class for the interface.  */
-                class =  _ux_system_slave -> ux_system_slave_interface_class_array[class_index];
-
-                /* If class is not ready, try next.  */
-                if (class == UX_NULL)
-                    continue;
-
                 /* Memorize the class in the command.  */
-                class_command.ux_slave_class_command_class_ptr = class;
+                class_command.ux_slave_class_command_class_ptr = class_ptr;
 
                 /* We have found a potential candidate. Call this registered class entry function.  */
-                status = class -> ux_slave_class_entry_function(&class_command);
+                status = class_ptr -> ux_slave_class_entry_function(&class_command);
 
                 /* The status simply tells us if the registered class handled the 
                    command - if there was an issue processing the command, it would've 

@@ -1,13 +1,13 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * Copyright (c) 2025-present Eclipse ThreadX Contributors
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 
 /**************************************************************************/
@@ -29,7 +29,7 @@
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _nx_secure_x509_certificate_initialize              PORTABLE C      */
-/*                                                           6.1.7        */
+/*                                                           6.4.3        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Timothy Stapko, Microsoft Corporation                               */
@@ -141,7 +141,7 @@ NX_SECURE_EC_PRIVATE_KEY *ec_key;
         /* Use the caller-supplied buffer for the certificate. */
         certificate -> nx_secure_x509_certificate_raw_buffer_size = buffer_size;
         certificate -> nx_secure_x509_certificate_raw_data = raw_data_buffer;
-        NX_SECURE_MEMCPY(certificate -> nx_secure_x509_certificate_raw_data, certificate_data, length); /* Use case of memcpy is verified. */
+        NX_SECURE_MEMCPY(certificate -> nx_secure_x509_certificate_raw_data, certificate_data, length); /* Use case of memcpy is verified. lgtm[cpp/banned-api-usage-required-any] */
     }
 
     /* Parse the DER-encoded X509 certificate to extract the public key data.

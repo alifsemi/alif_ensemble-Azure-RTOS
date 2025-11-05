@@ -1,15 +1,13 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
-
-/* Version: 6.1 */
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * Copyright (c) 2025-present Eclipse ThreadX Contributors
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 #include "nx_azure_iot_provisioning_client.h"
 
@@ -32,6 +30,8 @@
 #define NX_AZURE_IOT_PROVISIONING_CLIENT_CUSTOM_PAYLOAD                ", \"payload\" : "
 #define NX_AZURE_IOT_PROVISIONING_CLIENT_PAYLOAD_END                  "}"
 #define NX_AZURE_IOT_PROVISIONING_CLIENT_POLICY_NAME                  "registration"
+
+#define NX_AZURE_IOT_PROVISIONING_CLIENT_WEB_SOCKET_PATH              "/$iothub/websocket"
 
 /* Set the default retry to Provisioning service.  */
 #ifndef NX_AZURE_IOT_PROVISIONING_CLIENT_DEFAULT_RETRY
@@ -134,6 +134,7 @@ UINT status;
 NXD_ADDRESS server_address;
 NXD_MQTT_CLIENT *mqtt_client_ptr;
 NX_AZURE_IOT_RESOURCE *resource_ptr;
+UINT server_port;
 
     /* Resolve the host name.  */
     status = nxd_dns_host_by_name_get(prov_client_ptr -> nx_azure_iot_ptr -> nx_azure_iot_dns_ptr,
@@ -151,18 +152,43 @@ NX_AZURE_IOT_RESOURCE *resource_ptr;
     mqtt_client_ptr = &(resource_ptr -> resource_mqtt);
 
     /* Set login info.  */
-    status = nxd_mqtt_client_login_set(mqtt_client_ptr, (CHAR *)resource_ptr -> resource_mqtt_user_name,
-                                       resource_ptr -> resource_mqtt_user_name_length,
-                                       (CHAR *)resource_ptr -> resource_mqtt_sas_token,
-                                       resource_ptr -> resource_mqtt_sas_token_length);
+    if (resource_ptr -> resource_mqtt_sas_token_length == 0)
+    {
+
+        /* X509 authentication. Set NULL for password.  */
+        status = nxd_mqtt_client_login_set(mqtt_client_ptr, (CHAR *)resource_ptr -> resource_mqtt_user_name,
+                                        resource_ptr -> resource_mqtt_user_name_length,
+                                        NX_NULL, 0);
+    }
+    else
+    {
+        status = nxd_mqtt_client_login_set(mqtt_client_ptr, (CHAR *)resource_ptr -> resource_mqtt_user_name,
+                                        resource_ptr -> resource_mqtt_user_name_length,
+                                        (CHAR *)resource_ptr -> resource_mqtt_sas_token,
+                                        resource_ptr -> resource_mqtt_sas_token_length);
+    }
+
     if (status)
     {
         LogError(LogLiteralArgs("IoTProvisioning client connect fail: MQTT CLIENT LOGIN SET FAIL status: %d"), status);
         return(status);
     }
 
+#ifdef NXD_MQTT_OVER_WEBSOCKET
+    if (mqtt_client_ptr -> nxd_mqtt_client_use_websocket == NX_TRUE)
+    {
+        server_port = NXD_MQTT_OVER_WEBSOCKET_TLS_PORT;
+    }
+    else
+    {
+        server_port = NXD_MQTT_TLS_PORT;
+    }
+#else
+    server_port = NXD_MQTT_TLS_PORT;
+#endif /* NXD_MQTT_OVER_WEBSOCKET */
+
     /* Start MQTT connection.  */
-    status = nxd_mqtt_client_secure_connect(mqtt_client_ptr, &server_address, NXD_MQTT_TLS_PORT,
+    status = nxd_mqtt_client_secure_connect(mqtt_client_ptr, &server_address, server_port,
                                             nx_azure_iot_mqtt_tls_setup, NX_AZURE_IOT_MQTT_KEEP_ALIVE,
                                             NX_FALSE, wait_option);
 
@@ -1091,6 +1117,24 @@ NX_AZURE_IOT_RESOURCE *resource_ptr;
     }
 }
 
+#ifdef NXD_MQTT_OVER_WEBSOCKET
+UINT nx_azure_iot_provisioning_client_websocket_enable(NX_AZURE_IOT_PROVISIONING_CLIENT *prov_client_ptr)
+{
+NX_AZURE_IOT_RESOURCE *resource_ptr;
+
+    if (prov_client_ptr == NX_NULL)
+    {
+        LogError(LogLiteralArgs("IoTProvisioning client WebSocket enable fail: INVALID POINTER"));
+        return(NX_AZURE_IOT_INVALID_PARAMETER);
+    }
+
+    /* Set resource pointer.  */
+    resource_ptr = &(prov_client_ptr -> nx_azure_iot_provisioning_client_resource);
+
+    return(nxd_mqtt_client_websocket_set(&(resource_ptr -> resource_mqtt), (UCHAR *)resource_ptr -> resource_hostname, resource_ptr -> resource_hostname_length, 
+                                         (UCHAR *)NX_AZURE_IOT_PROVISIONING_CLIENT_WEB_SOCKET_PATH, sizeof(NX_AZURE_IOT_PROVISIONING_CLIENT_WEB_SOCKET_PATH) - 1));
+}
+#endif /* NXD_MQTT_OVER_WEBSOCKET */
 
 static VOID nx_azure_iot_provisioning_client_event_process(NX_AZURE_IOT *nx_azure_iot_ptr,
                                                            ULONG common_events, ULONG module_own_events)

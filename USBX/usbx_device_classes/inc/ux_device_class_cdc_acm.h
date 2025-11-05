@@ -1,13 +1,12 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 /**************************************************************************/
 /**************************************************************************/
@@ -24,7 +23,7 @@
 /*  COMPONENT DEFINITION                                   RELEASE        */ 
 /*                                                                        */ 
 /*    ux_device_class_cdc_acm.h                           PORTABLE C      */ 
-/*                                                           6.1.8        */
+/*                                                           6.3.0        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Chaoqiong Xiao, Microsoft Corporation                               */
@@ -52,6 +51,18 @@
 /*                                            added extern "C" keyword    */
 /*                                            for compatibility with C++, */
 /*                                            resulting in version 6.1.8  */
+/*  01-31-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            added standalone support,   */
+/*                                            resulting in version 6.1.10 */
+/*  07-29-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            added write auto ZLP,       */
+/*                                            resulting in version 6.1.12 */
+/*  10-31-2023     Yajun xia, CQ Xiao       Modified comment(s),          */
+/*                                            added zero copy support,    */
+/*                                            added a new mode to manage  */
+/*                                            endpoint buffer in classes, */
+/*                                            added error checks support, */
+/*                                            resulting in version 6.3.0  */
 /*                                                                        */
 /**************************************************************************/
 
@@ -67,6 +78,41 @@
 extern   "C" { 
 
 #endif  
+
+/* Internal option: enable the basic USBX error checking. This define is typically used
+   while debugging application.  */
+#if defined(UX_ENABLE_ERROR_CHECKING) && !defined(UX_DEVICE_CLASS_CDC_ACM_ENABLE_ERROR_CHECKING)
+#define UX_DEVICE_CLASS_CDC_ACM_ENABLE_ERROR_CHECKING
+#endif
+
+/* Defined, _write is pending ZLP automatically (complete transfer) after buffer is sent.  */
+
+/* #define UX_DEVICE_CLASS_CDC_ACM_WRITE_AUTO_ZLP  */
+
+/* Option: bulk out endpoint / read buffer size, must be larger than max packet size in framework, and aligned in 4-bytes.  */
+#ifndef UX_DEVICE_CLASS_CDC_ACM_READ_BUFFER_SIZE
+#define UX_DEVICE_CLASS_CDC_ACM_READ_BUFFER_SIZE                        512
+#endif
+
+/* Option: bulk in endpoint / write buffer size, must be larger than max packet size in framework, and aligned in 4-bytes.  */
+#ifndef UX_DEVICE_CLASS_CDC_ACM_WRITE_BUFFER_SIZE
+#define UX_DEVICE_CLASS_CDC_ACM_WRITE_BUFFER_SIZE                       UX_SLAVE_REQUEST_DATA_MAX_LENGTH
+#endif
+
+/* Option: zero copy enable.
+    Works if UX_DEVICE_ENDPOINT_BUFFER_OWNER is 1 (endpoint buffer managed by class).
+    Defined, it enables zero copy for bulk in/out endpoints (write/read). In this case, the endpoint
+    buffer is not allocated in class, application must provide the buffer for read/write, and the
+    buffer must meet device controller driver (DCD) buffer requirements (e.g., aligned and cache safe).
+ */
+/* #define UX_DEVICE_CLASS_CDC_ACM_ZERO_COPY  */
+
+/* Internal: check if class own endpoint buffer  */
+#if (UX_DEVICE_ENDPOINT_BUFFER_OWNER == 1) &&                                   \
+    (!defined(UX_DEVICE_CLASS_CDC_ACM_ZERO_COPY) ||                             \
+     !defined(UX_DEVICE_CLASS_CDC_ACM_TRANSMISSION_DISABLE))
+#define UX_DEVICE_CLASS_CDC_ACM_OWN_ENDPOINT_BUFFER
+#endif
 
 
 /* Define CDC Class USB Class constants.  */
@@ -144,6 +190,16 @@ extern   "C" {
 /* Define event group flag.  */
 #define UX_DEVICE_CLASS_CDC_ACM_WRITE_EVENT                             1
 
+
+/* CDC ACM read state machine states.  */
+#define UX_DEVICE_CLASS_CDC_ACM_READ_START      (UX_STATE_STEP + 1)
+#define UX_DEVICE_CLASS_CDC_ACM_READ_WAIT       (UX_STATE_STEP + 2)
+
+/* CDC ACM write state machine states.  */
+#define UX_DEVICE_CLASS_CDC_ACM_WRITE_START     (UX_STATE_STEP + 1)
+#define UX_DEVICE_CLASS_CDC_ACM_WRITE_WAIT      (UX_STATE_STEP + 2)
+
+
 /* Define Slave CDC Class Calling Parameter structure */
 
 typedef struct UX_SLAVE_CLASS_CDC_ACM_PARAMETER_STRUCT
@@ -160,29 +216,76 @@ typedef struct UX_SLAVE_CLASS_CDC_ACM_STRUCT
 {
     UX_SLAVE_INTERFACE                  *ux_slave_class_cdc_acm_interface;
     UX_SLAVE_CLASS_CDC_ACM_PARAMETER    ux_slave_class_cdc_acm_parameter;
+
+#if defined(UX_DEVICE_CLASS_CDC_ACM_OWN_ENDPOINT_BUFFER)
+    UCHAR                               *ux_device_class_cdc_acm_endpoint_buffer;
+#endif
+
+#if !defined(UX_DEVICE_STANDALONE)
     UX_MUTEX                            ux_slave_class_cdc_acm_endpoint_in_mutex;
     UX_MUTEX                            ux_slave_class_cdc_acm_endpoint_out_mutex;
+#else
+#if (UX_DEVICE_ENDPOINT_BUFFER_OWNER != 1) || !defined(UX_DEVICE_CLASS_CDC_ACM_ZERO_COPY)
+    UCHAR                               *ux_device_class_cdc_acm_read_buffer;
+    ULONG                               ux_device_class_cdc_acm_read_requested_length;
+    ULONG                               ux_device_class_cdc_acm_read_transfer_length;
+    ULONG                               ux_device_class_cdc_acm_read_actual_length;
+#endif
+    UINT                                ux_device_class_cdc_acm_read_state;
+    UINT                                ux_device_class_cdc_acm_read_status;
+
+#if (UX_DEVICE_ENDPOINT_BUFFER_OWNER != 1) || !defined(UX_DEVICE_CLASS_CDC_ACM_ZERO_COPY)
+    ULONG                               ux_device_class_cdc_acm_write_transfer_length;
+    ULONG                               ux_device_class_cdc_acm_write_host_length;
+    ULONG                               ux_device_class_cdc_acm_write_actual_length;
+#endif
+    UCHAR                               *ux_device_class_cdc_acm_write_buffer;
+    ULONG                               ux_device_class_cdc_acm_write_requested_length;
+    UINT                                ux_device_class_cdc_acm_write_status;
+    UINT                                ux_device_class_cdc_acm_write_state;
+#endif
+
     ULONG                               ux_slave_class_cdc_acm_baudrate;
     UCHAR                               ux_slave_class_cdc_acm_stop_bit;
     UCHAR                               ux_slave_class_cdc_acm_parity;
     UCHAR                               ux_slave_class_cdc_acm_data_bit;
     UCHAR                               ux_slave_class_cdc_acm_data_dtr_state;
     UCHAR                               ux_slave_class_cdc_acm_data_rts_state;
+    UCHAR                               reserved[3];
+
 #ifndef UX_DEVICE_CLASS_CDC_ACM_TRANSMISSION_DISABLE
+#if !defined(UX_DEVICE_STANDALONE)
     UX_THREAD                           ux_slave_class_cdc_acm_bulkin_thread;
     UX_THREAD                           ux_slave_class_cdc_acm_bulkout_thread;
+    UX_EVENT_FLAGS_GROUP                ux_slave_class_cdc_acm_event_flags_group;
     UCHAR                               *ux_slave_class_cdc_acm_bulkin_thread_stack;
     UCHAR                               *ux_slave_class_cdc_acm_bulkout_thread_stack;
+#endif
     UINT                                (*ux_device_class_cdc_acm_write_callback)(struct UX_SLAVE_CLASS_CDC_ACM_STRUCT *cdc_acm, UINT status, ULONG length);
     UINT                                (*ux_device_class_cdc_acm_read_callback)(struct UX_SLAVE_CLASS_CDC_ACM_STRUCT *cdc_acm, UINT status, UCHAR *data_pointer, ULONG length);
-    UX_EVENT_FLAGS_GROUP                ux_slave_class_cdc_acm_event_flags_group;
     ULONG                               ux_slave_class_cdc_acm_transmission_status;
     ULONG                               ux_slave_class_cdc_acm_scheduled_write;
+#if !defined(UX_DEVICE_STANDALONE)
     ULONG                               ux_slave_class_cdc_acm_callback_total_length;
     UCHAR                               *ux_slave_class_cdc_acm_callback_data_pointer;
     UCHAR                               *ux_slave_class_cdc_acm_callback_current_data_pointer;
 #endif
+#endif
 } UX_SLAVE_CLASS_CDC_ACM;
+
+#if defined(UX_DEVICE_CLASS_CDC_ACM_ZERO_COPY) && !defined(UX_DEVICE_CLASS_CDC_ACM_TRANSMISSION_DISABLE)
+#define UX_DEVICE_CLASS_CDC_ACM_ENDPOINT_BUFFER_SIZE_CALC_OVERFLOW  (UX_FALSE)
+#define UX_DEVICE_CLASS_CDC_ACM_ENDPOINT_BUFFER_SIZE    (UX_DEVICE_CLASS_CDC_ACM_READ_BUFFER_SIZE)
+#define UX_DEVICE_CLASS_CDC_ACM_READ_BUFFER(acm)        ((acm) -> ux_device_class_cdc_acm_endpoint_buffer)
+#define UX_DEVICE_CLASS_CDC_ACM_WRITE_BUFFER(acm)       (UX_NULL)
+#else
+#define UX_DEVICE_CLASS_CDC_ACM_ENDPOINT_BUFFER_SIZE_CALC_OVERFLOW              \
+        (UX_OVERFLOW_CHECK_ADD_ULONG(UX_DEVICE_CLASS_CDC_ACM_READ_BUFFER_SIZE, UX_DEVICE_CLASS_CDC_ACM_WRITE_BUFFER_SIZE))
+#define UX_DEVICE_CLASS_CDC_ACM_ENDPOINT_BUFFER_SIZE    (UX_DEVICE_CLASS_CDC_ACM_READ_BUFFER_SIZE + UX_DEVICE_CLASS_CDC_ACM_WRITE_BUFFER_SIZE)
+#define UX_DEVICE_CLASS_CDC_ACM_READ_BUFFER(acm)        ((acm) -> ux_device_class_cdc_acm_endpoint_buffer)
+#define UX_DEVICE_CLASS_CDC_ACM_WRITE_BUFFER(acm)       (UX_DEVICE_CLASS_CDC_ACM_READ_BUFFER(acm) + UX_DEVICE_CLASS_CDC_ACM_READ_BUFFER_SIZE)
+#endif
+
 
 /* Define some CDC Class structures */
 
@@ -271,14 +374,50 @@ VOID  _ux_device_class_cdc_acm_bulkout_thread(ULONG class_pointer);
 UINT  _ux_device_class_cdc_acm_write_with_callback(UX_SLAVE_CLASS_CDC_ACM *cdc_acm, UCHAR *buffer, 
                                 ULONG requested_length);
 
+UINT  _ux_device_class_cdc_acm_write_run(UX_SLAVE_CLASS_CDC_ACM *cdc_acm, UCHAR *buffer, 
+                                ULONG requested_length, ULONG *actual_length);
+UINT  _ux_device_class_cdc_acm_read_run(UX_SLAVE_CLASS_CDC_ACM *cdc_acm, UCHAR *buffer, 
+                                ULONG requested_length, ULONG *actual_length);
+
+UINT  _ux_device_class_cdc_acm_tasks_run(VOID *instance);
+
+UINT  _uxe_device_class_cdc_acm_read(UX_SLAVE_CLASS_CDC_ACM *cdc_acm, UCHAR *buffer,
+                                    ULONG requested_length, ULONG *actual_length);
+UINT  _uxe_device_class_cdc_acm_write(UX_SLAVE_CLASS_CDC_ACM *cdc_acm, UCHAR *buffer,
+                                    ULONG requested_length, ULONG *actual_length);
+UINT  _uxe_device_class_cdc_acm_ioctl(UX_SLAVE_CLASS_CDC_ACM *cdc_acm, ULONG ioctl_function,
+                                    VOID *parameter);
+UINT  _uxe_device_class_cdc_acm_write_with_callback(UX_SLAVE_CLASS_CDC_ACM *cdc_acm, UCHAR *buffer,
+                                    ULONG requested_length);
+UINT  _uxe_device_class_cdc_acm_write_run(UX_SLAVE_CLASS_CDC_ACM *cdc_acm, UCHAR *buffer,
+                                ULONG requested_length, ULONG *actual_length);
+UINT  _uxe_device_class_cdc_acm_read_run(UX_SLAVE_CLASS_CDC_ACM *cdc_acm, UCHAR *buffer,
+                                ULONG requested_length, ULONG *actual_length);
 
 /* Define Device CDC Class API prototypes.  */
-
 #define ux_device_class_cdc_acm_entry               _ux_device_class_cdc_acm_entry
-#define ux_device_class_cdc_acm_read                _ux_device_class_cdc_acm_read 
+
+#if defined(UX_DEVICE_CLASS_CDC_ACM_ENABLE_ERROR_CHECKING)
+
+#define ux_device_class_cdc_acm_read                _uxe_device_class_cdc_acm_read
+#define ux_device_class_cdc_acm_write               _uxe_device_class_cdc_acm_write
+#define ux_device_class_cdc_acm_ioctl               _uxe_device_class_cdc_acm_ioctl
+#define ux_device_class_cdc_acm_write_with_callback _uxe_device_class_cdc_acm_write_with_callback
+
+#define ux_device_class_cdc_acm_read_run            _uxe_device_class_cdc_acm_read_run
+#define ux_device_class_cdc_acm_write_run           _uxe_device_class_cdc_acm_write_run
+
+#else
+
+#define ux_device_class_cdc_acm_read                _ux_device_class_cdc_acm_read
 #define ux_device_class_cdc_acm_write               _ux_device_class_cdc_acm_write
 #define ux_device_class_cdc_acm_ioctl               _ux_device_class_cdc_acm_ioctl
 #define ux_device_class_cdc_acm_write_with_callback _ux_device_class_cdc_acm_write_with_callback
+
+#define ux_device_class_cdc_acm_read_run            _ux_device_class_cdc_acm_read_run
+#define ux_device_class_cdc_acm_write_run           _ux_device_class_cdc_acm_write_run
+
+#endif
 
 /* Determine if a C++ compiler is being used.  If so, complete the standard 
    C conditional started above.  */   

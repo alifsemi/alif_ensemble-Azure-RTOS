@@ -1,13 +1,12 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 
 /**************************************************************************/
@@ -35,7 +34,7 @@
 /*  FUNCTION                                               RELEASE        */ 
 /*                                                                        */ 
 /*    _ux_host_stack_hnp_polling_thread_entry             PORTABLE C      */ 
-/*                                                           6.1.4        */
+/*                                                           6.1.10       */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Chaoqiong Xiao, Microsoft Corporation                               */
@@ -80,6 +79,9 @@
 /*                                            used pointer for current    */
 /*                                            selected configuration,     */
 /*                                            resulting in version 6.1.4  */
+/*  01-31-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            refined macros names,       */
+/*                                            resulting in version 6.1.10 */
 /*                                                                        */
 /**************************************************************************/
 VOID  _ux_host_stack_hnp_polling_thread_entry(ULONG argument)
@@ -175,8 +177,8 @@ UINT                        status;
                                             transfer_request =  &control_endpoint -> ux_endpoint_transfer_request;
 
                                             /* Protect the control endpoint semaphore here.  It will be unprotected in the 
-                                                transfer request function.  */
-                                            status =  _ux_utility_semaphore_get(&device -> ux_device_protection_semaphore, UX_WAIT_FOREVER);
+                                               transfer request function.  */
+                                            status =  _ux_host_semaphore_get(&device -> ux_device_protection_semaphore, UX_WAIT_FOREVER);
 
                                             /* Perform a GET_STATUS on this device to see if it wants to become the host.  */
                                             /* Create a transfer_request for the SET_CONFIGURATION request. No data for this request.  */

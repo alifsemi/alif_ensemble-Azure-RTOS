@@ -1,13 +1,12 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 
 /**************************************************************************/
@@ -34,7 +33,7 @@
 /*  FUNCTION                                               RELEASE        */ 
 /*                                                                        */ 
 /*    _ux_host_stack_device_descriptor_read               PORTABLE C      */ 
-/*                                                           6.1.9        */
+/*                                                           6.1.10       */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Chaoqiong Xiao, Microsoft Corporation                               */
@@ -72,6 +71,10 @@
 /*  10-15-2021     Chaoqiong Xiao           Modified comment(s),          */
 /*                                            added bMaxPacketSize0 check,*/
 /*                                            resulting in version 6.1.9  */
+/*  01-31-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            added standalone support,   */
+/*                                            added class code checking,  */
+/*                                            resulting in version 6.1.10 */
 /*                                                                        */
 /**************************************************************************/
 UINT  _ux_host_stack_device_descriptor_read(UX_DEVICE *device)
@@ -104,6 +107,12 @@ UX_ENDPOINT     *control_endpoint;
     transfer_request -> ux_transfer_request_value =             UX_DEVICE_DESCRIPTOR_ITEM << 8;
     transfer_request -> ux_transfer_request_index =             0;
 
+#if defined(UX_HOST_STANDALONE)
+    device -> ux_device_enum_trans = transfer_request;
+    status = UX_SUCCESS;
+    return(status);
+#else
+
     /* Send request to HCD layer.  */
     status =  _ux_host_stack_transfer_request(transfer_request);
 
@@ -135,8 +144,29 @@ UX_ENDPOINT     *control_endpoint;
         return(UX_DESCRIPTOR_CORRUPTED);
     }
 
+#if defined(UX_HOST_DEVICE_CLASS_CODE_VALIDATION_ENABLE)
+
+    /* Validate the USB-IF bDeviceClass class code.  */
+    switch(device -> ux_device_descriptor.bDeviceClass)
+    {
+    case 0x00: /* Fall through.  */
+    case 0x02: /* Fall through.  */
+    case 0x09: /* Fall through.  */
+    case 0x11: /* Fall through.  */
+    case 0xDC: /* Fall through.  */
+    case 0xEF: /* Fall through.  */
+    case 0xFF:
+        break;
+    default:
+
+        /* Invalid device class code.  */
+        _ux_utility_memory_free(descriptor);
+        return(UX_DESCRIPTOR_CORRUPTED);
+    }
+#endif
+
     /* Update the max packet size value for the endpoint.  */
-    control_endpoint -> ux_endpoint_descriptor.wMaxPacketSize = device -> ux_device_descriptor.bMaxPacketSize0;
+    control_endpoint -> ux_endpoint_descriptor.wMaxPacketSize =  device -> ux_device_descriptor.bMaxPacketSize0;
 
     /* Create a transfer_request for the GET_DESCRIPTOR request. This time, we have the complete length */
     transfer_request -> ux_transfer_request_data_pointer =      descriptor;
@@ -175,6 +205,7 @@ UX_ENDPOINT     *control_endpoint;
     _ux_utility_memory_free(descriptor);
 
     /* Return completion status.  */
-    return(status);             
+    return(status);
+#endif
 }
 

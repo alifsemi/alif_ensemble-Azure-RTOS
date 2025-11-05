@@ -1,13 +1,13 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * Copyright (c) 2025-present Eclipse ThreadX Contributors
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 
 /**************************************************************************/
@@ -29,7 +29,7 @@
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _nx_secure_tls_map_error_to_alert                   PORTABLE C      */
-/*                                                           6.1.6        */
+/*                                                           6.1.12       */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Timothy Stapko, Microsoft Corporation                               */
@@ -55,11 +55,7 @@
 /*                                                                        */
 /*  CALLED BY                                                             */
 /*                                                                        */
-/*    _nx_secure_dtls_client_handshake      DTLS client state machine     */
-/*    _nx_secure_dtls_server_handshake      DTLS server state machine     */
 /*    _nx_secure_dtls_session_receive       Receive DTLS data             */
-/*    _nx_secure_tls_client_handshake       TLS client state machine      */
-/*    _nx_secure_tls_server_handshake       TLS server state machine      */
 /*    _nx_secure_tls_session_receive_records                              */
 /*                                          Receive TLS records           */
 /*                                                                        */
@@ -74,6 +70,10 @@
 /*  04-02-2021     Timothy Stapko           Modified comment(s),          */
 /*                                            updated X.509 return value, */
 /*                                            resulting in version 6.1.6  */
+/*  07-29-2022     Yuxin Zhou               Modified comment(s), and      */
+/*                                            updated alert message for   */
+/*                                            downgrade protection,       */
+/*                                            resulting in version 6.1.12 */
 /*                                                                        */
 /**************************************************************************/
 VOID _nx_secure_tls_map_error_to_alert(UINT error_number, UINT *alert_number, UINT *alert_level)
@@ -176,6 +176,7 @@ VOID _nx_secure_tls_map_error_to_alert(UINT error_number, UINT *alert_number, UI
     case NX_SECURE_TLS_BAD_COMPRESSION_METHOD:        /* Deliberate fall-through. */
     case NX_SECURE_TLS_1_3_UNKNOWN_CIPHERSUITE:
     case NX_SECURE_TLS_BAD_SERVERHELLO_KEYSHARE:
+    case NX_SECURE_TLS_DOWNGRADE_DETECTED:
         *alert_number = NX_SECURE_TLS_ALERT_ILLEGAL_PARAMETER;
         *alert_level = NX_SECURE_TLS_ALERT_LEVEL_FATAL;
         break;

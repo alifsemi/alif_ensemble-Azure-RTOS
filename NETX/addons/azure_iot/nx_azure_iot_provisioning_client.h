@@ -1,15 +1,13 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
-
-/* Version: 6.1 */
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * Copyright (c) 2025-present Eclipse ThreadX Contributors
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 /**
  * @file nx_azure_iot_provisioning_client.h
@@ -199,6 +197,18 @@ UINT nx_azure_iot_provisioning_client_device_cert_set(NX_AZURE_IOT_PROVISIONING_
  */
 UINT nx_azure_iot_provisioning_client_symmetric_key_set(NX_AZURE_IOT_PROVISIONING_CLIENT *prov_client_ptr,
                                                         const UCHAR *symmetric_key, UINT symmetric_key_length);
+
+#ifdef NXD_MQTT_OVER_WEBSOCKET
+/**
+ * @brief Enable using MQTT over WebSocket to register device to Azure IoT Provisioning service.
+ *
+ * @param[in] prov_client_ptr A pointer to a #NX_AZURE_IOT_PROVISIONING_CLIENT.
+ * @return A `UINT` with the result of the API.
+ *   @retval #NX_AZURE_IOT_SUCCESS Successful if MQTT over WebSocket is enabled.
+ *   @retval #NX_AZURE_IOT_INVALID_PARAMETER Fail to enable MQTT over WebSocket due to invalid parameter.
+ */
+UINT nx_azure_iot_provisioning_client_websocket_enable(NX_AZURE_IOT_PROVISIONING_CLIENT *prov_client_ptr);
+#endif /* NXD_MQTT_OVER_WEBSOCKET */
 
 /**
  * @brief Register device to Azure IoT Provisioning service.

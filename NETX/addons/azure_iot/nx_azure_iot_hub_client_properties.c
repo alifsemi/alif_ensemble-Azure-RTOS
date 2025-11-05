@@ -1,15 +1,13 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
-
-/* Version: 6.1 */
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * Copyright (c) 2025-present Eclipse ThreadX Contributors
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 #include "nx_azure_iot_hub_client_properties.h"
 
@@ -187,7 +185,7 @@ UINT system_component;
         return(NX_AZURE_IOT_INVALID_PARAMETER);
     }
 
-    component_name = az_span_create((UCHAR *)component_name_pptr, (INT)*component_name_length_ptr);
+    component_name = az_span_create((UCHAR *)*component_name_pptr, (INT)*component_name_length_ptr);
     core_message_type = (message_type == NX_AZURE_IOT_HUB_PROPERTIES) ? AZ_IOT_HUB_CLIENT_PROPERTIES_MESSAGE_TYPE_GET_RESPONSE :
                         AZ_IOT_HUB_CLIENT_PROPERTIES_MESSAGE_TYPE_WRITABLE_UPDATED;
     core_property_type = (property_type == NX_AZURE_IOT_HUB_CLIENT_PROPERTY_REPORTED_FROM_DEVICE) ? AZ_IOT_HUB_CLIENT_PROPERTY_REPORTED_FROM_DEVICE :

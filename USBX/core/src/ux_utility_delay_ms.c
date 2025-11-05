@@ -1,13 +1,12 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 
 /**************************************************************************/
@@ -33,7 +32,7 @@
 /*  FUNCTION                                               RELEASE        */ 
 /*                                                                        */ 
 /*    _ux_utility_delay_ms                                PORTABLE C      */ 
-/*                                                           6.1.2        */
+/*                                                           6.1.10       */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Chaoqiong Xiao, Microsoft Corporation                               */
@@ -70,12 +69,25 @@
 /*  11-09-2020     Chaoqiong Xiao           Modified comment(s),          */
 /*                                            fixed compile warnings 64b, */
 /*                                            resulting in version 6.1.2  */
+/*  01-31-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            added standalone support,   */
+/*                                            resulting in version 6.1.10 */
 /*                                                                        */
 /**************************************************************************/
 VOID  _ux_utility_delay_ms(ULONG ms_wait)
 {
 
 ULONG   ticks;
+
+#if defined(UX_STANDALONE)
+
+    /* Get current time.  */
+    ticks = _ux_utility_time_get();
+
+    /* Wait until timeout.  */
+    while(_ux_utility_time_elapsed(ticks, _ux_utility_time_get()) <
+            UX_MS_TO_TICK_NON_ZERO(ms_wait));
+#else
 
     /* translate ms into ticks. */
     ticks = (ULONG)(ms_wait * UX_PERIODIC_RATE) / 1000;
@@ -85,8 +97,8 @@ ULONG   ticks;
 
     /* Call ThreadX sleep function.  */
     tx_thread_sleep(ticks);
+#endif
 
     /* Return completion status.  */
     return;
 }
-                                

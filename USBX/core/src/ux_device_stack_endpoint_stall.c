@@ -1,13 +1,12 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 
 /**************************************************************************/
@@ -34,7 +33,7 @@
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _ux_device_stack_endpoint_stall                     PORTABLE C      */
-/*                                                           6.1          */
+/*                                                           6.1.10       */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Chaoqiong Xiao, Microsoft Corporation                               */
@@ -70,6 +69,9 @@
 /*                                            TX symbols instead of using */
 /*                                            them directly,              */
 /*                                            resulting in version 6.1    */
+/*  01-31-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            added standalone support,   */
+/*                                            resulting in version 6.1.10 */
 /*                                                                        */
 /**************************************************************************/
 UINT  _ux_device_stack_endpoint_stall(UX_SLAVE_ENDPOINT *endpoint)
@@ -96,14 +98,17 @@ UINT                status;
 
     /* Check if the device is in a valid state; as soon as the device is out 
        of the RESET state, transfers occur and thus endpoints may be stalled. */
-    if (_ux_system_slave -> ux_system_slave_device.ux_slave_device_state != UX_DEVICE_RESET)
+    if (_ux_system_slave -> ux_system_slave_device.ux_slave_device_state != UX_DEVICE_RESET &&
+        endpoint -> ux_slave_endpoint_state != UX_ENDPOINT_HALTED)
     {
 
         /* Stall the endpoint.  */
         status =  dcd -> ux_slave_dcd_function(dcd, UX_DCD_STALL_ENDPOINT, endpoint);
-        
+
         /* Mark the endpoint state.  */
-        endpoint -> ux_slave_endpoint_state =  UX_ENDPOINT_HALTED;
+        if ((endpoint -> ux_slave_endpoint_descriptor.bmAttributes & UX_MASK_ENDPOINT_TYPE) !=
+            UX_CONTROL_ENDPOINT)
+            endpoint -> ux_slave_endpoint_state =  UX_ENDPOINT_HALTED;
     }
 
     /* Restore interrupts.  */

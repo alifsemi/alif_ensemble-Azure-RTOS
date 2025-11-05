@@ -1,13 +1,12 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 
 /**************************************************************************/
@@ -27,6 +26,8 @@
 
 #include "ux_api.h"
 #include "ux_hcd_sim_host.h"
+
+#if !defined(UX_HOST_STANDALONE)
 #include "tx_timer.h"
 
 
@@ -35,7 +36,7 @@
 /*  FUNCTION                                               RELEASE        */ 
 /*                                                                        */ 
 /*    _ux_hcd_sim_host_timer_function                     PORTABLE C      */ 
-/*                                                           6.1          */
+/*                                                           6.1.10       */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Chaoqiong Xiao, Microsoft Corporation                               */
@@ -44,6 +45,8 @@
 /*                                                                        */ 
 /*     This function is the timer function of the simulator. It is        */
 /*     invoked on a timer every tick.                                     */ 
+/*                                                                        */
+/*     It's for RTOS mode.                                                */
 /*                                                                        */ 
 /*  INPUT                                                                 */ 
 /*                                                                        */ 
@@ -68,6 +71,10 @@
 /*  05-19-2020     Chaoqiong Xiao           Initial Version 6.0           */
 /*  09-30-2020     Chaoqiong Xiao           Modified comment(s),          */
 /*                                            resulting in version 6.1    */
+/*  01-31-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            used macros to configure    */
+/*                                            for RTOS mode compile,      */
+/*                                            resulting in version 6.1.10 */
 /*                                                                        */
 /**************************************************************************/
 VOID  _ux_hcd_sim_host_timer_function(ULONG hcd_sim_host_addr)
@@ -92,8 +99,7 @@ UX_HCD              *hcd;
 
         /* Wake up the thread for the controller transaction processing.  */
         hcd -> ux_hcd_thread_signal++;
-        _ux_utility_semaphore_put(&_ux_system_host -> ux_system_host_hcd_semaphore);
+        _ux_host_semaphore_put(&_ux_system_host -> ux_system_host_hcd_semaphore);
     }
 }
-
-
+#endif

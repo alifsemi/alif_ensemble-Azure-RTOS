@@ -1,5 +1,6 @@
 /***************************************************************************
  * Copyright (c) 2024 Microsoft Corporation 
+ * Copyright (c) 2025-present Eclipse ThreadX Contributors
  * 
  * This program and the accompanying materials are made available under the
  * terms of the MIT License which is available at
@@ -20,7 +21,7 @@
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    CHECK_IP_ADDRESSES_BY_PREFIX                        PORTABLE C      */
-/*                                                           6.1          */
+/*                                                           6.4.3        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Yuxin Zhou, Microsoft Corporation                                   */
@@ -117,7 +118,7 @@ ULONG mask;
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    CHECK_IPV6_ADDRESSES_SAME                           PORTABLE C      */
-/*                                                           6.1          */
+/*                                                           6.4.3        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Yuxin Zhou, Microsoft Corporation                                   */
@@ -176,7 +177,7 @@ INT CHECK_IPV6_ADDRESSES_SAME(ULONG *ip_addr1, ULONG *ip_addr2)
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    CHECK_IPV6_ADDRESS_RANGE                            PORTABLE C      */
-/*                                                           6.1          */
+/*                                                           6.4.3        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Yuxin Zhou, Microsoft Corporation                                   */
@@ -306,7 +307,7 @@ INT ip_addr_cmp1 = 0, ip_addr_cmp2 = 0;
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    CHECK_UNSPECIFIED_ADDRESS                           PORTABLE C      */
-/*                                                           6.1          */
+/*                                                           6.4.3        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Yuxin Zhou, Microsoft Corporation                                   */
@@ -360,7 +361,7 @@ INT CHECK_UNSPECIFIED_ADDRESS(ULONG *ip_addr)
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    SET_UNSPECIFIED_ADDRESS                             PORTABLE C      */
-/*                                                           6.1          */
+/*                                                           6.4.3        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Yuxin Zhou, Microsoft Corporation                                   */
@@ -412,7 +413,7 @@ void SET_UNSPECIFIED_ADDRESS(ULONG *ip_addr)
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    COPY_IPV6_ADDRESS                                   PORTABLE C      */
-/*                                                           6.1          */
+/*                                                           6.4.3        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Yuxin Zhou, Microsoft Corporation                                   */
@@ -468,7 +469,7 @@ void COPY_IPV6_ADDRESS(ULONG *copy_from, ULONG *copy_to)
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    COPY_NXD_ADDRESS                                    PORTABLE C      */
-/*                                                           6.1          */
+/*                                                           6.4.3        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Yuxin Zhou, Microsoft Corporation                                   */
@@ -530,7 +531,7 @@ void COPY_NXD_ADDRESS(NXD_ADDRESS *copy_from, NXD_ADDRESS  *copy_to)
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    SET_SOLICITED_NODE_MULTICAST_ADDRESS                PORTABLE C      */
-/*                                                           6.1          */
+/*                                                           6.4.3        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Yuxin Zhou, Microsoft Corporation                                   */
@@ -590,7 +591,7 @@ void SET_SOLICITED_NODE_MULTICAST_ADDRESS(ULONG *address,
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    CHECK_ALL_ROUTER_MCAST_ADDRESS                      PORTABLE C      */
-/*                                                           6.1          */
+/*                                                           6.4.3        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Yuxin Zhou, Microsoft Corporation                                   */
@@ -655,7 +656,7 @@ INT CHECK_ALL_ROUTER_MCAST_ADDRESS(ULONG *address)
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    CHECK_IPV6_SOLICITED_NODE_MCAST_ADDRESS             PORTABLE C      */
-/*                                                           6.1          */
+/*                                                           6.4.3        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Yuxin Zhou, Microsoft Corporation                                   */
@@ -747,7 +748,7 @@ INT isMulticast = 0;
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    IPv6_Address_Type                                   PORTABLE C      */
-/*                                                           6.1          */
+/*                                                           6.4.3        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Yuxin Zhou, Microsoft Corporation                                   */
@@ -889,7 +890,7 @@ ULONG tmp;
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _nx_ipv6_address_change_endian                      PORTABLE C      */
-/*                                                           6.1          */
+/*                                                           6.4.3        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Yuxin Zhou, Microsoft Corporation                                   */

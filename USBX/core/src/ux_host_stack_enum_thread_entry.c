@@ -1,13 +1,12 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 
 /**************************************************************************/
@@ -34,7 +33,7 @@
 /*  FUNCTION                                               RELEASE        */ 
 /*                                                                        */ 
 /*    _ux_host_stack_enum_thread_entry                    PORTABLE C      */ 
-/*                                                           6.1          */
+/*                                                           6.1.10       */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Chaoqiong Xiao, Microsoft Corporation                               */
@@ -54,6 +53,8 @@
 /*    there has been a change in the USB topology which could be either   */
 /*    a insertion or extraction or eventually a hub downstream port       */ 
 /*    signal.                                                             */
+/*                                                                        */
+/*    This is for RTOS mode.                                              */
 /*                                                                        */ 
 /*  INPUT                                                                 */ 
 /*                                                                        */ 
@@ -82,6 +83,9 @@
 /*                                            optimized based on compile  */
 /*                                            definitions,                */
 /*                                            resulting in version 6.1    */
+/*  01-31-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            refined macros names,       */
+/*                                            resulting in version 6.1.10 */
 /*                                                                        */
 /**************************************************************************/
 VOID  _ux_host_stack_enum_thread_entry(ULONG input)
@@ -94,7 +98,7 @@ VOID  _ux_host_stack_enum_thread_entry(ULONG input)
     {   
 
         /* Wait for the semaphore to be put by the root hub or a regular hub.  */
-        _ux_utility_semaphore_get(&_ux_system_host -> ux_system_host_enum_semaphore, UX_WAIT_FOREVER);
+        _ux_host_semaphore_get_norc(&_ux_system_host -> ux_system_host_enum_semaphore, UX_WAIT_FOREVER);
 
 #if UX_MAX_DEVICES > 1
         /* We try the hub first. For this we look into the USBX project
