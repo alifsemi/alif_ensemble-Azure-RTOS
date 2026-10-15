@@ -13,6 +13,9 @@
   -->
 
   <releases>
+    <release version="1.3.1" tag="v1.3.1" url="https://github.com/alifsemi/alif_ensemble-Azure-RTOS/releases/download/v1.3.1/AlifSemiconductor.AzureRTOS.1.3.1.pack" date="2026-10-15" deprecated="2025-10-15" replacement="AlifSemiconductor.ThreadX" >
+      - Pack has been renamed to AlifSemiconductor.ThreadX
+    </release>
     <release version="1.3.0" tag="v1.3.0" url="https://github.com/alifsemi/alif_ensemble-Azure-RTOS/releases/download/v1.3.0/AlifSemiconductor.AzureRTOS.1.3.0.pack" date="2024-10-04">
       - update sample apps
     </release>
@@ -2276,7 +2279,7 @@
 	    <file category="source" name="NETX/addons/azure_iot/samples/sample_azure_iot_embedded_sdk_with_retry.c" attr="template" select="IOT App"/>
       </files>
     </component>
-  
+
     <!-- ====================== USBX Component Description ====================== -->
 
     <component Cgroup="USBX" Csub="Core" Cversion="6.1.9" condition="AzureRTOS USBX" >
