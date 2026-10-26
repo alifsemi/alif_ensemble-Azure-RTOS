@@ -402,18 +402,12 @@
 	<file category="header"       name="THREADX/samples/Include/i2s_samples.h"    attr="template" select="ThreadX I2S test App"/>
 	<file category="source"       name="THREADX/samples/demo_i3c_i2cbusproxy_threadx.c"  attr="template" select="ThreadX I2Con I3C test App"/>
 	<file category="source"       name="THREADX/samples/demo_mt9m114_threadx.c"        attr="template" select="ThreadX Camera test App"/>
-	<file category="source"       name="THREADX/samples/bayer.c"			  attr="template" select="ThreadX Camera test App"/>
-	<file category="source"       name="THREADX/samples/bayer2rgb.c"		  attr="template" select="ThreadX Camera test App"/>
-	<file category="header"		  name="THREADX/samples/Include/bayer.h"          attr="template" select="ThreadX Camera test App"/>
 	<file category="source"       name="THREADX/samples/demo_adc_threadx.c"		  attr="template" select="ThreadX ADC test App"/>
 	<file category="source"       name="THREADX/samples/demo_adc_click_board_threadx.c"		  attr="template" select="ThreadX ADC Click Board test App"/>
 	<file category="source"       name="THREADX/samples/demo_adc_potentiometer_threadx.c"		  attr="template" select="ThreadX ADC Potentiometer test App"/>
 	<file category="source"       name="THREADX/samples/demo_adc_ext_trigger_threadx.c"		  attr="template" select="ThreadX ADC Extenal Trigger test App"/>
 	<file category="source"       name="THREADX/samples/demo_dac_threadx.c"		  attr="template" select="ThreadX DAC test App"/>
-	<file category="source"       name="THREADX/samples/demo_arx3a0_threadx.c"        attr="template" select="ThreadX MIPI CSI2 Image capture App"/>
-	<file category="source"       name="THREADX/samples/bayer.c"			  attr="template" select="ThreadX MIPI CSI2 Image capture App"/>
-	<file category="source"       name="THREADX/samples/bayer2rgb.c"		  attr="template" select="ThreadX MIPI CSI2 Image capture App"/>
-	<file category="header"		  name="THREADX/samples/Include/bayer.h"          attr="template" select="ThreadX MIPI CSI2 Image capture App"/>
+	<file category="source"       name="THREADX/samples/demo_mipi_csi2_camera_threadx.c"        attr="template" select="ThreadX MIPI CSI2 Image capture App"/>
 	<file category="source"       name="THREADX/samples/demo_crc_threadx.c"		  attr="template" select="ThreadX CRC testApp"/>
 	<file category="source"       name="THREADX/samples/demo_i3c_i2cmixbus_threadx.c"    attr="template" select="ThreadX I3C/I2C Mix bus testApp"/>
 	<file category="source"       name="THREADX/samples/demo_cmp_threadx.c"	  attr="template" select="ThreadX Comparator testApp"/>
@@ -422,10 +416,7 @@
 	<file category="source"       name="THREADX/samples/demo_hwsem_threadx.c"    attr="template" select="ThreadX HWSEM testApp"/>
 	<file category="source"       name="THREADX/samples/demo_mipi_Interface_video_isp_threadx.c"    attr="template" select="ThreadX Viewfinder testApp" condition="E8"/>
 	<file category="source"       name="THREADX/samples/demo_mipi_Interface_video_threadx.c"    attr="template" select="ThreadX Viewfinder testApp" condition="E7"/>
-	<file category="source"       name="THREADX/samples/image_processing.c"    attr="template" select="ThreadX Viewfinder testApp" condition="E7"/>
-	<file category="source"       name="THREADX/samples/bayer.c"			  attr="template" select="ThreadX Viewfinder testApp" condition="E7"/>
-	<file category="source"       name="THREADX/samples/bayer2rgb.c"		  attr="template" select="ThreadX Viewfinder testApp" condition="E7"/>
-	<file category="header"		  name="THREADX/samples/Include/bayer.h"          attr="template" select="ThreadX Viewfinder testApp" condition="E7"/>
+	<file category="source"       name="THREADX/samples/demo_mipi_Interface_video_threadx.c"    attr="template" select="ThreadX MIPI Interface Video testApp" condition="E8"/>
 	<file category="source"       name="THREADX/samples/demo_flash_issi_threadx.c"		  attr="template" select="ThreadX (OSPI)ISSI Flash testApp"/>
     <file category="source"       name="THREADX/samples/demo_qec_threadx.c"		  attr="template" select="ThreadX QEC testApp"/>
 	<file category="source"       name="THREADX/samples/demo_pdm_threadx.c"		  attr="template" select="ThreadX PDM testApp"/>
